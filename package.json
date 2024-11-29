@@ -6,13 +6,16 @@
   "scripts": {
     "build": "tsc --build",
     "start": "node ./dist/src/app.js",
+    "lint": "eslint src --fix",
     "start:dev": "nodemon ./src/app.ts",
+    "db:generate-migration": "typeorm-ts-node-commonjs migration:generate -d ./src/config/data-source.ts ./src/migrations/migration",
+    "db:migrate": "typeorm-ts-node-commonjs migration:run -d ./src/config/data-source.ts",
     "prepare": "husky"
   },
   "lint-staged": {
     "*.{js,ts}": [
-      "eslint src --fix",
-      "prettier --write"
+      "prettier --write",
+      "eslint src --fix"
     ]
   },
   "keywords": [],
@@ -21,7 +24,10 @@
   "dependencies": {
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
-    "socket.io": "^4.8.1"
+    "mysql2": "^3.11.5",
+    "reflect-metadata": "^0.2.2",
+    "socket.io": "^4.8.1",
+    "typeorm": "^0.3.20"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",

@@ -1,9 +1,13 @@
 import express from "express";
+import { config } from "dotenv";
+import "reflect-metadata";
+import { initDb } from "./config/data-source";
 
 const app = express();
 
-const PORT = "3000";
+config();
+initDb();
 
-app.listen(PORT, () => {
-  console.log(`This app is running on port ${PORT}`);
+app.listen(process.env.PORT, () => {
+  console.log(`This app is running on port ${process.env.PORT}`);
 });
