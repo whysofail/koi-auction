@@ -24,7 +24,7 @@ const initDb = async () => {
     await AppDataSource.initialize();
   } catch (error) {
     console.error("Error initializing data source", error);
-    process.exit(1);
+    process.exit();
   }
 };
 

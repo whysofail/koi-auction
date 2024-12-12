@@ -2,7 +2,7 @@ import {
   Column,
   Entity,
   JoinColumn,
-  OneToOne,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
 import User from "./User";
@@ -12,10 +12,10 @@ class Item {
   @PrimaryGeneratedColumn("uuid")
   declare item_id: number;
 
-  // 1-to-1 relationship with User (as a child)
-  @OneToOne(() => User)
+  // Many-to-1 relationship with User (admin) (as a child)
+  @ManyToOne(() => User, (user) => user.items)
   @JoinColumn({ name: "seller_id" })
-  declare user: User;
+  declare user: User | null;
 
   @Column()
   declare item_name: string;
@@ -34,7 +34,9 @@ class Item {
   declare reserve_price: number;
 
   // TODO - If possible, use enum for condition
-  @Column()
+  @Column({
+    default: "new",
+  })
   declare condition: string;
 }
 

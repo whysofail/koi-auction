@@ -9,6 +9,12 @@ import {
 } from "typeorm";
 import Auction from "./Auction";
 import Bid from "./Bid";
+import Item from "./Item";
+
+export enum UserRole {
+  ADMIN = "admin",
+  USER = "user",
+}
 
 @Entity()
 class User {
@@ -17,6 +23,13 @@ class User {
 
   @Column()
   declare username: string;
+
+  @Column({
+    type: "enum",
+    enum: UserRole,
+    default: UserRole.USER,
+  })
+  declare role: UserRole;
 
   @IsEmail()
   @Column()
@@ -32,13 +45,17 @@ class User {
   @UpdateDateColumn()
   declare last_update: Date;
 
-  // One-to-many relationship with Auction (as a parent)
+  // One-to-many relationship with Auction (as a parent) that represents the creator of the auction (admin) as a child
   @OneToMany(() => Auction, (auction) => auction.user)
   declare auctions: Auction[];
 
   // One-to-many relationship with Bid (as a parent)
   @OneToMany(() => Bid, (bid) => bid.user)
   declare bids: Bid[];
+
+  // One-to-many relationship with Item (as a parent)
+  @OneToMany(() => Item, (item) => item.user)
+  declare items: Item[];
 }
 
 export default User;

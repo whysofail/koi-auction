@@ -18,6 +18,9 @@
   ],
   "plugins": ["@typescript-eslint"],
   "rules": {
-    "import/no-cycle": "off"
+    "import/no-cycle": "off",
+    "no-plusplus": "off",
+    "no-console": "off",
+    "import/no-extraneous-dependencies": "off"
   }
 }
