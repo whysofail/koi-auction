@@ -1,10 +1,25 @@
-import express from "express";
+import { Router, Request, Response } from "express";
+import { login, register } from "../controllers/auth.controllers";
+import { protect, authorize } from "../middlewares/auth.middleware";
 
-const router = express.Router();
+const router = Router();
 
-// Define your routes here
 router.get("/", (req, res) => {
-  res.send("Example Route - Home");
+  res.json({ message: "Welcome to the API" });
 });
+
+const protectedRoute = (role: string) => [
+  protect,
+  authorize([role]),
+  (req: Request, res: Response) => {
+    res.json({ message: "Welcome to the API" });
+  },
+];
+
+router.get("/protected/admin", ...protectedRoute("admin"));
+router.get("/protected/user", ...protectedRoute("user"));
+
+router.post("/login", login);
+router.post("/register", register);
 
 export default router;

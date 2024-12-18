@@ -2,9 +2,9 @@
 import { DataSource } from "typeorm";
 import { Seeder, SeederFactoryManager } from "typeorm-extension";
 import { hash } from "bcrypt";
-import User, { UserRole } from "../entity/User";
-import Item from "../entity/Item";
-import Auction from "../entity/Auction";
+import User, { UserRole } from "../entities/User";
+import Item from "../entities/Item";
+import Auction from "../entities/Auction";
 
 export default class MainSeeder implements Seeder {
   async run(dataSource: DataSource, factoryManager: SeederFactoryManager) {
