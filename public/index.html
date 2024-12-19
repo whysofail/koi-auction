@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Auction Page</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f9f9f9;
+        padding: 50px;
+        text-align: center;
+      }
+
+      .auction-box {
+        max-width: 400px;
+        margin: 0 auto;
+        padding: 20px;
+        border: 2px solid #ddd;
+        background-color: #fff;
+      }
+
+      h2 {
+        color: #333;
+      }
+
+      .bid-amount {
+        font-size: 2em;
+        font-weight: bold;
+        color: green;
+      }
+
+      input[type="number"] {
+        width: 80%;
+        padding: 10px;
+        margin: 10px;
+        font-size: 1em;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+      }
+
+      button {
+        padding: 10px 20px;
+        font-size: 1em;
+        cursor: pointer;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+      }
+
+      button:hover {
+        background-color: #0056b3;
+      }
+
+      .bid-list {
+        list-style: none;
+        padding: 0;
+      }
+
+      .bid-list li {
+        padding: 5px;
+        margin-bottom: 5px;
+        background-color: #f1f1f1;
+        border-radius: 5px;
+      }
+
+      .connected-users {
+        list-style: none;
+        padding: 0;
+      }
+
+      .connected-users li {
+        padding: 5px;
+        margin-bottom: 5px;
+        background-color: #e1e1e1;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="auction-box">
+      <h2>Auction for Item #1</h2>
+      <p>Current Bid:</p>
+      <div id="currentBid" class="bid-amount">$0</div>
+
+      <input
+        type="number"
+        id="bidAmount"
+        placeholder="Enter your bid"
+        min="1"
+      />
+      <button id="placeBidButton">Place Bid</button>
+
+      <ul id="bidList" class="bid-list"></ul>
+
+      <h3>Connected Users:</h3>
+      <ul id="connectedUsers" class="connected-users"></ul>
+    </div>
+
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+      const socket = io("https://j2b8tk7v-8001.asse.devtunnels.ms"); // Connect to your server
+      const auctionId = "3f96fd11-07ce-4b40-a200-ec0b03bdfd72"; // Example auction ID
+
+      const currentBidElement = document.getElementById("currentBid");
+      const bidAmountInput = document.getElementById("bidAmount");
+      const placeBidButton = document.getElementById("placeBidButton");
+      const bidListElement = document.getElementById("bidList");
+      const connectedUsersElement = document.getElementById("connectedUsers");
+
+      // Join the auction room
+      socket.emit("joinAuction", auctionId);
+
+      // Request users in the auction when the page loads
+      socket.emit("getUsersInAuction", auctionId);
+
+      // Listen for updates to the list of connected users
+      socket.on("userListUpdate", (users) => {
+        console.log("Updated users in auction:", users);
+        connectedUsersElement.innerHTML = ""; // Clear the existing list
+        users.forEach((userId) => {
+          const userElement = document.createElement("li");
+          userElement.textContent = `User: ${userId}`;
+          connectedUsersElement.appendChild(userElement);
+        });
+      });
+
+      // Listen for bid updates from the server
+      socket.on("bidUpdate", (data) => {
+        if (data.auctionId === auctionId) {
+          currentBidElement.textContent = `$${data.bidAmount}`;
+          const newBid = document.createElement("li");
+          newBid.textContent = `Bid: $${data.bidAmount}`;
+          bidListElement.prepend(newBid); // Add new bid to the top
+        }
+      });
+
+      // Handle placing a new bid
+      placeBidButton.addEventListener("click", () => {
+        const bidAmount = parseInt(bidAmountInput.value);
+        if (!isNaN(bidAmount) && bidAmount > 0) {
+          socket.emit("newBid", {
+            auctionId: auctionId,
+            bidAmount: bidAmount,
+          });
+          bidAmountInput.value = ""; // Clear the input field
+        } else {
+          alert("Please enter a valid bid amount!");
+        }
+      });
+    </script>
+  </body>
+</html>

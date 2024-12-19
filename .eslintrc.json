@@ -21,6 +21,7 @@
     "import/no-cycle": "off",
     "no-plusplus": "off",
     "no-console": "off",
-    "import/no-extraneous-dependencies": "off"
+    "import/no-extraneous-dependencies": "off",
+    "@typescript-eslint/naming-convention": "warn"
   }
 }

@@ -6,6 +6,7 @@ import Auction, { AuctionStatus } from "../entities/Auction";
 import Bid from "../entities/Bid";
 import User from "../entities/User";
 import buildAuctionFilters from "../utils/auctionFilter"; // Import the filter builder function
+import paginate from "../utils/pagination";
 
 // Create an auction
 export const createAuction: RequestHandler = async (
@@ -57,15 +58,15 @@ export const getAuctions: RequestHandler = async (
   res: Response,
 ): Promise<void> => {
   try {
-    console.log(req.query);
     const auctionRepo = AppDataSource.getRepository(Auction);
 
     // Build filters based on the query parameters from the request
     const whereCondition = buildAuctionFilters(req.query);
 
     // Find auctions based on the filters
-    const auctions = await auctionRepo.find({
+    const auctions = await auctionRepo.findAndCount({
       where: whereCondition, // Apply filters here
+      ...paginate(req.query), // Apply pagination
       relations: ["item", "user", "bids"], // Including related entities
     });
 
