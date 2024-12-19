@@ -13,7 +13,7 @@ import Auction from "./Auction";
 @Entity()
 class Bid {
   @PrimaryGeneratedColumn("uuid")
-  declare bid_id: number;
+  declare bid_id: string;
 
   @Column("decimal")
   declare bid_amount: number;

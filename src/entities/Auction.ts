@@ -25,7 +25,7 @@ export enum AuctionStatus {
 @Entity()
 class Auction {
   @PrimaryGeneratedColumn("uuid")
-  declare auction_id: number;
+  declare auction_id: string;
 
   @CreateDateColumn({
     type: "datetime",

@@ -10,7 +10,7 @@ import User from "./User";
 @Entity()
 class Item {
   @PrimaryGeneratedColumn("uuid")
-  declare item_id: number;
+  declare item_id: string;
 
   // Many-to-1 relationship with User (admin) (as a child)
   @ManyToOne(() => User, (user) => user.items)
