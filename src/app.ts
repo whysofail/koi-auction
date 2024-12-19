@@ -1,8 +1,11 @@
 import express from "express";
 import { config } from "dotenv"; // Load environment variables
 import "reflect-metadata"; // Required for TypeORM to work with decorators
+import http from "http"; // HTTP server for integrating Socket.IO
+import { Server } from "socket.io";
 import { initDb } from "./config/data-source"; // Database initialization
 import router from "./routes"; // Import your routes
+import initializeSockets from "./sockets"; // WebSocket logic initialization
 
 // Initialize environment variables
 config();
@@ -19,15 +22,22 @@ app.use("/api", router);
 // Initialize database
 initDb();
 
-// Global error handling middleware (optional but recommended)
-app.use((err: Error, req: express.Request, res: express.Response) => {
-  console.error(err.stack); // Log the error stack for debugging purposes
-  res
-    .status(500)
-    .json({ message: "Internal Server Error", error: err.message });
+// Create the HTTP server from the app
+const server = http.createServer(app);
+
+// Initialize Socket.IO
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Allow all origins (adjust for production)
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"], // Optional, depending on your needs
+  },
 });
 
-// Start server
-app.listen(process.env.PORT || 8001, () => {
+// Initialize all WebSocket features (auction logic, etc.)
+initializeSockets(io);
+
+// Start the HTTP server (use server.listen, not app.listen)
+server.listen(process.env.PORT || 8001, () => {
   console.log(`This app is running on port ${process.env.PORT || 8001}`);
 });

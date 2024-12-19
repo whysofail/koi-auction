@@ -7,6 +7,7 @@ import {
   JoinColumn,
   OneToOne,
   OneToMany,
+  UpdateDateColumn,
 } from "typeorm";
 import User from "./User";
 import Item from "./Item";
@@ -41,7 +42,13 @@ class Auction {
   })
   declare end_time: Date;
 
-  // TODO - If possible, use enum for status
+  @UpdateDateColumn({
+    type: "datetime",
+    default: () => "CURRENT_TIMESTAMP(6)",
+    precision: 6,
+  })
+  declare updated_at: Date; // Updated timestamp to track changes to the auction status
+
   @Column({
     type: "enum",
     enum: AuctionStatus,
@@ -55,17 +62,21 @@ class Auction {
   })
   declare current_highest_bid: number;
 
-  // 1-to-1 relationship with Item (as a child)
+  @Column({
+    type: "decimal",
+    nullable: true,
+    default: null,
+  })
+  declare reserve_price: number | null; // Optional field for a reserve price
+
   @OneToOne(() => Item)
   @JoinColumn({ name: "item_id" })
   declare item: Item;
 
-  // Many-to-one relationship that represents the creator of the auction (admin) as a child
   @ManyToOne(() => User, (user) => user.auctions)
   @JoinColumn({ name: "created_by_id" })
   declare user: User;
 
-  // One-to-many relationship with Bid (as a parent)
   @OneToMany(() => Bid, (bid) => bid.auction)
   declare bids: Bid[] | null;
 }
