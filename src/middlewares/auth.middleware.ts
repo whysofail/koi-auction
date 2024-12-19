@@ -28,7 +28,6 @@ export const protect: RequestHandler = async (
       role: string;
     };
     req.user = decoded; // Attach decoded user data to the request object
-    console.log(req.user);
     next(); // Pass control to the next middleware or route handler
   } catch (error) {
     res.status(401).json({ message: "Invalid token" });

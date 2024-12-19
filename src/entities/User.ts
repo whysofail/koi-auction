@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
   OneToMany,
 } from "typeorm";
+
 import Auction from "./Auction";
 import Bid from "./Bid";
 import Item from "./Item";
@@ -19,7 +20,7 @@ export enum UserRole {
 @Entity()
 class User {
   @PrimaryGeneratedColumn("uuid")
-  declare user_id: number;
+  declare user_id: string;
 
   @Column()
   declare username: string;

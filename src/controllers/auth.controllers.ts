@@ -38,7 +38,7 @@ export const login: RequestHandler = async (
 
     // Generate JWT token
     const token = jwt.sign(
-      { id: user.user_id, role: user.role },
+      { user_id: user.user_id, role: user.role },
       process.env.JWT_SECRET || "",
       {
         expiresIn: "1h",
@@ -49,7 +49,7 @@ export const login: RequestHandler = async (
     res.json({
       token,
       user: {
-        id: user.user_id,
+        user_id: user.user_id,
         name: user.username,
         email: user.email,
         role: user.role,
