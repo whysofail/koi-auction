@@ -1,12 +1,12 @@
 import {
   Column,
-  CreateDateColumn,
   Entity,
   ManyToOne,
   PrimaryGeneratedColumn,
   JoinColumn,
   OneToOne,
   OneToMany,
+  CreateDateColumn,
   UpdateDateColumn,
 } from "typeorm";
 import User from "./User";
@@ -14,13 +14,13 @@ import Item from "./Item";
 import Bid from "./Bid";
 
 export enum AuctionStatus {
-  DRAFT = "DRAFT", // Auction is being prepared but not yet active
-  PENDING = "PENDING", // Auction is scheduled but not started
-  ACTIVE = "ACTIVE", // Auction is currently ongoing and accepting bids
-  COMPLETED = "COMPLETED", // Auction has ended naturally with a winner
-  CANCELLED = "CANCELLED", // Auction was terminated before completion
-  EXPIRED = "EXPIRED", // Auction ended without meeting reserve price or other conditions
-  FAILED = "FAILED", // Auction did not receive any bids or meet minimum requirements
+  DRAFT = "DRAFT",
+  PENDING = "PENDING",
+  ACTIVE = "ACTIVE",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+  EXPIRED = "EXPIRED",
+  FAILED = "FAILED",
 }
 
 @Entity()
@@ -28,26 +28,21 @@ class Auction {
   @PrimaryGeneratedColumn("uuid")
   declare auction_id: string;
 
-  @CreateDateColumn({
-    type: "datetime",
-    default: () => "CURRENT_TIMESTAMP(6)",
-    precision: 6,
-  })
-  declare start_time: Date;
+  @OneToOne(() => Item)
+  @JoinColumn({ name: "item_id" })
+  declare item: Item;
 
-  @CreateDateColumn({
-    type: "datetime",
-    default: () => "CURRENT_TIMESTAMP(6)",
-    precision: 6,
+  @Column({
+    type: "timestamp",
+    default: () => "CURRENT_TIMESTAMP",
   })
-  declare end_time: Date;
+  declare start_datetime: Date;
 
-  @UpdateDateColumn({
-    type: "datetime",
-    default: () => "CURRENT_TIMESTAMP(6)",
-    precision: 6,
+  @Column({
+    type: "timestamp",
+    default: () => "CURRENT_TIMESTAMP",
   })
-  declare updated_at: Date; // Updated timestamp to track changes to the auction status
+  declare end_datetime: Date;
 
   @Column({
     type: "enum",
@@ -58,27 +53,33 @@ class Auction {
 
   @Column({
     type: "decimal",
+    precision: 10, // Total digits
+    scale: 2, // Digits after the decimal point
     default: 0,
   })
   declare current_highest_bid: number;
 
   @Column({
     type: "decimal",
+    precision: 10,
+    scale: 2,
     nullable: true,
     default: null,
   })
-  declare reserve_price: number | null; // Optional field for a reserve price
-
-  @OneToOne(() => Item)
-  @JoinColumn({ name: "item_id" })
-  declare item: Item;
+  declare reserve_price: number | null;
 
   @ManyToOne(() => User, (user) => user.auctions)
   @JoinColumn({ name: "created_by_id" })
   declare user: User;
 
+  @CreateDateColumn({ name: "created_at" })
+  declare created_at: Date;
+
+  @UpdateDateColumn({ name: "updated_at" })
+  declare updated_at: Date;
+
   @OneToMany(() => Bid, (bid) => bid.auction)
-  declare bids: Bid[] | null;
+  declare bids?: Bid[]; // Marked optional
 }
 
 export default Auction;

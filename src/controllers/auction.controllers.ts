@@ -1,22 +1,24 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { Request, Response, RequestHandler } from "express";
 import { Server } from "socket.io";
+import moment from "moment";
+import { FindOptionsWhere } from "typeorm";
 import { AppDataSource } from "../config/data-source";
 import Auction, { AuctionStatus } from "../entities/Auction";
 import Bid from "../entities/Bid";
 import User from "../entities/User";
-import buildAuctionFilters from "../utils/auctionFilter"; // Import the filter builder function
 import paginate from "../utils/pagination";
+import buildDateRangeFilter from "../utils/dateRange";
 
 // Create an auction
 export const createAuction: RequestHandler = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  const { start_time, end_time, reserve_price, item_id } = req.body;
+  const { item_id, start_datetime, end_datetime, reserve_price } = req.body;
   const user_id = req.user?.user_id; // Assuming user is authenticated with JWT
 
-  if (!start_time || !end_time || !item_id || !reserve_price) {
+  if (!start_datetime || !end_datetime || !item_id || !reserve_price) {
     res.status(400).json({ message: "Missing required fields" });
     return;
   }
@@ -34,8 +36,8 @@ export const createAuction: RequestHandler = async (
 
     // Create a new auction entity
     const auction = auctionRepo.create({
-      start_time,
-      end_time,
+      start_datetime,
+      end_datetime,
       reserve_price,
       status: AuctionStatus.PENDING,
       current_highest_bid: 0,
@@ -60,20 +62,70 @@ export const getAuctions: RequestHandler = async (
   try {
     const auctionRepo = AppDataSource.getRepository(Auction);
 
-    // Build filters based on the query parameters from the request
-    const whereCondition = buildAuctionFilters(req.query);
+    // Extract query parameters
+    const { start_datetime, end_datetime, status, date_column } = req.query;
 
-    // Find auctions based on the filters
-    const auctions = await auctionRepo.findAndCount({
-      where: whereCondition, // Apply filters here
+    console.log({ start_datetime, end_datetime });
+
+    // Initialize where condition
+    const whereCondition: FindOptionsWhere<Auction> = {};
+
+    // Parse and validate datetimes
+    if (
+      start_datetime &&
+      !moment(String(start_datetime), "YYYY-MM-DD", true).isValid()
+    ) {
+      res.status(400).json({ message: "Invalid start_datetime format" });
+    }
+    if (
+      end_datetime &&
+      !moment(String(end_datetime), "YYYY-MM-DD", true).isValid()
+    ) {
+      res.status(400).json({ message: "Invalid end_datetime format" });
+    }
+
+    // Build dynamic date range filter
+    if (date_column && (start_datetime || end_datetime)) {
+      const parsedStartDate = start_datetime
+        ? moment.utc(String(start_datetime), "YYYY-MM-DDTHH:mm:ss").toDate()
+        : undefined;
+      const parsedEndDate = end_datetime
+        ? moment.utc(String(end_datetime), "YYYY-MM-DDTHH:mm:ss").toDate()
+        : undefined;
+      console.log({ parsedStartDate, parsedEndDate });
+      const dateRangeFilter = buildDateRangeFilter<Auction>(
+        date_column as keyof Auction,
+        {
+          start_datetime: parsedStartDate?.toISOString(),
+          end_datetime: parsedEndDate?.toISOString(),
+        },
+      );
+
+      if (dateRangeFilter) {
+        Object.assign(whereCondition, dateRangeFilter);
+      }
+    }
+
+    // Apply status filter
+    if (status) {
+      whereCondition.status = String(status).toUpperCase() as Auction["status"];
+    }
+
+    // Debug: Log constructed whereCondition
+    console.log("Constructed whereCondition:", whereCondition);
+
+    // Fetch auctions with filters, pagination, and relations
+    const [auctions, count] = await auctionRepo.findAndCount({
+      where: whereCondition,
       ...paginate(req.query), // Apply pagination
-      relations: ["item", "user", "bids"], // Including related entities
+      relations: ["item", "user", "bids"], // Include related entities
     });
 
-    res.status(200).json(auctions);
+    // Respond with auctions and count
+    res.status(200).json({ data: auctions, count });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error fetching auctions:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -90,8 +142,8 @@ export const getAuctionDetails: RequestHandler = async (
       relations: ["item", "user", "bids"],
       select: {
         auction_id: true,
-        start_time: true,
-        end_time: true,
+        start_datetime: true,
+        end_datetime: true,
         status: true,
         current_highest_bid: true,
         reserve_price: true,
