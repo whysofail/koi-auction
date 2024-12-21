@@ -1,7 +1,7 @@
 /* eslint-disable radix */
 import { setSeederFactory } from "typeorm-extension";
 import { faker } from "@faker-js/faker";
-import Item from "../../entity/Item";
+import Item from "../../entities/Item";
 
 const ItemsFactory = setSeederFactory(Item, () => {
   const item = new Item() as Omit<Item, "item_id" | "user">;

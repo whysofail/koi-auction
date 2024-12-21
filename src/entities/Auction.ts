@@ -8,6 +8,7 @@ import {
   OneToOne,
   OneToMany,
 } from "typeorm";
+import { IsEnum, IsNumber } from "class-validator";
 import User from "./User";
 import Item from "./Item";
 import Bid from "./Bid";
@@ -25,7 +26,7 @@ export enum AuctionStatus {
 @Entity()
 class Auction {
   @PrimaryGeneratedColumn("uuid")
-  declare auction_id: number;
+  declare auction_id: string;
 
   @CreateDateColumn({
     type: "datetime",
@@ -42,6 +43,7 @@ class Auction {
   declare end_time: Date;
 
   // TODO - If possible, use enum for status
+  @IsEnum(AuctionStatus)
   @Column({
     type: "enum",
     enum: AuctionStatus,
@@ -49,6 +51,7 @@ class Auction {
   })
   declare status: AuctionStatus;
 
+  @IsNumber()
   @Column({
     type: "decimal",
     default: 0,

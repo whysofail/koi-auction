@@ -16,7 +16,7 @@ const options: DataSourceOptions & SeederOptions = {
   username: DB_USERNAME,
   password: DB_PASS,
   database: DB_NAME,
-  entities: ["src/entity/*.ts"],
+  entities: ["src/entities/*.ts"],
   factories: ["src/seeders/factory/*.ts"],
   seeds: [MainSeeder],
 };

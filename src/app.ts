@@ -8,6 +8,8 @@ const app = express();
 config();
 initDb();
 
+app.use(express.json());
+
 app.listen(process.env.PORT, () => {
   console.log(`This app is running on port ${process.env.PORT}`);
 });

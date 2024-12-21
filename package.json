@@ -10,6 +10,9 @@
     "start:dev": "nodemon ./src/app.ts",
     "db:generate": "typeorm-ts-node-commonjs migration:generate -d ./src/config/data-source.ts ./src/migrations/migration",
     "db:migrate": "typeorm-ts-node-commonjs migration:run -d ./src/config/data-source.ts",
+    "db:show": "typeorm-ts-node-commonjs migration:show -d ./src/config/data-source.ts",
+    "db:drop": "typeorm-ts-node-commonjs schema:drop -d ./src/config/data-source.ts",
+    "db:fresh": "pnpm db:drop && pnpm db:migrate",
     "db:seed": "ts-node ./src/seeders/seed.ts",
     "prepare": "husky"
   },
@@ -30,8 +33,7 @@
     "reflect-metadata": "^0.2.2",
     "socket.io": "^4.8.1",
     "typeorm": "^0.3.20",
-    "typeorm-extension": "^3.6.3",
-    "zod": "^3.23.8"
+    "typeorm-extension": "^3.6.3"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",
