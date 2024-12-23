@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import { Request, Response, RequestHandler } from "express";
 import { Server } from "socket.io";
 import moment from "moment";
