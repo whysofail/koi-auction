@@ -1,7 +1,6 @@
 import { RequestHandler, Request, Response } from "express";
-import { AppDataSource } from "../config/data-source";
-import User from "../entities/User";
 import paginate from "../utils/pagination";
+import userRepository from "../repositories/user.repository";
 
 // Get information of the logged-in user
 export const getUserInfo: RequestHandler = async (
@@ -15,8 +14,7 @@ export const getUserInfo: RequestHandler = async (
       return;
     }
 
-    const userRepository = AppDataSource.getRepository(User);
-    const user = await userRepository.findOneBy({ user_id: userId });
+    const user = await userRepository.findUserById(userId);
 
     if (!user) {
       res.status(404).json({ message: "User not found." });
@@ -41,7 +39,6 @@ export const getAllUsers = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const userRepository = AppDataSource.getRepository(User);
     const users = await userRepository.findAndCount({
       ...paginate(req.query),
     });
@@ -66,10 +63,8 @@ export const createUser = async (
       return;
     }
 
-    const userRepository = AppDataSource.getRepository(User);
-
     // Check if the user already exists
-    const existingUser = await userRepository.findOne({ where: { email } });
+    const existingUser = await userRepository.findUserByEmail(email);
     if (existingUser) {
       res.status(400).json({ message: "User with this email already exists." });
       return;
@@ -110,10 +105,8 @@ export const updateUser = async (
       return;
     }
 
-    const userRepository = AppDataSource.getRepository(User);
-
     // Find user by user_id
-    const user = await userRepository.findOneBy({ user_id: userId });
+    const user = await userRepository.findUserById(userId);
 
     if (!user) {
       res.status(404).json({ message: "User not found." });
@@ -148,10 +141,8 @@ export const deleteUser = async (
   try {
     const { user_id } = req.params;
 
-    const userRepository = AppDataSource.getRepository(User);
-
     // Check if the user exists
-    const user = await userRepository.findOneBy({ user_id });
+    const user = await userRepository.findUserById(user_id);
 
     if (!user) {
       res.status(404).json({ message: "User not found." });

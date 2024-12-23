@@ -2,12 +2,12 @@ import { Request, Response, RequestHandler } from "express";
 import { Server } from "socket.io";
 import moment from "moment";
 import { FindOptionsWhere } from "typeorm";
-import { AppDataSource } from "../config/data-source";
 import Auction, { AuctionStatus } from "../entities/Auction";
-import Bid from "../entities/Bid";
-import User from "../entities/User";
 import paginate from "../utils/pagination";
 import buildDateRangeFilter from "../utils/dateRange";
+import userRepository from "../repositories/user.repository";
+import auctionRepository from "../repositories/auction.repository";
+import bidRepository from "../repositories/bid.repository";
 
 // Create an auction
 export const createAuction: RequestHandler = async (
@@ -15,7 +15,7 @@ export const createAuction: RequestHandler = async (
   res: Response,
 ): Promise<void> => {
   const { item_id, start_datetime, end_datetime, reserve_price } = req.body;
-  const user_id = req.user?.user_id; // Assuming user is authenticated with JWT
+  const user_id = req.user?.user_id ?? ""; // Assuming user is authenticated with JWT
 
   if (!start_datetime || !end_datetime || !item_id || !reserve_price) {
     res.status(400).json({ message: "Missing required fields" });
@@ -23,18 +23,17 @@ export const createAuction: RequestHandler = async (
   }
 
   try {
-    const auctionRepo = AppDataSource.getRepository(Auction);
-    const userRepo = AppDataSource.getRepository(User);
+    // const auctionRepo = AppDataSource.getRepository(Auction);
 
     // Find the user by their ID (user who is creating the auction)
-    const user = await userRepo.findOne({ where: { user_id } });
+    const user = await userRepository.findUserById(user_id);
     if (!user) {
       res.status(401).json({ message: "User not found" });
       return;
     }
 
     // Create a new auction entity
-    const auction = auctionRepo.create({
+    const auction = auctionRepository.create({
       start_datetime,
       end_datetime,
       reserve_price,
@@ -44,7 +43,7 @@ export const createAuction: RequestHandler = async (
       user,
     });
 
-    await auctionRepo.save(auction);
+    await auctionRepository.save(auction);
 
     res.status(201).json(auction);
   } catch (error) {
@@ -59,8 +58,6 @@ export const getAuctions: RequestHandler = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const auctionRepo = AppDataSource.getRepository(Auction);
-
     // Extract query parameters
     const { start_datetime, end_datetime, status, date_column } = req.query;
 
@@ -114,7 +111,7 @@ export const getAuctions: RequestHandler = async (
     console.log("Constructed whereCondition:", whereCondition);
 
     // Fetch auctions with filters, pagination, and relations
-    const [auctions, count] = await auctionRepo.findAndCount({
+    const [auctions, count] = await auctionRepository.findAndCount({
       where: whereCondition,
       ...paginate(req.query), // Apply pagination
       relations: ["item", "user", "bids"], // Include related entities
@@ -136,21 +133,7 @@ export const getAuctionDetails: RequestHandler = async (
   const { auction_id } = req.params;
 
   try {
-    const auction = await AppDataSource.getRepository(Auction).findOne({
-      where: { auction_id },
-      relations: ["item", "user", "bids"],
-      select: {
-        auction_id: true,
-        start_datetime: true,
-        end_datetime: true,
-        status: true,
-        current_highest_bid: true,
-        reserve_price: true,
-        item: { item_id: true, item_name: true, item_description: true },
-        user: { user_id: true, username: true, role: true },
-        bids: { bid_id: true, bid_amount: true, bid_time: true },
-      },
-    });
+    const auction = await auctionRepository.findAuctionById(auction_id);
 
     if (!auction) {
       res.status(404).json({ message: "Auction not found" });
@@ -170,7 +153,7 @@ export const placeBid: RequestHandler = async (
   res: Response,
 ): Promise<void> => {
   const { auction_id, bid_amount } = req.body;
-  const user_id = req.user?.user_id; // Assuming user is authenticated with JWT
+  const user_id = req.user?.user_id ?? ""; // Assuming user is authenticated with JWT
 
   if (!auction_id || !bid_amount) {
     res.status(400).json({ message: "Auction ID and bid amount are required" });
@@ -178,15 +161,8 @@ export const placeBid: RequestHandler = async (
   }
 
   try {
-    const auctionRepo = AppDataSource.getRepository(Auction);
-    const bidRepo = AppDataSource.getRepository(Bid);
-    const userRepo = AppDataSource.getRepository(User);
-
     // Find the auction by ID
-    const auction = await auctionRepo.findOne({
-      where: { auction_id },
-      relations: ["bids"],
-    });
+    const auction = await auctionRepository.findAuctionWithBids(auction_id);
 
     if (!auction) {
       res.status(404).json({ message: "Auction not found" });
@@ -208,24 +184,24 @@ export const placeBid: RequestHandler = async (
     }
 
     // Find the user placing the bid
-    const user = await userRepo.findOne({ where: { user_id } });
+    const user = await userRepository.findUserById(user_id);
     if (!user) {
       res.status(401).json({ message: "User not found" });
       return;
     }
 
     // Create a new bid
-    const bid = bidRepo.create({
+    const bid = bidRepository.create({
       auction,
       user,
       bid_amount,
     });
 
-    await bidRepo.save(bid);
+    await bidRepository.save(bid);
 
     // Update the auction’s current highest bid
     auction.current_highest_bid = bid_amount;
-    await auctionRepo.save(auction);
+    await auctionRepository.save(auction);
 
     // Emit the bid update to all users in the auction room
     const io: Server = req.app.get("io");
