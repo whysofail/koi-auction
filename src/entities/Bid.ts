@@ -7,6 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from "typeorm";
+import { IsNumber } from "class-validator";
 import User from "./User";
 import Auction from "./Auction";
 
@@ -15,6 +16,7 @@ class Bid {
   @PrimaryGeneratedColumn("uuid")
   declare bid_id: string;
 
+  @IsNumber()
   @Column("decimal")
   declare bid_amount: number;
 

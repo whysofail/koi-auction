@@ -1,4 +1,10 @@
-import { IsEmail, MinLength } from "class-validator";
+import {
+  IsEmail,
+  IsEnum,
+  IsNumber,
+  IsString,
+  MinLength,
+} from "class-validator";
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -22,9 +28,11 @@ class User {
   @PrimaryGeneratedColumn("uuid")
   declare user_id: string;
 
+  @IsString()
   @Column()
   declare username: string;
 
+  @IsEnum(UserRole)
   @Column({
     type: "enum",
     enum: UserRole,
@@ -40,6 +48,10 @@ class User {
   @Column()
   declare password: string;
 
+  @IsNumber()
+  @Column({ default: 0 })
+  declare balance: number;
+
   @CreateDateColumn()
   declare registration_date: Date;
 
@@ -48,15 +60,15 @@ class User {
 
   // One-to-many relationship with Auction (as a parent) that represents the creator of the auction (admin) as a child
   @OneToMany(() => Auction, (auction) => auction.user)
-  declare auctions: Auction[];
+  declare auctions: Auction[] | null;
 
   // One-to-many relationship with Bid (as a parent)
   @OneToMany(() => Bid, (bid) => bid.user)
-  declare bids: Bid[];
+  declare bids: Bid[] | null;
 
   // One-to-many relationship with Item (as a parent)
   @OneToMany(() => Item, (item) => item.user)
-  declare items: Item[];
+  declare items: Item[] | null;
 }
 
 export default User;

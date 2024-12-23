@@ -12,10 +12,11 @@ const AppDataSource = new DataSource({
   username: DB_USERNAME,
   password: DB_PASS,
   database: DB_NAME,
-  synchronize: true,
+  synchronize: false,
   logging: true,
   entities: ["src/entities/*.ts"],
   migrations: ["src/migrations/*.ts"],
+  migrationsTableName: "migrations",
 });
 
 const initDb = async () => {

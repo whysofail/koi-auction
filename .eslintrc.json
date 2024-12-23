@@ -22,6 +22,8 @@
     "no-plusplus": "off",
     "no-console": "off",
     "import/no-extraneous-dependencies": "off",
-    "@typescript-eslint/naming-convention": "warn"
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-invalid-void-type": "off",
+    "@typescript-eslint/naming-convention": "off"
   }
 }
