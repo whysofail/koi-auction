@@ -7,14 +7,15 @@
     "resolveJsonModule": true,
     "moduleDetection": "force",
     "strict": true,
-    "rootDir": "./",
     "moduleResolution": "NodeNext",
     "module": "NodeNext",
     "outDir": "./dist",
     "sourceMap": true,
     "lib": ["es2022"],
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "forceConsistentCasingInFileNames": true
   },
+  "include": ["./src"],
   "exclude": ["node_modules", "dist"]
 }

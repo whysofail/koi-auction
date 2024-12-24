@@ -1,4 +1,3 @@
-// createUserValidator.ts
 import { Request, Response, NextFunction } from "express";
 import { validate } from "class-validator";
 import User, { UserRole } from "../../entities/User";

@@ -8,12 +8,24 @@
   ],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
-    "project": "./tsconfig.json"
+    "project": ["./tsconfig.json", "__tests__/tsconfig.test.json"]
   },
   "overrides": [
     {
       "extends": ["plugin:@typescript-eslint/disable-type-checked"],
       "files": ["./**/*.js"]
+    },
+    {
+      "files": ["__tests__/**/*"],
+      "plugins": ["jest", "jest-formatting", "prettier"],
+      "extends": [
+        "plugin:jest/recommended",
+        "plugin:jest-formatting/recommended",
+        "plugin:prettier/recommended"
+      ],
+      "env": {
+        "jest/globals": true
+      }
     }
   ],
   "plugins": ["@typescript-eslint"],

@@ -17,7 +17,7 @@ const createAuctionValidator = async (
     auction.status = req.body.status || AuctionStatus.PENDING;
 
     // Additional validation for dates
-    if (auction.end_time <= auction.start_time) {
+    if (auction.end_datetime <= auction.start_datetime) {
       return res.status(400).json({
         message: "End time must be after start time",
       });

@@ -1,4 +1,3 @@
-// updateUserValidator.ts
 import { Request, Response, NextFunction } from "express";
 import { validate, isUUID } from "class-validator";
 import User, { UserRole } from "../../entities/User";
