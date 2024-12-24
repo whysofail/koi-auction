@@ -137,7 +137,7 @@ export const getAuctions: RequestHandler = async (
       relations: ["item", "user", "bids"], // Include related entities
     });
 
-    sendSuccessResponse(res, auctions, count);
+    sendSuccessResponse(res, { data: auctions, count });
   } catch (error) {
     console.error("Error fetching auctions:", error);
     sendErrorResponse(res, "Internal server error");
@@ -159,10 +159,10 @@ export const getAuctionDetails: RequestHandler = async (
       return;
     }
 
-    res.status(200).json(auction);
+    sendSuccessResponse(res, auction);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+    sendErrorResponse(res, "Internal server error");
   }
 };
 
@@ -189,22 +189,23 @@ export const placeBid: RequestHandler = async (
 
     // Ensure the auction is active
     if (auction.status !== AuctionStatus.ACTIVE) {
-      res.status(400).json({ message: "Auction is not active" });
+      sendErrorResponse(res, "Auction is not active", 400);
       return;
     }
 
     // Ensure bid is higher than current highest bid
     if (bid_amount <= auction.current_highest_bid) {
-      res
-        .status(400)
-        .json({ message: "Bid must be higher than the current highest bid" });
+      sendErrorResponse(
+        res,
+        "Bid amount must be higher than current highest bid",
+        400,
+      );
       return;
     }
 
     const user = await userRepository.findUserById(user_id);
     if (!user) {
-      res.status(401).json({ message: "User not found" });
-      return;
+      handleNotFound("User", res);
     }
 
     const bid = bidRepository.create({
@@ -225,9 +226,9 @@ export const placeBid: RequestHandler = async (
       message: `New bid placed for ${bid_amount}`,
     });
 
-    res.status(201).json(bid);
+    sendSuccessResponse(res, bid, 201);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+    sendErrorResponse(res, "Internal server error");
   }
 };
