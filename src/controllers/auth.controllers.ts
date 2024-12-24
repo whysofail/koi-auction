@@ -2,7 +2,7 @@ import { Request, Response, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import User from "../entities/User";
-import { AppDataSource } from "../config/data-source";
+import userRepository from "../repositories/user.repository";
 
 // Define the login function with correct return type
 export const login: RequestHandler = async (
@@ -19,10 +19,7 @@ export const login: RequestHandler = async (
 
   try {
     // Find the user by email
-    const user = await AppDataSource.getRepository(User).findOne({
-      where: { email },
-    });
-
+    const user = await userRepository.findUserByEmail(email);
     // If no user is found
     if (!user) {
       res.status(401).json({ message: "Invalid email or password" });
@@ -70,9 +67,7 @@ export const register: RequestHandler = async (
   const { username, email, password } = req.body;
 
   try {
-    const existingUser = await AppDataSource.getRepository(User).findOne({
-      where: { email },
-    });
+    const existingUser = await userRepository.findUserByEmail(email);
 
     if (existingUser) {
       res.status(400).json({ message: "Email already in use" });
@@ -86,7 +81,7 @@ export const register: RequestHandler = async (
     newUser.email = email;
     newUser.password = hashedPassword;
 
-    await AppDataSource.getRepository(User).save(newUser);
+    await userRepository.save(newUser);
 
     const token = jwt.sign(
       { id: newUser.user_id },
