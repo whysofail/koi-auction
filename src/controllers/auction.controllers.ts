@@ -166,6 +166,133 @@ export const getAuctionDetails: RequestHandler = async (
   }
 };
 
+export const updateAuction: RequestHandler = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  const { auction_id } = req.params;
+  const { start_datetime, end_datetime, reserve_price, status, item_id } =
+    req.body;
+  const user_id = req.user?.user_id ?? "";
+
+  // Validate required fields if any
+  if (
+    handleMissingFields(res, {
+      start_datetime,
+      end_datetime,
+      reserve_price,
+      status,
+    })
+  ) {
+    return;
+  }
+
+  // Validate and parse dates if present
+  const {
+    valid,
+    start_datetime: parsedStartDate,
+    end_datetime: parsedEndDate,
+  } = validateAndParseDates(req, res);
+  if (!valid) return;
+
+  try {
+    const auction = await auctionRepository.findAuctionById(auction_id);
+
+    if (!auction) {
+      handleNotFound("Auction", res);
+      return;
+    }
+
+    // Ensure the user is authorized to update the auction (check ownership or admin role)
+    if (auction.user.user_id !== user_id) {
+      sendErrorResponse(
+        res,
+        "You are not authorized to update this auction",
+        403,
+      );
+      return;
+    }
+
+    // TODO: Discuss. possible edit if auction has ended or expired
+    if (
+      auction.status === AuctionStatus.EXPIRED ||
+      auction.status === AuctionStatus.COMPLETED
+    ) {
+      sendErrorResponse(
+        res,
+        "Auction cannot be updated as it has already ended or expired",
+        400,
+      );
+      return;
+    }
+
+    // Update only the allowed fields
+    if (start_datetime) {
+      auction.start_datetime = parsedStartDate ?? auction.start_datetime;
+    }
+
+    if (end_datetime) {
+      auction.end_datetime = parsedEndDate ?? auction.end_datetime;
+    }
+
+    if (reserve_price) {
+      auction.reserve_price = reserve_price;
+    }
+
+    if (status) {
+      // Validate the status if provided and ensure it's a valid enum value
+      const validStatuses = Object.values(AuctionStatus);
+      if (!validStatuses.includes(status.toUpperCase() as AuctionStatus)) {
+        sendErrorResponse(
+          res,
+          `Invalid status value. Valid values are: ${validStatuses.join(", ")}`,
+          400,
+        );
+        return;
+      }
+
+      auction.status = status.toUpperCase() as AuctionStatus;
+    }
+
+    if (item_id) {
+      // Check if the new item exists
+      const newItem = await itemRepository.findItemById(item_id);
+      if (!newItem) {
+        sendErrorResponse(res, "Item not found", 404);
+        return;
+      }
+
+      // Check if the item is already part of another active auction
+      const existingAuctionWithItem = await auctionRepository.findOne({
+        where: {
+          item: { item_id },
+        },
+      });
+
+      if (existingAuctionWithItem) {
+        sendErrorResponse(
+          res,
+          "Item is already part of an active auction",
+          400,
+        );
+        return;
+      }
+
+      // Update the item associated with the auction
+      auction.item = newItem;
+    }
+
+    // Save the updated auction to the database
+    await auctionRepository.save(auction);
+
+    // Respond with the updated auction
+    sendSuccessResponse(res, auction);
+  } catch (error) {
+    console.error(error);
+    sendErrorResponse(res, "Internal server error");
+  }
+};
+
 // Place a bid
 export const placeBid: RequestHandler = async (
   req: Request,
