@@ -127,7 +127,7 @@ export const getAuctions: RequestHandler = async (
 
     // Add status directly to whereCondition if present
     if (status) {
-      whereCondition.status = String(status).toUpperCase() as Auction["status"];
+      whereCondition.status = String(status).toUpperCase() as AuctionStatus;
     }
 
     // Fetch auctions with filters, pagination, and relations

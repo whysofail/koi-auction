@@ -1,8 +1,10 @@
 import { Request, Response, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import { handleMissingFields } from "../utils/response/handleError";
 import User from "../entities/User";
 import userRepository from "../repositories/user.repository";
+import walletRepository from "../repositories/wallet.repository";
 
 // Define the login function with correct return type
 export const login: RequestHandler = async (
@@ -60,22 +62,31 @@ export const login: RequestHandler = async (
 };
 
 // Define the register function with correct return type
-export const register: RequestHandler = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
+export const register: RequestHandler = async (req, res) => {
   const { username, email, password } = req.body;
 
-  try {
-    const existingUser = await userRepository.findUserByEmail(email);
+  if (
+    handleMissingFields(res, {
+      username,
+      email,
+      password,
+    })
+  ) {
+    return;
+  }
 
+  try {
+    // Check if the user already exists
+    const existingUser = await userRepository.findUserByEmail(email);
     if (existingUser) {
       res.status(400).json({ message: "Email already in use" });
-      return; // Explicitly return after response to ensure no further execution
+      return; // Stop further execution
     }
 
+    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Create and save the new user
     const newUser = new User();
     newUser.username = username;
     newUser.email = email;
@@ -83,6 +94,14 @@ export const register: RequestHandler = async (
 
     await userRepository.save(newUser);
 
+    // Automatically create a wallet for the new user
+    const wallet = walletRepository.create({
+      user_id: newUser.user_id, // Use the ID of the newly created user
+      balance: 0.0, // Initialize the wallet balance to 0.00
+    });
+    await walletRepository.save(wallet);
+
+    // Generate a JWT token for the new user
     const token = jwt.sign(
       { id: newUser.user_id },
       process.env.JWT_SECRET || "",
@@ -91,12 +110,17 @@ export const register: RequestHandler = async (
       },
     );
 
+    // Send a successful response
     res.status(201).json({
       token,
       user: {
         id: newUser.user_id,
         name: newUser.username,
         email: newUser.email,
+      },
+      wallet: {
+        id: wallet.wallet_id,
+        balance: wallet.balance,
       },
     });
   } catch (error) {

@@ -39,11 +39,13 @@ export const getAllUsers = async (
 ): Promise<void> => {
   try {
     const [users, count] = await userRepository.findAndCount({
+      relations: ["wallet"],
       ...paginate(req.query),
     });
 
     sendSuccessResponse(res, { data: users, count });
   } catch (error) {
+    console.error(error);
     sendErrorResponse(res, "Internal server error.");
   }
 };

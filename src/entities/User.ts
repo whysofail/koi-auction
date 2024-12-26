@@ -1,10 +1,4 @@
-import {
-  IsEmail,
-  IsEnum,
-  IsNumber,
-  IsString,
-  MinLength,
-} from "class-validator";
+import { IsEmail, IsEnum, IsString, MinLength } from "class-validator";
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -50,10 +44,6 @@ class User {
   @MinLength(8)
   @Column()
   declare password: string;
-
-  @IsNumber()
-  @Column({ default: 0 })
-  declare balance: number;
 
   @CreateDateColumn()
   declare registration_date: Date;

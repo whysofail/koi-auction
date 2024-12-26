@@ -21,6 +21,8 @@ export enum TransactionStatus {
   PENDING = "pending",
   COMPLETED = "completed",
   FAILED = "failed",
+  APPROVED = "approved",
+  REJECTED = "rejected",
 }
 
 @Entity()
@@ -28,9 +30,12 @@ class Transaction {
   @PrimaryGeneratedColumn("uuid")
   declare transaction_id: string; // Primary key
 
-  @IsUUID()
-  @Column({ type: "uuid" })
-  declare wallet_id: string; // Foreign key referencing Wallet
+  // Relationship with Wallet (No need for wallet_id column here)
+  @ManyToOne(() => Wallet, (wallet) => wallet.transactions, {
+    onDelete: "CASCADE", // Ensures that when a wallet is deleted, related transactions are also deleted
+  })
+  @JoinColumn({ name: "wallet_id" }) // This is the foreign key that TypeORM will use
+  declare wallet: Wallet; // Relationship with Wallet entity
 
   @IsUUID()
   @Column({ type: "uuid", nullable: true })
@@ -61,12 +66,7 @@ class Transaction {
   @CreateDateColumn()
   declare created_at: Date; // Timestamp for when the transaction was created
 
-  @ManyToOne(() => Wallet, (wallet) => wallet.transactions, {
-    onDelete: "CASCADE",
-  })
-  @JoinColumn({ name: "wallet_id" })
-  declare wallet: Wallet; // Relationship with Wallet
-
+  // Relationship with Admin (nullable)
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: "admin_id" })
   declare admin: User | null; // Relationship with Admin (optional)
