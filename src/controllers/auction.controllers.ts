@@ -137,7 +137,10 @@ export const getAuctions: RequestHandler = async (
       relations: ["item", "user", "bids"], // Include related entities
     });
 
-    sendSuccessResponse(res, { data: auctions, count });
+    sendSuccessResponse(res, {
+      data: auctions, // Place auctions directly inside data
+      count,
+    });
   } catch (error) {
     console.error("Error fetching auctions:", error);
     sendErrorResponse(res, "Internal server error");

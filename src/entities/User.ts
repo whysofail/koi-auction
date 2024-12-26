@@ -19,6 +19,7 @@ import Auction from "./Auction";
 import Bid from "./Bid";
 import Item from "./Item";
 import Wallet from "./Wallet";
+import AuctionParticipant from "./AuctionParticipant";
 
 export enum UserRole {
   ADMIN = "admin",
@@ -74,6 +75,12 @@ class User {
 
   @OneToOne(() => Wallet, (wallet) => wallet.user)
   declare wallet: Wallet | null;
+
+  @OneToMany(
+    () => AuctionParticipant,
+    (auctionParticipant) => auctionParticipant.user,
+  )
+  declare auctionParticipants: AuctionParticipant[];
 }
 
 export default User;
