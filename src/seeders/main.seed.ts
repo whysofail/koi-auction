@@ -5,12 +5,14 @@ import { hash } from "bcrypt";
 import User, { UserRole } from "../entities/User";
 import Item from "../entities/Item";
 import Auction from "../entities/Auction";
+import Wallet from "../entities/Wallet";
 
 export default class MainSeeder implements Seeder {
   async run(dataSource: DataSource, factoryManager: SeederFactoryManager) {
     const userRepository = dataSource.getRepository(User);
     const ItemRepository = dataSource.getRepository(Item);
     const auctionRepository = dataSource.getRepository(Auction);
+    const walletRepository = dataSource.getRepository(Wallet);
 
     const existingUserCount = await userRepository.count();
     if (existingUserCount > 0) {
@@ -21,6 +23,7 @@ export default class MainSeeder implements Seeder {
     const userFactory = factoryManager.get(User);
     const itemFactory = factoryManager.get(Item);
     const auctionFactory = factoryManager.get(Auction);
+    const walletFactory = factoryManager.get(Wallet);
 
     const users = await Promise.all(
       Array.from({ length: 5 }, async (_, index) =>
@@ -43,6 +46,16 @@ export default class MainSeeder implements Seeder {
       ),
     );
 
+    // create Wallet for each user
+    const wallets = await Promise.all(
+      users.map((user) =>
+        walletFactory.make({
+          user,
+          balance: parseFloat((Math.random() * 1000).toFixed(2)),
+        }),
+      ),
+    );
+
     const items = await Promise.all(
       Array.from({ length: 10 }, () =>
         itemFactory.make({
@@ -52,6 +65,7 @@ export default class MainSeeder implements Seeder {
     );
 
     await userRepository.save([...users, ...admins]);
+    await walletRepository.save(wallets);
     await ItemRepository.save(items);
 
     const auctions = await Promise.all(
