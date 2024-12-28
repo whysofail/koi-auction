@@ -1,6 +1,10 @@
 import { RequestHandler, Request, Response } from "express";
 import paginate from "../utils/pagination";
 import userRepository from "../repositories/user.repository";
+import {
+  sendErrorResponse,
+  sendSuccessResponse,
+} from "../utils/response/handleResponse";
 
 // Get information of the logged-in user
 export const getUserInfo: RequestHandler = async (
@@ -17,16 +21,11 @@ export const getUserInfo: RequestHandler = async (
     const user = await userRepository.findUserById(userId);
 
     if (!user) {
-      res.status(404).json({ message: "User not found." });
+      sendErrorResponse(res, "User not found.", 404);
       return;
     }
 
-    res.status(200).json({
-      user: {
-        ...user,
-        password: undefined, // Optional, don't expose the password
-      },
-    });
+    sendSuccessResponse(res, { data: user });
   } catch (error) {
     console.error("Error fetching user info:", error);
     res.status(500).json({ message: "Internal server error." });
@@ -39,14 +38,15 @@ export const getAllUsers = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const users = await userRepository.findAndCount({
+    const [users, count] = await userRepository.findAndCount({
+      relations: ["wallet"],
       ...paginate(req.query),
     });
 
-    res.status(200).json(users);
+    sendSuccessResponse(res, { data: users, count });
   } catch (error) {
-    console.error("Error fetching all users:", error);
-    res.status(500).json({ message: "Internal server error." });
+    console.error(error);
+    sendErrorResponse(res, "Internal server error.");
   }
 };
 
@@ -79,12 +79,7 @@ export const createUser = async (
 
     await userRepository.save(newUser);
 
-    res.status(201).json({
-      user: {
-        ...newUser,
-        password: undefined, // Optional, don't expose the password
-      },
-    });
+    sendSuccessResponse(res, { data: newUser });
   } catch (error) {
     console.error("Error creating user:", error);
     res.status(500).json({ message: "Internal server error." });
@@ -129,7 +124,7 @@ export const updateUser = async (
     });
   } catch (error) {
     console.error("Error updating user:", error);
-    res.status(500).json({ message: "Internal server error." });
+    sendErrorResponse(res, "Internal server error.");
   }
 };
 
@@ -151,10 +146,9 @@ export const deleteUser = async (
 
     // Delete the user
     await userRepository.delete({ user_id });
-
-    res.status(200).json({ message: "User deleted successfully." });
+    sendSuccessResponse(res, { message: "User deleted successfully." });
   } catch (error) {
     console.error("Error deleting user:", error);
-    res.status(500).json({ message: "Internal server error." });
+    sendErrorResponse(res, "Internal server error.");
   }
 };

@@ -1,10 +1,4 @@
-import {
-  IsEmail,
-  IsEnum,
-  IsNumber,
-  IsString,
-  MinLength,
-} from "class-validator";
+import { IsEmail, IsEnum, IsString, MinLength } from "class-validator";
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -19,6 +13,7 @@ import Auction from "./Auction";
 import Bid from "./Bid";
 import Item from "./Item";
 import Wallet from "./Wallet";
+import AuctionParticipant from "./AuctionParticipant";
 
 export enum UserRole {
   ADMIN = "admin",
@@ -50,10 +45,6 @@ class User {
   @Column()
   declare password: string;
 
-  @IsNumber()
-  @Column({ default: 0 })
-  declare balance: number;
-
   @CreateDateColumn()
   declare registration_date: Date;
 
@@ -74,6 +65,12 @@ class User {
 
   @OneToOne(() => Wallet, (wallet) => wallet.user)
   declare wallet: Wallet | null;
+
+  @OneToMany(
+    () => AuctionParticipant,
+    (auctionParticipant) => auctionParticipant.user,
+  )
+  declare auctionParticipants: AuctionParticipant[];
 }
 
 export default User;

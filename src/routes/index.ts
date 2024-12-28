@@ -3,6 +3,8 @@ import { login, register } from "../controllers/auth.controllers";
 import { protect, authorize } from "../middlewares/auth.middleware";
 import userRouter from "./user.routes";
 import auctionRouter from "./auction.routes";
+import walletRouter from "./wallet.routes";
+import transactionRouter from "./transaction.routes";
 
 const router = Router();
 
@@ -25,5 +27,7 @@ router.post("/login", login);
 router.post("/register", register);
 router.use(userRouter);
 router.use(auctionRouter);
+router.use(walletRouter);
+router.use(transactionRouter);
 
 export default router;

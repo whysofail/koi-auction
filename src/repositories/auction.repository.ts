@@ -5,7 +5,7 @@ const auctionRepository = dataSource.getRepository(Auction).extend({
   findAuctionById(auction_id: string) {
     return this.findOne({
       where: { auction_id },
-      relations: ["item", "user", "bids"],
+      relations: ["item", "user", "bids", "auction_participants"],
       select: {
         auction_id: true,
         start_datetime: true,

@@ -18,7 +18,7 @@ export const sendSuccessResponse = <T>(
   const response = {
     status: "success",
     message: "Request was successful",
-    data,
+    ...data,
   };
   res.status(statusCode).json(response);
 };
