@@ -8,7 +8,7 @@
   ],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
-    "project": ["./tsconfig.json", "__tests__/tsconfig.test.json"]
+    "project": ["./tsconfig.json", "e2e/tsconfig.e2e.json"]
   },
   "overrides": [
     {
@@ -16,7 +16,7 @@
       "files": ["./**/*.js"]
     },
     {
-      "files": ["__tests__/**/*"],
+      "files": ["e2e/**/*"],
       "plugins": ["jest", "jest-formatting", "prettier"],
       "extends": [
         "plugin:jest/recommended",
@@ -36,6 +36,7 @@
     "import/no-extraneous-dependencies": "off",
     "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/no-invalid-void-type": "off",
-    "@typescript-eslint/naming-convention": "off"
+    "@typescript-eslint/naming-convention": "off",
+    "radix": "off"
   }
 }
