@@ -17,6 +17,8 @@ import {
   sendErrorResponse,
 } from "../utils/response/handleResponse";
 import itemRepository from "../repositories/item.repository";
+import walletRepository from "../repositories/wallet.repository";
+import auctionParticipantRepository from "../repositories/auctionparticipant.repository";
 
 export const createAuction: RequestHandler = async (
   req: Request,
@@ -292,6 +294,94 @@ export const updateAuction: RequestHandler = async (
     sendSuccessResponse(res, auction);
   } catch (error) {
     console.error(error);
+    sendErrorResponse(res, "Internal server error");
+  }
+};
+
+// Join Auction
+export const joinAuction: RequestHandler = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  const { auction_id } = req.params;
+  const user_id = req.user?.user_id ?? "";
+
+  try {
+    const auction = await auctionRepository.findAuctionWithBids(auction_id);
+
+    if (!auction) {
+      handleNotFound("Auction", res);
+      return;
+    }
+
+    // Ensure the auction is active
+    if (auction.status !== AuctionStatus.ACTIVE) {
+      sendErrorResponse(res, "Auction is not active", 400);
+      return;
+    }
+
+    // Calculate 10% of the reserve price
+    const reservePrice = auction.reserve_price ?? 0;
+    const participationFee = reservePrice * 0.1;
+
+    if (participationFee <= 0) {
+      sendErrorResponse(res, "Invalid auction reserve price", 400);
+      return;
+    }
+
+    // Fetch user and wallet
+    const user = await userRepository.findUserById(user_id);
+
+    if (!user) {
+      handleNotFound("User", res);
+      return;
+    }
+
+    const wallet = await walletRepository.findWalletByUserId(user_id);
+
+    if (!wallet) {
+      handleNotFound("Wallet", res);
+      return;
+    }
+
+    // Ensure the user has sufficient balance
+    if (wallet.balance < participationFee) {
+      sendErrorResponse(res, "Insufficient wallet balance", 400);
+      return;
+    }
+
+    // Check if the user is already a participant in the auction
+    const existingParticipant = await auctionParticipantRepository.findOne({
+      where: {
+        auction: { auction_id },
+        user: { user_id },
+      },
+    });
+
+    if (existingParticipant) {
+      sendErrorResponse(
+        res,
+        "User is already a participant in this auction",
+        400,
+      );
+      return;
+    }
+
+    // Deduct the participation fee from the wallet
+    wallet.balance -= participationFee;
+    await walletRepository.save(wallet);
+
+    // Add the user as a participant
+    const auctionParticipant = auctionParticipantRepository.create({
+      auction,
+      user: { user_id },
+    });
+
+    await auctionParticipantRepository.save(auctionParticipant);
+
+    sendSuccessResponse(res, "Joined auction successfully", 201);
+  } catch (error) {
+    console.error("Error in joinAuction:", error);
     sendErrorResponse(res, "Internal server error");
   }
 };

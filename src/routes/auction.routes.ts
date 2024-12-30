@@ -9,7 +9,7 @@ import { authorize, protect } from "../middlewares/auth.middleware";
 
 const router = Router();
 
-router.get("/auction", getAuctions);
+router.get("/auctions", getAuctions);
 router.get("/auction/:auction_id", getAuctionDetails);
 router.post("/auction", protect, authorize(["admin"]), createAuction);
 router.put(
