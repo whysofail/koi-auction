@@ -37,6 +37,7 @@
     "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/no-invalid-void-type": "off",
     "@typescript-eslint/naming-convention": "off",
-    "radix": "off"
+    "radix": "off",
+    "import/prefer-default-export": "off"
   }
 }
