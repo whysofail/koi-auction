@@ -1,129 +1,40 @@
-import { Request, Response, RequestHandler } from "express";
-import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
-import { handleMissingFields } from "../utils/response/handleError";
-import User from "../entities/User";
-import userRepository from "../repositories/user.repository";
-import walletRepository from "../repositories/wallet.repository";
+import { RequestHandler } from "express";
+import { authService } from "../services/auth.service";
 
-// Define the login function with correct return type
-export const login: RequestHandler = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
-  const { email, password }: User = req.body;
-  if (!email || !password) {
-    res
-      .status(400)
-      .json({ message: "Email and password are required", req: req.body });
-    return;
-  }
-
+const loginController: RequestHandler = async (req, res) => {
   try {
-    // Find the user by email
-    const user = await userRepository.findUserByEmail(email);
-    // If no user is found
-    if (!user) {
-      res.status(401).json({ message: "Invalid email or password" });
-      return; // Explicitly return after response to ensure no further execution
-    }
-
-    // Check if the password matches the stored password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      res.status(401).json({ message: "Invalid email or password" });
-      return;
-    }
-
-    // Generate JWT token
-    const token = jwt.sign(
-      { user_id: user.user_id, role: user.role },
-      process.env.JWT_SECRET || "",
-      {
-        expiresIn: "1h",
-      },
-    );
-
-    // Respond with the token and user info (excluding password)
-    res.json({
-      token,
+    const { email, password } = req.body;
+    const result = await authService.login(email, password);
+    res.status(200).json({
+      token: result.token,
       user: {
-        user_id: user.user_id,
-        name: user.username,
-        email: user.email,
-        role: user.role,
+        user_id: result.user.user_id,
+        name: result.user.username,
+        email: result.user.email,
+        role: result.user.role,
       },
     });
-  } catch (error) {
-    // Handle server error
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      res.status(401).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: "Internal server error" });
+    }
   }
 };
 
-// Define the register function with correct return type
-export const register: RequestHandler = async (req, res) => {
-  const { username, email, password } = req.body;
-
-  if (
-    handleMissingFields(res, {
-      username,
-      email,
-      password,
-    })
-  ) {
-    return;
-  }
-
+const registerController: RequestHandler = async (req, res) => {
   try {
-    // Check if the user already exists
-    const existingUser = await userRepository.findUserByEmail(email);
-    if (existingUser) {
-      res.status(400).json({ message: "Email already in use" });
-      return; // Stop further execution
+    const { username, email, password } = req.body;
+    const user_id = await authService.register(username, email, password);
+    res.status(200).json({ message: "User registered successfully", user_id });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      res.status(400).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: "Internal server error" });
     }
-
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create and save the new user
-    const newUser = new User();
-    newUser.username = username;
-    newUser.email = email;
-    newUser.password = hashedPassword;
-
-    await userRepository.save(newUser);
-
-    // Automatically create a wallet for the new user
-    const wallet = walletRepository.create({
-      user_id: newUser.user_id, // Use the ID of the newly created user
-      balance: 0.0, // Initialize the wallet balance to 0.00
-    });
-    await walletRepository.save(wallet);
-
-    // Generate a JWT token for the new user
-    const token = jwt.sign(
-      { id: newUser.user_id },
-      process.env.JWT_SECRET || "",
-      {
-        expiresIn: "1h",
-      },
-    );
-
-    // Send a successful response
-    res.status(201).json({
-      token,
-      user: {
-        id: newUser.user_id,
-        name: newUser.username,
-        email: newUser.email,
-      },
-      wallet: {
-        id: wallet.wallet_id,
-        balance: wallet.balance,
-      },
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error });
   }
 };
+
+export { loginController, registerController };
