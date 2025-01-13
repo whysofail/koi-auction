@@ -3,6 +3,7 @@ import { Server } from "socket.io";
 import createApp from "./app";
 import initializeSockets from "./sockets";
 import { AppDataSource } from "./config/data-source";
+import { socketAuthMiddleware } from "./middlewares/socketauth.middleware";
 
 AppDataSource.initialize().catch((error) => console.log(error));
 
@@ -15,10 +16,12 @@ export const io = new Server(server, {
     origin: "*",
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type"],
+    credentials: true,
   },
 });
 
 initializeSockets(io);
+io.use(socketAuthMiddleware);
 
 server.listen(process.env.PORT || 8001, () => {
   console.log(`This app is running on port ${process.env.PORT || 8001}`);
