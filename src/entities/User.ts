@@ -70,7 +70,7 @@ class User {
     () => AuctionParticipant,
     (auctionParticipant) => auctionParticipant.user,
   )
-  declare auctionParticipants: AuctionParticipant[];
+  declare auctionsParticipants: AuctionParticipant[]; // Reference the AuctionParticipant entity
 }
 
 export default User;

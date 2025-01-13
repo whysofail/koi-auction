@@ -1,12 +1,10 @@
 import { Request, Response, RequestHandler } from "express";
-import { Server } from "socket.io";
 import { FindOptionsWhere } from "typeorm";
 import Auction, { AuctionStatus } from "../entities/Auction";
 import paginate from "../utils/pagination";
 import buildDateRangeFilter from "../utils/date/dateRange";
 import userRepository from "../repositories/user.repository";
 import auctionRepository from "../repositories/auction.repository";
-import bidRepository from "../repositories/bid.repository";
 import validateAndParseDates from "../utils/date/validateAndParseDate";
 import {
   handleMissingFields,
@@ -379,76 +377,9 @@ export const joinAuction: RequestHandler = async (
 
     await auctionParticipantRepository.save(auctionParticipant);
 
-    sendSuccessResponse(res, "Joined auction successfully", 201);
+    sendSuccessResponse(res, { message: "Joined auction successfully" }, 201);
   } catch (error) {
     console.error("Error in joinAuction:", error);
-    sendErrorResponse(res, "Internal server error");
-  }
-};
-
-// Place a bid
-export const placeBid: RequestHandler = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
-  const { auction_id, bid_amount } = req.body;
-  const user_id = req.user?.user_id ?? "";
-
-  if (!auction_id || !bid_amount) {
-    res.status(400).json({ message: "Auction ID and bid amount are required" });
-    return;
-  }
-
-  try {
-    const auction = await auctionRepository.findAuctionWithBids(auction_id);
-
-    if (!auction) {
-      handleNotFound("Auction", res);
-      return;
-    }
-
-    // Ensure the auction is active
-    if (auction.status !== AuctionStatus.ACTIVE) {
-      sendErrorResponse(res, "Auction is not active", 400);
-      return;
-    }
-
-    // Ensure bid is higher than current highest bid
-    if (bid_amount <= auction.current_highest_bid) {
-      sendErrorResponse(
-        res,
-        "Bid amount must be higher than current highest bid",
-        400,
-      );
-      return;
-    }
-
-    const user = await userRepository.findUserById(user_id);
-    if (!user) {
-      handleNotFound("User", res);
-    }
-
-    const bid = bidRepository.create({
-      auction,
-      user,
-      bid_amount,
-    });
-
-    await bidRepository.save(bid);
-
-    auction.current_highest_bid = bid_amount;
-    await auctionRepository.save(auction);
-
-    const io: Server = req.app.get("io");
-    io.to(auction_id).emit("bidUpdate", {
-      auctionId: auction_id,
-      bidAmount: bid_amount,
-      message: `New bid placed for ${bid_amount}`,
-    });
-
-    sendSuccessResponse(res, bid, 201);
-  } catch (error) {
-    console.error(error);
     sendErrorResponse(res, "Internal server error");
   }
 };

@@ -8,6 +8,7 @@ import userRouter from "./user.routes";
 import auctionRouter from "./auction.routes";
 import walletRouter from "./wallet.routes";
 import transactionRouter from "./transaction.routes";
+import bidRouter from "./bid.routes";
 import createUserValidator from "../middlewares/userValidator/createUserValidator";
 import loginUserValidator from "../middlewares/userValidator/loginUserValidator";
 
@@ -34,5 +35,10 @@ router.use(userRouter);
 router.use(auctionRouter);
 router.use(walletRouter);
 router.use(transactionRouter);
+router.use(bidRouter);
+
+router.use((req: Request, res: Response) => {
+  res.status(404).json({ message: "Route not found" });
+});
 
 export default router;

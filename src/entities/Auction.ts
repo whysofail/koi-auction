@@ -6,14 +6,13 @@ import {
   JoinColumn,
   OneToOne,
   OneToMany,
-  ManyToMany,
   CreateDateColumn,
   UpdateDateColumn,
-  JoinTable,
 } from "typeorm";
 import User from "./User";
 import Item from "./Item";
 import Bid from "./Bid";
+import AuctionParticipant from "./AuctionParticipant";
 
 export enum AuctionStatus {
   DRAFT = "DRAFT",
@@ -83,20 +82,11 @@ class Auction {
   @OneToMany(() => Bid, (bid) => bid.auction)
   declare bids?: Bid[]; // Marked optional
 
-  // Relation for participants
-  @ManyToMany(() => User)
-  @JoinTable({
-    name: "auction_participants", // The name of the join table
-    joinColumn: {
-      name: "auction_id", // The column for the auction side
-      referencedColumnName: "auction_id", // The primary key of the auction
-    },
-    inverseJoinColumn: {
-      name: "user_id", // The column for the user side
-      referencedColumnName: "user_id", // The primary key of the user
-    },
-  })
-  declare participants: User[]; // Tracks auction participants
+  @OneToMany(
+    () => AuctionParticipant,
+    (auctionParticipant) => auctionParticipant.auction,
+  )
+  declare participants: AuctionParticipant[]; // Reference the AuctionParticipant entity
 }
 
 export default Auction;
