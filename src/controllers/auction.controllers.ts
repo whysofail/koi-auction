@@ -17,6 +17,8 @@ import {
 import itemRepository from "../repositories/item.repository";
 import walletRepository from "../repositories/wallet.repository";
 import auctionParticipantRepository from "../repositories/auctionparticipant.repository";
+import transactionRepository from "../repositories/transaction.repository";
+import { TransactionStatus, TransactionType } from "../entities/Transaction";
 
 export const createAuction: RequestHandler = async (
   req: Request,
@@ -86,7 +88,7 @@ export const createAuction: RequestHandler = async (
     // Save the auction to the database
     await auctionRepository.save(auction);
 
-    // Respond with the created auction
+    // Respond wi th the created auction
     res.status(201).json(auction);
   } catch (error) {
     console.error(error);
@@ -103,15 +105,15 @@ export const getAuctions: RequestHandler = async (
     // Extract query parameters
     const { status, date_column } = req.query;
 
-    // Validate and parse dates
+    // Validate and p arse dates
     const {
       valid,
-      start_datetime: parsedStartDate, // Dari req.query
+      start_datetime: parsedStartDate, // Da ri req.query
       end_datetime: parsedEndDate, //  Dari req.query
     } = validateAndParseDates(req, res);
     if (!valid) return;
 
-    // Build date range filter
+    // Buil d date range filter
     const dateRangeFilter = buildDateRangeFilter<Auction>(
       (date_column ?? "created_at") as keyof Auction, // Fallback to 'created_at' safely
       {
@@ -138,7 +140,7 @@ export const getAuctions: RequestHandler = async (
     });
 
     sendSuccessResponse(res, {
-      data: auctions, // Place auctions directly inside data
+      data: auctions, // Pla ce auctions directly inside data
       count,
     });
   } catch (error) {
@@ -162,7 +164,9 @@ export const getAuctionDetails: RequestHandler = async (
       return;
     }
 
-    sendSuccessResponse(res, auction);
+    sendSuccessResponse(res, {
+      data: [auction], // Place auctions directly inside data
+    });
   } catch (error) {
     console.error(error);
     sendErrorResponse(res, "Internal server error");
@@ -285,10 +289,10 @@ export const updateAuction: RequestHandler = async (
       auction.item = newItem;
     }
 
-    // Save the updated auction to the database
+    // Sav e the updated auction to the database
     await auctionRepository.save(auction);
 
-    // Respond with the updated auction
+    //  Respond with the updated auction
     sendSuccessResponse(res, auction);
   } catch (error) {
     console.error(error);
@@ -368,6 +372,17 @@ export const joinAuction: RequestHandler = async (
     // Deduct the participation fee from the wallet
     wallet.balance -= participationFee;
     await walletRepository.save(wallet);
+
+    // Create PARTICIPATE transaction
+    const transaction = transactionRepository.create({
+      wallet,
+      amount: participationFee,
+      type: TransactionType.PARTICIPATE,
+      status: TransactionStatus.PENDING, // Default status is PENDING
+      proof_of_payment: null, // You can attach proof if available
+    });
+
+    await transactionRepository.save(transaction);
 
     // Add the user as a participant
     const auctionParticipant = auctionParticipantRepository.create({

@@ -6,24 +6,38 @@ import {
   sendErrorResponse,
   sendSuccessResponse,
 } from "../utils/response/handleResponse";
-import Transaction, { TransactionStatus } from "../entities/Transaction";
+import Transaction, {
+  TransactionStatus,
+  TransactionType,
+} from "../entities/Transaction";
 import paginate from "../utils/pagination";
 
 export const getTransactions: RequestHandler = async (req, res) => {
-  const { status } = req.query as { status?: TransactionStatus };
+  const { status, type } = req.query as {
+    status?: TransactionStatus;
+    type?: TransactionType;
+  };
   const whereCondition: FindOptionsWhere<Transaction> = {};
   if (status) {
     whereCondition.status = String(status).toUpperCase() as TransactionStatus;
   }
 
+  if (type) {
+    whereCondition.type = String(type).toUpperCase() as TransactionType;
+  }
+  console.log(whereCondition);
+
   try {
-    const [transactions, count] = await transactionRepository.findAndCount({
+    const [transactions, count] = await transactionRepository.findAllAndCount({
+      where: whereCondition,
       ...paginate(req.query),
-      ...whereCondition,
     });
 
     return sendSuccessResponse(res, { data: transactions, count });
   } catch (error) {
+    if (error instanceof Error) {
+      return sendErrorResponse(res, error.message, 500);
+    }
     return sendErrorResponse(res, "Failed to fetch transactions", 500);
   }
 };
@@ -51,8 +65,9 @@ export const getUserTransactions: RequestHandler = async (
 
   try {
     const [transactions, count] = await transactionRepository.findAndCount({
-      ...paginate(req.query),
       where: whereCondition,
+      relations: ["wallet"],
+      ...paginate(req.query),
     });
 
     return sendSuccessResponse(res, { data: transactions, count });
@@ -60,59 +75,44 @@ export const getUserTransactions: RequestHandler = async (
     return sendErrorResponse(res, "Failed to fetch user transactions", 500);
   }
 };
-// Create Deposit Transaction
-export const createDeposit: RequestHandler = async (req, res) => {
-  const { wallet_id, amount, proof_of_payment } = req.body; // proof_of_payment as a string (URL or path)
-
-  // Ensure proof of payment is provided (string, URL, or path)
-  if (!proof_of_payment) {
-    return sendErrorResponse(res, "Proof of payment is required", 400);
-  }
-
-  try {
-    // Find the wallet associated with the transaction
-    const wallet = await walletRepository.findWalletById(wallet_id);
-
-    if (!wallet) {
-      return sendErrorResponse(res, "Wallet not found", 404);
-    }
-
-    // Create a new deposit transaction
-    const transaction = await transactionRepository.createDepositTransaction(
-      wallet_id,
-      amount,
-      proof_of_payment,
-    );
-
-    // Save the transaction
-    const savedTransaction = await transactionRepository.save(transaction);
-
-    // Return success response
-    return sendSuccessResponse(res, { data: savedTransaction }, 201);
-  } catch (error) {
-    return sendErrorResponse(res, "Failed to create deposit request", 500);
-  }
-};
 
 // Update Transaction Status (Approve/Reject)
-export const updateTransactionStatus: RequestHandler = async (req, res) => {
-  const { transaction_id } = req.params;
+export const updateTransactionStatus: RequestHandler = async (
+  req: Request,
+  res: Response,
+) => {
+  const { transaction_id } = req.query as { transaction_id: string };
   const { status } = req.body as { status: TransactionStatus }; // Expected status: "approved" or "rejected"
+  const admin_id = req.user?.user_id; // admin_id from the authenticated user
+
+  // Check if transaction_id is provided
+  if (!transaction_id) {
+    return sendErrorResponse(res, "Transaction ID is required", 400);
+  }
 
   try {
     // Find the transaction by its ID
-    const transaction = await transactionRepository.findOneBy({
-      transaction_id,
-    });
+    const transaction =
+      await transactionRepository.findTransactionById(transaction_id);
 
+    // If transaction is not found
     if (!transaction) {
       return sendErrorResponse(res, "Transaction not found", 404);
     }
 
+    // Ensure that only deposit transactions can be updated
     if (transaction.type !== "deposit") {
       return sendErrorResponse(
         res,
         "Only deposit transactions can be updated",
+        400,
+      );
+    }
+
+    if (transaction.status !== "pending") {
+      return sendErrorResponse(
+        res,
+        "Only pending transactions can be updated",
         400,
       );
     }
@@ -123,12 +123,15 @@ export const updateTransactionStatus: RequestHandler = async (req, res) => {
         transaction.wallet.wallet_id,
       );
 
+      // If wallet is not found
       if (!wallet) {
-        return sendErrorResponse(res, "Wallet not found");
+        return sendErrorResponse(res, "Wallet not found", 404);
       }
 
       // Update wallet balance by adding the deposit amount
-      wallet.balance += transaction.amount;
+      const currentBalance = parseFloat(wallet.balance.toString());
+      const depositAmount = parseFloat(transaction.amount.toString());
+      wallet.balance = parseFloat((currentBalance + depositAmount).toFixed(2)); // Fixing to 2 decimal places
 
       // Save the updated wallet balance
       await walletRepository.save(wallet);
@@ -136,12 +139,17 @@ export const updateTransactionStatus: RequestHandler = async (req, res) => {
 
     // Update the transaction status
     transaction.status = status;
+    transaction.admin_id = admin_id ?? null;
 
     // Save the transaction with the updated status
     const updatedTransaction = await transactionRepository.save(transaction);
 
+    // Return success response with the updated transaction
     return sendSuccessResponse(res, updatedTransaction);
-  } catch (error) {
-    return sendErrorResponse(res, "Failed to update transaction status");
+  } catch (error: any) {
+    // General error handling with specific message
+    const errorMessage =
+      error instanceof Error ? error.message : "An unknown error occurred";
+    return sendErrorResponse(res, errorMessage, 500);
   }
 };

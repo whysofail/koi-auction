@@ -1,5 +1,4 @@
 import { Request, Response, RequestHandler } from "express";
-import { Server } from "socket.io";
 import { FindOptionsWhere } from "typeorm";
 import Auction, { AuctionStatus } from "../entities/Auction";
 import Bid from "../entities/Bid";
@@ -9,17 +8,11 @@ import userRepository from "../repositories/user.repository";
 import auctionRepository from "../repositories/auction.repository";
 import bidRepository from "../repositories/bid.repository";
 import validateAndParseDates from "../utils/date/validateAndParseDate";
-import {
-  handleMissingFields,
-  handleNotFound,
-} from "../utils/response/handleError";
+import { handleNotFound } from "../utils/response/handleError";
 import {
   sendSuccessResponse,
   sendErrorResponse,
 } from "../utils/response/handleResponse";
-import itemRepository from "../repositories/item.repository";
-import walletRepository from "../repositories/wallet.repository";
-import auctionParticipantRepository from "../repositories/auctionparticipant.repository";
 import { io } from "../main";
 
 export const getBids: RequestHandler = async (req: Request, res: Response) => {
@@ -155,11 +148,15 @@ export const placeBid: RequestHandler = async (
 
         // Emit the bid update event
 
-        io.to(auction_id).emit("bidUpdate", {
-          auctionId: auction_id,
-          bidAmount: bid_amount,
-          message: `New bid placed for ${bid_amount}`,
-        });
+        try {
+          io.to(auction_id).emit("bidUpdate", {
+            auctionId: auction_id,
+            bidAmount: bid_amount,
+            message: `New bid placed for ${bid_amount}`,
+          });
+        } catch (emitError) {
+          console.error("Error emitting bid update event:", emitError);
+        }
 
         // Send success response
         sendSuccessResponse(res, bid, 201);

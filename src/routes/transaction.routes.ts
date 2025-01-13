@@ -1,5 +1,8 @@
 import { Router } from "express";
-import { getTransactions } from "../controllers/transaction.controllers";
+import {
+  getTransactions,
+  updateTransactionStatus,
+} from "../controllers/transaction.controllers";
 import { authorize, protect } from "../middlewares/auth.middleware";
 
 const router = Router();
@@ -10,5 +13,12 @@ router.get(
   protect,
   authorize(["user", "admin"]),
   getTransactions,
+);
+
+router.post(
+  "/transactions",
+  protect,
+  authorize(["admin"]),
+  updateTransactionStatus,
 );
 export default router;

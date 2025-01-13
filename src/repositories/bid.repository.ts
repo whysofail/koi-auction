@@ -1,10 +1,10 @@
-import { FindOperator } from "typeorm";
+import { FindManyOptions } from "typeorm";
 import { AppDataSource as dataSource } from "../config/data-source";
 import Bid from "../entities/Bid";
 
 // Extend the base repository with additional methods
 const bidRepository = dataSource.getRepository(Bid).extend({
-  findAllAndCount(options?: FindOperator<Bid>) {
+  findAllAndCount(options?: FindManyOptions<Bid>) {
     return this.findAndCount({
       ...options,
       relations: ["auction", "user"],
