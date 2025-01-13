@@ -1,8 +1,21 @@
+import { FindOperator } from "typeorm";
 import { AppDataSource as dataSource } from "../config/data-source";
 import Bid from "../entities/Bid";
 
 // Extend the base repository with additional methods
 const bidRepository = dataSource.getRepository(Bid).extend({
+  findAllAndCount(options?: FindOperator<Bid>) {
+    return this.findAndCount({
+      ...options,
+      relations: ["auction", "user"],
+      select: {
+        user: {
+          user_id: true,
+          username: true,
+        },
+      },
+    });
+  },
   findBidById(bid_id: string) {
     return this.findOne({
       where: { bid_id },
@@ -18,7 +31,8 @@ const bidRepository = dataSource.getRepository(Bid).extend({
   findBidByUserId(user_id: string) {
     return this.find({
       where: { user: { user_id } },
-      relations: ["auction", "user"], // Include relations if necessary
+      relationLoadStrategy: "join",
+      relations: ["auction"],
     });
   },
 });

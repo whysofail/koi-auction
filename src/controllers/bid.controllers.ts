@@ -44,7 +44,7 @@ export const getBids: RequestHandler = async (req: Request, res: Response) => {
     };
 
     // Fetch auctions with filters, pagination, and relations
-    const [bids, count] = await bidRepository.findAndCount({
+    const [bids, count] = await bidRepository.findAllAndCount({
       where: whereCondition,
       ...paginate(req.query), // Apply pagination
     });
@@ -84,9 +84,6 @@ export const getBidByUserId: RequestHandler = async (
       return sendErrorResponse(res, "User ID not found", 400);
     }
     const bid = await bidRepository.findBidByUserId(userId);
-    if (!bid) {
-      return sendErrorResponse(res, "Wallet not found", 404);
-    }
     return sendSuccessResponse(res, { data: bid }, 200);
   } catch (error) {
     return sendErrorResponse(res, (error as Error).message, 500);
