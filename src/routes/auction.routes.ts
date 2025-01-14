@@ -8,17 +8,12 @@ import {
 } from "../controllers/auction.controllers";
 import { authorize, protect } from "../middlewares/auth.middleware";
 
-const router = Router();
+const auctionRouter = Router();
 
-router.get("/auctions", getAuctions);
-router.get("/auction/:auction_id", getAuctionDetails);
-router.post("/auction/:auction_id/join", protect, joinAuction);
-router.post("/auction", protect, authorize(["admin"]), createAuction);
-router.put(
-  "/auction/:auction_id",
-  protect,
-  authorize(["admin"]),
-  updateAuction,
-);
+auctionRouter.get("/", getAuctions);
+auctionRouter.post("/", protect, authorize(["admin"]), createAuction);
+auctionRouter.get("/:auction_id", getAuctionDetails);
+auctionRouter.put("/:auction_id", protect, authorize(["admin"]), updateAuction);
+auctionRouter.post("/:auction_id/join", protect, joinAuction);
 
-export default router;
+export default auctionRouter;

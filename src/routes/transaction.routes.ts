@@ -5,20 +5,19 @@ import {
 } from "../controllers/transaction.controllers";
 import { authorize, protect } from "../middlewares/auth.middleware";
 
-const router = Router();
+const transactionRouter = Router();
 
-router.get("/transactions", protect, authorize(["admin"]), getTransactions);
-router.get(
-  "/transactions/me",
+transactionRouter.get("/", protect, authorize(["admin"]), getTransactions);
+transactionRouter.get(
+  "/me",
   protect,
   authorize(["user", "admin"]),
   getTransactions,
 );
-
-router.post(
-  "/transactions",
+transactionRouter.post(
+  "/",
   protect,
   authorize(["admin"]),
   updateTransactionStatus,
 );
-export default router;
+export default transactionRouter;

@@ -7,11 +7,11 @@ import {
 } from "../controllers/bid.controllers";
 import { authorize, protect } from "../middlewares/auth.middleware";
 
-const router = Router();
+const bidRouter = Router();
 
-router.get("/bids", protect, authorize(["admin"]), getBids);
-router.get("/bids/me", protect, getBidByUserId);
-router.get("/bid/auction/:auction_id", getBidsByAuctionId);
-router.post("/bid/:auction_id", protect, placeBid);
+bidRouter.get("/", protect, authorize(["admin"]), getBids);
+bidRouter.get("/me", protect, getBidByUserId);
+bidRouter.get("/auction/:auction_id", getBidsByAuctionId);
+bidRouter.post("/:auction_id", protect, placeBid);
 
-export default router;
+export default bidRouter;

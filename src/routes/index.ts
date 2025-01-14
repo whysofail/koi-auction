@@ -3,7 +3,6 @@ import {
   loginController,
   registerController,
 } from "../controllers/auth.controllers";
-import { protect, authorize } from "../middlewares/auth.middleware";
 import userRouter from "./user.routes";
 import auctionRouter from "./auction.routes";
 import walletRouter from "./wallet.routes";
@@ -18,24 +17,13 @@ router.get("/", (_, res) => {
   res.json({ message: "Welcome to the API" });
 });
 
-const protectedRoute = (role: string) => [
-  protect,
-  authorize([role]),
-  (req: Request, res: Response) => {
-    res.json({ message: "Welcome to the API" });
-  },
-];
-
-router.get("/protected/admin", ...protectedRoute("admin"));
-router.get("/protected/user", ...protectedRoute("user"));
-
 router.post("/login", loginUserValidator, loginController);
 router.post("/register", createUserValidator, registerController);
-router.use(userRouter);
-router.use(auctionRouter);
-router.use(walletRouter);
-router.use(transactionRouter);
-router.use(bidRouter);
+router.use("/users", userRouter);
+router.use("/auctions", auctionRouter);
+router.use("/wallets", walletRouter);
+router.use("/transactions", transactionRouter);
+router.use("/bids", bidRouter);
 
 router.use((req: Request, res: Response) => {
   res.status(404).json({ message: "Route not found" });

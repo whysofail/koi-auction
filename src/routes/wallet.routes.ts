@@ -9,18 +9,18 @@ import {
 } from "../controllers/wallet.controllers";
 import { uploadProofOfPayment } from "../middlewares/upload.middleware"; // Import the multer middleware
 
-const router = Router();
+const walletRouter = Router();
 
-router.get("/wallets", protect, authorize(["admin"]), getAllWallets);
-router.get("/wallet/me", protect, authorize(["user"]), getWalletByUserId);
-router.get("/wallet/:id", protect, authorize(["admin"]), getWalletById);
-router.put("/wallet/:id", protect, authorize(["admin"]), updateWallet);
-router.post(
-  "/wallet/deposit",
+walletRouter.get("/", protect, authorize(["admin"]), getAllWallets);
+walletRouter.get("/me", protect, authorize(["user"]), getWalletByUserId);
+walletRouter.get("/:id", protect, authorize(["admin"]), getWalletById);
+walletRouter.put("/:id", protect, authorize(["admin"]), updateWallet);
+walletRouter.post(
+  "/deposit",
   protect,
   authorize(["user"]),
   uploadProofOfPayment,
   createDeposit,
 );
 
-export default router;
+export default walletRouter;
