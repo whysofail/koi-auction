@@ -18,6 +18,10 @@ authRouter.post(
   refreshTokenValidator,
   refreshTokenController,
 );
-authRouter.post("/revoke-token", refreshTokenValidator, revokeTokenController);
+authRouter.delete(
+  "/revoke-token",
+  refreshTokenValidator,
+  revokeTokenController,
+);
 
 export default authRouter;
