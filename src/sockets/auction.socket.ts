@@ -23,13 +23,6 @@ const auctionSocketHandler = (io: Server, socket: Socket): void => {
     socket.emit("success", `You have joined auction: ${auctionId}`);
   });
 
-  // Handle placing a bid (Example)
-  socket.on("newBid", (data) => {
-    const { auctionId, bidAmount } = data;
-    // Emit bid update to all clients in the room
-    io.to(auctionId).emit("bidUpdate", { auctionId, bidAmount });
-  });
-
   // Handle request for users in auction
   socket.on("getUsersInAuction", (auctionId: string) => {
     // Emit the list of users in the specified auction room to the client

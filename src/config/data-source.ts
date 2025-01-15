@@ -3,7 +3,8 @@ import { config } from "dotenv";
 
 config();
 
-const { DB_NAME, DB_PORT, DB_HOST, DB_USERNAME, DB_PASS } = process.env;
+const { DB_NAME, DB_PORT, DB_HOST, DB_USERNAME, DB_PASS, APP_ENV } =
+  process.env;
 const AppDataSource = new DataSource({
   type: "mysql",
   host: DB_HOST,
@@ -11,7 +12,7 @@ const AppDataSource = new DataSource({
   username: DB_USERNAME,
   password: DB_PASS,
   database: DB_NAME,
-  synchronize: false,
+  synchronize: APP_ENV === "local",
   logging: true,
   entities: ["src/entities/*.ts"],
   migrations: ["src/migrations/*.ts"],

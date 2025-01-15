@@ -13,10 +13,8 @@ export default function createApp() {
   app.use(morgan("common"));
   app.use(express.urlencoded({ extended: true }));
   app.use(express.static("public"));
-
-  app.use("/api", router);
-
   app.use(express.json());
+  app.use("/api", router);
 
   return app;
 }

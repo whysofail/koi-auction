@@ -1,37 +1,114 @@
 import { Request, Response, NextFunction } from "express";
-import { validate } from "class-validator";
-import Auction, { AuctionStatus } from "../../entities/Auction";
+import { validate, isUUID, isDateString } from "class-validator";
+import Auction from "../../entities/Auction";
+import itemRepository from "../../repositories/item.repository";
+import Item from "../../entities/Item";
 
 const createAuctionValidator = async (
   req: Request,
   res: Response,
   next: NextFunction,
-): Promise<void | Response> => {
+): Promise<void> => {
   try {
     if (!req.body) {
-      return res.status(400).json({ message: "Missing request body!" });
+      res.status(400).json({ message: "Missing request body!" });
+      return;
     }
 
+    const {
+      item_id,
+      title,
+      description,
+      reserve_price,
+      start_datetime,
+      end_datetime,
+    } = req.body;
+
+    // Validate item_id (must be a valid UUID and the item should exist)
+    if (!item_id || !isUUID(item_id)) {
+      res.status(400).json({ message: "Invalid item ID!" });
+      return;
+    }
+
+    // Check if item exists in the database
+    const item = await itemRepository.findOne({ where: { item_id } });
+    if (!item) {
+      res.status(400).json({ message: "Item not found!" });
+      return;
+    }
+
+    // Validate required fields: title, description
+    if (!title || title.trim().length === 0) {
+      res.status(400).json({ message: "Title must not be empty!" });
+      return;
+    }
+    if (!description || description.trim().length === 0) {
+      res.status(400).json({ message: "Description must not be empty!" });
+      return;
+    }
+
+    // Ensure reserve_price is a valid positive number, if provided
+    let parsedReservePrice = reserve_price;
+    if (reserve_price !== undefined && typeof reserve_price === "string") {
+      parsedReservePrice = Number(reserve_price);
+    }
+
+    if (
+      parsedReservePrice !== undefined &&
+      (Number.isNaN(parsedReservePrice) || parsedReservePrice <= 0)
+    ) {
+      res
+        .status(400)
+        .json({ message: "Reserve price must be a valid positive number!" });
+      return;
+    }
+
+    // Validate start_datetime and end_datetime (ensure they are valid dates)
+    if (!start_datetime || !isDateString(start_datetime)) {
+      res.status(400).json({ message: "Invalid start datetime!" });
+      return;
+    }
+    if (!end_datetime || !isDateString(end_datetime)) {
+      res.status(400).json({ message: "Invalid end datetime!" });
+      return;
+    }
+
+    // Ensure end_datetime is after start_datetime
+    if (new Date(end_datetime) <= new Date(start_datetime)) {
+      res
+        .status(400)
+        .json({ message: "End datetime must be after start datetime!" });
+      return;
+    }
+
+    // Create Auction object and set fields
     const auction = new Auction();
-    auction.item = req.body.item;
-    auction.status = req.body.status || AuctionStatus.PENDING;
+    auction.title = title;
+    auction.description = description;
+    auction.reserve_price =
+      parsedReservePrice !== undefined ? parsedReservePrice : null;
+    auction.start_datetime = new Date(start_datetime);
+    auction.end_datetime = new Date(end_datetime);
+    auction.item = new Item();
+    auction.item.item_id = item.item_id; // Set the actual Item object
 
-    // Additional validation for dates
-    if (auction.end_datetime <= auction.start_datetime) {
-      return res.status(400).json({
-        message: "End time must be after start time",
-      });
-    }
-
-    const errors = await validate(auction);
+    // Validate auction instance
+    const errors = await validate(auction, { skipMissingProperties: true });
     if (errors.length > 0) {
-      return res.status(400).json({ message: `Validation failed: ${errors}` });
+      res.status(400).json({
+        message: "Validation failed",
+        errors: errors.map((error) => ({
+          property: error.property,
+          constraints: error.constraints,
+        })),
+      });
+      return;
     }
 
+    // Proceed to the next middleware if validation passes
     next();
-    return undefined;
   } catch (e: any) {
-    return res.status(500).json({ message: e.message });
+    res.status(500).json({ message: e.message });
   }
 };
 

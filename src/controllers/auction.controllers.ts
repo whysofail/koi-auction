@@ -20,36 +20,22 @@ import auctionParticipantRepository from "../repositories/auctionparticipant.rep
 import transactionRepository from "../repositories/transaction.repository";
 import { TransactionStatus, TransactionType } from "../entities/Transaction";
 
-export const createAuction: RequestHandler = async (
+export const createAuction = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  const { item_id, start_datetime, end_datetime, reserve_price } = req.body;
+  const {
+    title,
+    description,
+    item_id,
+    start_datetime,
+    end_datetime,
+    reserve_price,
+  } = req.body;
   const user_id = req.user?.user_id ?? "";
 
-  // Handle missing fields
-  if (
-    handleMissingFields(res, {
-      start_datetime,
-      end_datetime,
-      item_id,
-      reserve_price,
-    })
-  ) {
-    return;
-  }
-
-  // Validate and parse dates
-  const {
-    valid,
-    start_datetime: parsedStartDate,
-    end_datetime: parsedEndDate,
-  } = validateAndParseDates(req, res);
-
-  if (!valid) return;
-
   try {
-    // Retrieve the user from the repository
+    // Retrieve the user and item from the repository
     const user = await userRepository.findUserById(user_id);
     const item = await itemRepository.findItemById(item_id);
 
@@ -63,9 +49,10 @@ export const createAuction: RequestHandler = async (
       return;
     }
 
+    // Check if the item is already part of an active auction
     const existingAuction = await auctionRepository.findOne({
       where: {
-        item: { item_id }, // Find auction by item
+        item: { item_id },
       },
     });
 
@@ -74,12 +61,13 @@ export const createAuction: RequestHandler = async (
       return;
     }
 
-    // Create the auction using parsed dates
+    // Create the auction using parsed dates (they are validated in the middleware)
     const auction = auctionRepository.create({
-      start_datetime: parsedStartDate, // Use parsed start datetime
-      end_datetime: parsedEndDate, // Use parsed end datetime
+      title,
+      description,
+      start_datetime,
+      end_datetime,
       reserve_price,
-      status: AuctionStatus.PENDING,
       current_highest_bid: 0,
       item: { item_id },
       user,
@@ -88,10 +76,10 @@ export const createAuction: RequestHandler = async (
     // Save the auction to the database
     await auctionRepository.save(auction);
 
-    // Respond wi th the created auction
-    res.status(201).json(auction);
+    // Respond with the created auction
+    sendSuccessResponse(res, auction, 201);
   } catch (error) {
-    console.error(error);
+    console.error("Error creating auction:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -178,13 +166,22 @@ export const updateAuction: RequestHandler = async (
   res: Response,
 ): Promise<void> => {
   const { auction_id } = req.params;
-  const { start_datetime, end_datetime, reserve_price, status, item_id } =
-    req.body;
+  const {
+    title,
+    description,
+    start_datetime,
+    end_datetime,
+    reserve_price,
+    status,
+    item_id,
+  } = req.body;
   const user_id = req.user?.user_id ?? "";
 
   // Validate required fields if any
   if (
     handleMissingFields(res, {
+      title,
+      description,
       start_datetime,
       end_datetime,
       reserve_price,
@@ -201,6 +198,16 @@ export const updateAuction: RequestHandler = async (
     end_datetime: parsedEndDate,
   } = validateAndParseDates(req, res);
   if (!valid) return;
+
+  if (parsedStartDate && parsedEndDate) {
+    if (parsedStartDate >= parsedEndDate) {
+      sendErrorResponse(res, "End date must be after start date", 400);
+      return;
+    }
+  } else {
+    sendErrorResponse(res, "Invalid start or end date", 400);
+    return;
+  }
 
   try {
     const auction = await auctionRepository.findAuctionById(auction_id);
