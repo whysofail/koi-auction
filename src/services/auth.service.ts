@@ -120,4 +120,19 @@ const revokeToken = async (refreshToken: string) => {
   await refreshTokenRepository.revokeToken(refreshToken);
 };
 
-export const authService = { login, register, refreshAuth, revokeToken };
+const cleanupRefreshTokens = async () => {
+  try {
+    await refreshTokenRepository.cleanupExpiredTokens();
+  } catch (error) {
+    console.error("Error cleaning up refresh tokens:", error);
+    throw new Error("Failed to cleanup refresh tokens");
+  }
+};
+
+export const authService = {
+  login,
+  register,
+  refreshAuth,
+  revokeToken,
+  cleanupRefreshTokens,
+};

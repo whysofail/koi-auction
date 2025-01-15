@@ -11,17 +11,13 @@ import refreshTokenValidator from "../middlewares/refreshTokenValidator/refreshT
 
 const authRouter = Router();
 
-authRouter.post("/auth/login", loginUserValidator, loginController);
-authRouter.post("/auth/register", createUserValidator, registerController);
+authRouter.post("/login", loginUserValidator, loginController);
+authRouter.post("/register", createUserValidator, registerController);
 authRouter.post(
-  "/auth/refresh-token",
+  "/refresh-token",
   refreshTokenValidator,
   refreshTokenController,
 );
-authRouter.post(
-  "/auth/revoke-token",
-  refreshTokenValidator,
-  revokeTokenController,
-);
+authRouter.post("/revoke-token", refreshTokenValidator, revokeTokenController);
 
 export default authRouter;

@@ -1,19 +1,26 @@
+import { FindManyOptions } from "typeorm";
 import { AppDataSource as dataSource } from "../config/data-source";
 import Transaction, { TransactionStatus } from "../entities/Transaction";
 import walletRepository from "./wallet.repository";
 
 const transactionRepository = dataSource.getRepository(Transaction).extend({
   // Find a transaction by ID, including relationships
+  findAllAndCount(options?: FindManyOptions<Transaction>) {
+    return this.findAndCount({
+      ...options,
+      relations: ["wallet", "admin"], // Assuming relationships with wallet and user
+    });
+  },
   findTransactionById(transaction_id: string) {
     return this.findOne({
       where: { transaction_id },
-      relations: ["wallet", "user", "admin"], // Assuming relationships with wallet and user
+      relations: ["wallet"], // Assuming relationships with wallet and user
     });
   },
 
   // Find transactions by wallet ID
   findTransactionsByWalletId(wallet_id: string) {
-    return this.find({
+    return this.findAndCount({
       where: { wallet: { wallet_id } },
       relations: ["wallet", "user", "admin"], // Assuming relationships with wallet and user
       order: { created_at: "DESC" }, // Order by creation date

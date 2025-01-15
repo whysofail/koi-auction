@@ -17,12 +17,14 @@ class AuctionParticipant {
   @JoinColumn({ name: "auction_id" })
   declare auction: Auction;
 
-  @ManyToOne(() => User, (user) => user.auctionParticipants)
+  @ManyToOne(() => User, (user) => user.auctionsParticipants)
   @JoinColumn({ name: "user_id" })
   declare user: User;
 
   @CreateDateColumn({ name: "joined_at" })
   declare joined_at: Date;
+
+  participants_count: number | undefined;
 }
 
 export default AuctionParticipant;

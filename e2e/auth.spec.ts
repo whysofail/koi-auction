@@ -2,6 +2,7 @@ import request from "supertest";
 import { Express } from "express";
 import { AppDataSource } from "../src/config/data-source";
 import createApp from "../src/app";
+import User from "../src/entities/User";
 
 describe("Authentication routes", () => {
   let app: Express;
@@ -22,6 +23,11 @@ describe("Authentication routes", () => {
     if (AppDataSource.isInitialized) {
       await AppDataSource.destroy();
     }
+  });
+
+  afterEach(async () => {
+    const userRepository = AppDataSource.getRepository(User);
+    await userRepository.delete({ email: "e2e@mail.com" }); // Clean up test user
   });
 
   describe("/api/login", () => {

@@ -4,7 +4,7 @@ import { Seeder, SeederFactoryManager } from "typeorm-extension";
 import { hash } from "bcrypt";
 import User, { UserRole } from "../entities/User";
 import Item from "../entities/Item";
-import Auction from "../entities/Auction";
+import Auction, { AuctionStatus } from "../entities/Auction";
 import Wallet from "../entities/Wallet";
 
 export default class MainSeeder implements Seeder {
@@ -73,6 +73,8 @@ export default class MainSeeder implements Seeder {
         auctionFactory.make({
           user: admins[Math.floor(Math.random() * admins.length)],
           item: items[Math.floor(Math.random() * items.length)],
+          reserve_price: parseFloat((Math.random() * 1000).toFixed(2)),
+          status: AuctionStatus.ACTIVE,
         }),
       ),
     );

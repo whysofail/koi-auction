@@ -71,7 +71,7 @@ class User {
     () => AuctionParticipant,
     (auctionParticipant) => auctionParticipant.user,
   )
-  declare auctionParticipants: AuctionParticipant[];
+  declare auctionsParticipants: AuctionParticipant[]; // Reference the AuctionParticipant entity
 
   @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user)
   declare refreshTokens: RefreshToken[];

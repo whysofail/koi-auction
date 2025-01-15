@@ -28,6 +28,30 @@ const refreshTokenRepository = AppDataSource.getRepository(RefreshToken).extend(
     async revokeToken(token: string) {
       return this.update({ token }, { is_revoked: true });
     },
+
+    async deleteExpiredTokens() {
+      return this.createQueryBuilder()
+        .delete()
+        .where("expires_at < :now", { now: new Date() })
+        .execute();
+    },
+
+    async deleteRevokedTokens() {
+      return this.createQueryBuilder()
+        .delete()
+        .where("is_revoked = :revoked", { revoked: true })
+        .execute();
+    },
+
+    async cleanupExpiredTokens() {
+      try {
+        await this.deleteExpiredTokens();
+        await this.deleteRevokedTokens();
+      } catch (error) {
+        console.error("Error cleaning up tokens:", error);
+        throw new Error("Failed to cleanup tokens");
+      }
+    },
   },
 );
 
