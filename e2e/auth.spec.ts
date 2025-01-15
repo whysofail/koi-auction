@@ -102,4 +102,6 @@ describe("Authentication routes", () => {
       expect(res.body.message).toBe("Invalid role");
     });
   });
+
+  describe("/api/refresh-token", () => {});
 });

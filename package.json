@@ -14,7 +14,6 @@
     "db:migrate": "typeorm-ts-node-commonjs migration:run -d ./src/config/data-source.ts",
     "db:show": "typeorm-ts-node-commonjs migration:show -d ./src/config/data-source.ts",
     "db:drop": "typeorm-ts-node-commonjs schema:drop -d ./src/config/data-source.ts",
-    "db:fresh": "pnpm db:drop && pnpm db:migrate",
     "db:seed": "ts-node ./src/seeders/seed.ts",
     "test:watch": "jest --watch",
     "prepare": "husky"

@@ -30,7 +30,7 @@ export default class MainSeeder implements Seeder {
         userFactory.make({
           username: `user-${index}`,
           email: `user-${index}@mail.com`,
-          password: await hash(`user-${index}`, 12),
+          password: await hash(`Regularuser-${index}`, 12),
         }),
       ),
     );
@@ -41,7 +41,7 @@ export default class MainSeeder implements Seeder {
           username: `admin-${index}`,
           email: `admin-${index}@mail.com`,
           role: UserRole.ADMIN,
-          password: await hash(`admin-${index}`, 12),
+          password: await hash(`Adminuser-${index}`, 12),
         }),
       ),
     );

@@ -30,7 +30,11 @@ export const protect: RequestHandler = async (
     req.user = decoded; // Attach decoded user data to the request object
     next(); // Pass control to the next middleware or route handler
   } catch (error) {
-    res.status(401).json({ message: "Invalid token" });
+    if (error instanceof jwt.TokenExpiredError) {
+      res.status(401).json({ message: "Token expired" });
+    } else {
+      res.status(401).json({ message: "Unauthorized" });
+    }
   }
 };
 
