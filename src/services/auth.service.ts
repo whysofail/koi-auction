@@ -5,7 +5,7 @@ import walletRepository from "../repositories/wallet.repository";
 import User, { UserRole } from "../entities/User";
 import refreshTokenRepository from "../repositories/refreshTokenRepository";
 
-const ACCESS_TOKEN_EXPIRY = "1m";
+const ACCESS_TOKEN_EXPIRY = "1d";
 const REFRESH_TOKEN_EXPIRY = "7d";
 
 const generateTokens = async (user: Pick<User, "user_id" | "role">) => {

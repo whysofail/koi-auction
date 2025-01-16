@@ -55,8 +55,6 @@ describe("Auction routes", () => {
     });
 
     it("should return 401 for invalid role with an error message", async () => {
-      // Ensure the token exists
-
       const res = await request(app)
         .post("/api/auctions")
         .set("Authorization", `Bearer ${userToken}`)

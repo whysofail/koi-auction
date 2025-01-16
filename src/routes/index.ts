@@ -3,8 +3,9 @@ import userRouter from "./user.routes";
 import auctionRouter from "./auction.routes";
 import walletRouter from "./wallet.routes";
 import transactionRouter from "./transaction.routes";
-import bidRouter from "./bid.routes";
+// import bidRouter from "./bid.routes";
 import authRouter from "./auth.routes";
+import notificationRouter from "./notification.routes";
 
 const router = Router();
 
@@ -18,6 +19,7 @@ router.use("/auctions", auctionRouter);
 router.use("/wallets", walletRouter);
 router.use("/transactions", transactionRouter);
 // router.use("/bids", bidRouter);
+router.use("/notifications", notificationRouter);
 
 router.use((req: Request, res: Response) => {
   res.status(404).json({ message: "Route not found" });

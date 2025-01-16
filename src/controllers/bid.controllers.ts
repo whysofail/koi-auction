@@ -13,7 +13,6 @@ import {
   sendSuccessResponse,
   sendErrorResponse,
 } from "../utils/response/handleResponse";
-import { io } from "../main";
 
 export const getBids: RequestHandler = async (req: Request, res: Response) => {
   try {
@@ -147,16 +146,6 @@ export const placeBid: RequestHandler = async (
         await transactionalEntityManager.save(auction);
 
         // Emit the bid update event
-
-        try {
-          io.to(auction_id).emit("bidUpdate", {
-            auctionId: auction_id,
-            bidAmount: bid_amount,
-            message: `New bid placed for ${bid_amount}`,
-          });
-        } catch (emitError) {
-          console.error("Error emitting bid update event:", emitError);
-        }
 
         // Send success response
         sendSuccessResponse(res, bid, 201);
