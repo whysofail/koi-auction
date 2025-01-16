@@ -17,7 +17,7 @@ router.use("/users", userRouter);
 router.use("/auctions", auctionRouter);
 router.use("/wallets", walletRouter);
 router.use("/transactions", transactionRouter);
-router.use("/bids", bidRouter);
+// router.use("/bids", bidRouter);
 
 router.use((req: Request, res: Response) => {
   res.status(404).json({ message: "Route not found" });

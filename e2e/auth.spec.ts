@@ -23,9 +23,6 @@ describe("Authentication routes", () => {
     if (AppDataSource.isInitialized) {
       await AppDataSource.destroy();
     }
-  });
-
-  afterEach(async () => {
     const userRepository = AppDataSource.getRepository(User);
     await userRepository.delete({ email: "e2e@mail.com" }); // Clean up test user
   });
