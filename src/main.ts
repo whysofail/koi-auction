@@ -3,7 +3,6 @@ import { Server } from "socket.io";
 import createApp from "./app";
 import initializeSockets from "./sockets";
 import { AppDataSource } from "./config/data-source";
-import { socketAuthMiddleware } from "./middlewares/socketauth.middleware";
 import initializeRefreshTokenCleanup from "./cron/scheduler";
 
 AppDataSource.initialize()
@@ -24,7 +23,6 @@ const io = new Server(server, {
 });
 
 initializeSockets(io);
-io.use(socketAuthMiddleware);
 
 server.listen(process.env.PORT || 8001, () => {
   console.log(`This app is running on port ${process.env.PORT || 8001}`);
