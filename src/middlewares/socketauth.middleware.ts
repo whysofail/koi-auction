@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 interface AuthenticatedSocket extends Socket {
   user?: {
     user_id: string;
-    email: string;
+    role: string;
     // Add other user properties you need
   };
 }
@@ -32,7 +32,7 @@ export const socketAuthMiddleware = (
     const decoded = jwt.verify(tokenString, process.env.JWT_SECRET);
 
     // Attach user data to socket
-    const userData = decoded as { user_id: string; email: string };
+    const userData = decoded as { user_id: string; role: string };
     const updatedSocket = socket;
     updatedSocket.user = userData;
 

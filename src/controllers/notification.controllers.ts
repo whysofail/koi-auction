@@ -46,7 +46,7 @@ export const getUserNotifications = async (
   const userId = req.user?.user_id;
 
   if (!userId) {
-    res.status(401).json({ message: "Unauthorized" });
+    res.status(400).json({ message: "User ID is required" });
     return;
   }
 
