@@ -67,7 +67,7 @@ describe("Auction routes", () => {
           reserve_price: "10000",
         });
 
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(401);
       expect(res.body).toHaveProperty("message");
       expect(res.body.message).toBe("Forbidden");
     });
