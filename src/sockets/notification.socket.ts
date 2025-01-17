@@ -28,8 +28,6 @@ const notificationSocket = (io: Server | Namespace, socket: Socket): void => {
       updated_at,
     } = data;
 
-    console.log(typeof data === "object");
-
     const userId = user.user_id;
 
     // Call the send method
@@ -43,9 +41,6 @@ const notificationSocket = (io: Server | Namespace, socket: Socket): void => {
       created_at,
       updated_at,
     });
-
-    // Log confirmation
-    console.log(`Notification sent to user: ${userId}`);
   });
 };
 
