@@ -11,22 +11,8 @@ const notificationSocket = (io: Server | Namespace, socket: Socket): void => {
     event: string,
     notification: Notification,
   ): void => {
-    // Log notification details for debugging
-    console.log("Sending notification to user:", {
-      user_id: userId,
-      notification_id: notification.notification_id,
-      message: notification.message,
-      reference_id: notification.reference_id,
-      type: notification.type,
-      status: notification.status,
-      created_at: notification.created_at,
-    });
-
     // Use socketService to emit the notification to the specific user
     socketService.emitToAuthRoom(userId, event, notification);
-
-    // Log confirmation
-    console.log(`Notification sent to user: ${userId}`);
   };
 
   // Handle sending notifications to clients
@@ -45,9 +31,6 @@ const notificationSocket = (io: Server | Namespace, socket: Socket): void => {
     console.log(typeof data === "object");
 
     const userId = user.user_id;
-
-    // Log the action of preparing to send notification
-    console.log(`Preparing to send notification to user: ${userId}`);
 
     // Call the send method
     notificationSocket.send(userId, "notification", {
