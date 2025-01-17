@@ -1,9 +1,10 @@
 import { Server, Socket } from "socket.io";
 import auctionSocket from "./auction.socket";
 import bidSocket from "./bid.socket";
+import notificationSocket from "./notification.socket";
 import { socketAuthMiddleware } from "./socketauth.middleware";
 
-interface AuthenticatedSocket extends Socket {
+export interface AuthenticatedSocket extends Socket {
   user?: {
     user_id: string;
     role: string;
@@ -31,12 +32,14 @@ export default function initializeSockets(io: Server): void {
   authNamespace.use(socketAuthMiddleware);
 
   authNamespace.on("connection", (socket: AuthenticatedSocket) => {
-    console.log(socket.user); // { user_id: '...', role: '...' }
-
-    console.log("Client connected to authenticated namespace");
+    const userId = socket.user?.user_id;
+    if (userId) {
+      socket.join(`user:${userId}`);
+    }
 
     // Initialize authenticated socket functionalities, such as bidSocket
     bidSocket(authNamespace, socket);
+    notificationSocket(authNamespace, socket);
 
     // Handle disconnect
     socket.on("disconnect", () => {

@@ -4,6 +4,7 @@ import createApp from "./app";
 import initializeSockets from "./sockets";
 import { AppDataSource } from "./config/data-source";
 import initializeRefreshTokenCleanup from "./cron/scheduler";
+import SocketIOService from "./services/socketio.service";
 
 AppDataSource.initialize()
   .then(() => initializeRefreshTokenCleanup())
@@ -22,6 +23,7 @@ const io = new Server(server, {
   },
 });
 
+SocketIOService.getInstance().initialize(io);
 initializeSockets(io);
 
 server.listen(process.env.PORT || 8001, () => {

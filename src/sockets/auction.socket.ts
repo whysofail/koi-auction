@@ -1,6 +1,6 @@
 import { Server, Socket } from "socket.io";
 
-const userRooms: Record<string, Set<string>> = {}; // Track users per auction room
+const userRooms: Record<string, Set<string> | undefined> = {};
 
 const auctionSocketHandler = (io: Server, socket: Socket): void => {
   console.log("New client connected:", socket.id);
@@ -23,7 +23,29 @@ const auctionSocketHandler = (io: Server, socket: Socket): void => {
     socket.emit("success", `You have joined auction: ${auctionId}`);
   });
 
-  // Handle request for users in auction
+  // Handle leaving an auction room
+  socket.on("leaveAuction", (auctionId: string) => {
+    console.log(`Client ${socket.id} left auction: ${auctionId}`);
+    socket.leave(auctionId); // Leave the auction room
+
+    // Remove the user from the auction room's set of users
+    if (userRooms[auctionId]) {
+      userRooms[auctionId].delete(socket.id);
+
+      // Emit the updated list of users to all clients in the auction room
+      io.to(auctionId).emit("userListUpdate", Array.from(userRooms[auctionId]));
+
+      // Cleanup if no users remain in the room
+      if (userRooms[auctionId].size === 0) {
+        userRooms[auctionId] = undefined;
+      }
+    }
+
+    // Notify the client that they left the auction successfully
+    socket.emit("success", `You have left auction: ${auctionId}`);
+  });
+
+  // Handle request for users in an auction
   socket.on("getUsersInAuction", (auctionId: string) => {
     // Emit the list of users in the specified auction room to the client
     const users = userRooms[auctionId] ? Array.from(userRooms[auctionId]) : [];
@@ -35,12 +57,17 @@ const auctionSocketHandler = (io: Server, socket: Socket): void => {
     console.log("Client disconnected:", socket.id);
     // Remove the user from all rooms they were in
     Object.keys(userRooms).forEach((auctionId) => {
-      if (userRooms[auctionId].has(socket.id)) {
+      if (userRooms[auctionId] && userRooms[auctionId].has(socket.id)) {
         userRooms[auctionId].delete(socket.id);
         io.to(auctionId).emit(
           "userListUpdate",
           Array.from(userRooms[auctionId]),
         );
+
+        // Cleanup if no users remain in the room
+        if (userRooms[auctionId].size === 0) {
+          userRooms[auctionId] = undefined;
+        }
       }
     });
   });

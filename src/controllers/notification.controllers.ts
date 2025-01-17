@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import notificationRepository from "../repositories/notification.repository";
 import { sendSuccessResponse } from "../utils/response/handleResponse";
+import notificationSocket from "../sockets/notification.socket";
 
 // Get all notification
 export const getNotifications = async (
@@ -31,6 +32,7 @@ export const createNotification = async (
       message,
       reference_id,
     );
+    await notificationSocket.send(user_id, "notification", notification);
     sendSuccessResponse(res, { data: notification }, 201);
   } catch (error) {
     console.error("Error creating notification:", error);

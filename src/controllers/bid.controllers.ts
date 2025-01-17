@@ -8,6 +8,7 @@ import userRepository from "../repositories/user.repository";
 import auctionRepository from "../repositories/auction.repository";
 import bidRepository from "../repositories/bid.repository";
 import validateAndParseDates from "../utils/date/validateAndParseDate";
+import socketService from "../services/socket.service";
 import { handleNotFound } from "../utils/response/handleError";
 import {
   sendSuccessResponse,
@@ -145,7 +146,16 @@ export const placeBid: RequestHandler = async (
         auction.current_highest_bid = bid_amount;
         await transactionalEntityManager.save(auction);
 
-        // Emit the bid update event
+        // Emit the bid update event using socketService
+        try {
+          // Here, the auction_id is the room to emit the event to
+          socketService.emitToRoom(auction_id, "bidUpdate", {
+            auctionId: auction_id,
+            bidAmount: bid_amount,
+          });
+        } catch (error) {
+          console.error("Socket emission failed:", error);
+        }
 
         // Send success response
         sendSuccessResponse(res, bid, 201);
