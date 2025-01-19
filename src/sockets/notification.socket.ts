@@ -1,24 +1,60 @@
-import { Server, Socket } from "socket.io";
+import { Namespace, Server, Socket } from "socket.io";
+import Notification from "../entities/Notification";
+import socketService from "../services/socket.service";
 
-// Function to emit a notification
-const sendNotification = (io: Server, auctionId: string, message: string) => {
-  io.to(auctionId).emit("newNotification", { message });
-};
+const notificationSocket = (io: Server | Namespace, socket: Socket): void => {
+  console.log("New client connected:", socket.id);
 
-const notificationSocketHandler = (io: Server, socket: Socket): void => {
+  // Attach the send function to notificationSocket object
+  notificationSocket.send = (
+    userId: string,
+    event: string,
+    notification: Notification,
+  ): void => {
+    // Use socketService to emit the notification to the specific user
+    socketService.emitToAuthRoom(userId, event, notification);
+  };
+
   // Handle sending notifications to clients
-  socket.on("sendNotification", (data) => {
-    const { auctionId, message } = data;
+  socket.on("sendNotification", (data: Notification) => {
+    const {
+      user,
+      message,
+      notification_id,
+      reference_id,
+      type,
+      status,
+      created_at,
+      updated_at,
+    } = data;
 
-    // Emit notification to the specified auction room
-    sendNotification(io, auctionId, message);
-  });
+    const userId = user.user_id;
 
-  // Example: Handle sending system-wide notifications
-  socket.on("sendSystemNotification", (message: string) => {
-    // Emit the message to all connected clients
-    io.emit("systemNotification", { message });
+    // Call the send method
+    notificationSocket.send(userId, "notification", {
+      notification_id,
+      user,
+      message,
+      reference_id,
+      type,
+      status,
+      created_at,
+      updated_at,
+    });
   });
 };
 
-export default notificationSocketHandler;
+// Add the send function to the notificationSocket
+notificationSocket.send = (
+  userId: string,
+  event: string,
+  notification: Notification,
+): void => {
+  // This method can be used directly to send a notification without the socket event
+  console.log(
+    `Sending notification to user ${userId} via notificationSocket.send()`,
+  );
+  socketService.emitToRoom(userId, event, notification);
+};
+
+export default notificationSocket;

@@ -15,6 +15,7 @@ import Item from "./Item";
 import Wallet from "./Wallet";
 import AuctionParticipant from "./AuctionParticipant";
 import RefreshToken from "./RefreshToken";
+import Notification from "./Notification";
 
 export enum UserRole {
   ADMIN = "admin",
@@ -75,6 +76,9 @@ class User {
 
   @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user)
   declare refreshTokens: RefreshToken[];
+
+  @OneToMany(() => Notification, (notification) => notification.user)
+  declare notifications: Notification[];
 }
 
 export default User;

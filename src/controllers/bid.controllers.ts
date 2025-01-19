@@ -8,12 +8,12 @@ import userRepository from "../repositories/user.repository";
 import auctionRepository from "../repositories/auction.repository";
 import bidRepository from "../repositories/bid.repository";
 import validateAndParseDates from "../utils/date/validateAndParseDate";
+import socketService from "../services/socket.service";
 import { handleNotFound } from "../utils/response/handleError";
 import {
   sendSuccessResponse,
   sendErrorResponse,
 } from "../utils/response/handleResponse";
-import { io } from "../main";
 
 export const getBids: RequestHandler = async (req: Request, res: Response) => {
   try {
@@ -146,16 +146,15 @@ export const placeBid: RequestHandler = async (
         auction.current_highest_bid = bid_amount;
         await transactionalEntityManager.save(auction);
 
-        // Emit the bid update event
-
+        // Emit the bid update event using socketService
         try {
-          io.to(auction_id).emit("bidUpdate", {
+          // Here, the auction_id is the room to emit the event to
+          socketService.emitToRoom(auction_id, "bidUpdate", {
             auctionId: auction_id,
             bidAmount: bid_amount,
-            message: `New bid placed for ${bid_amount}`,
           });
-        } catch (emitError) {
-          console.error("Error emitting bid update event:", emitError);
+        } catch (error) {
+          console.error("Socket emission failed:", error);
         }
 
         // Send success response

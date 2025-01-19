@@ -1,6 +1,6 @@
-import { Server, Socket } from "socket.io";
+import { Namespace, Server, Socket } from "socket.io";
 
-const bidSocketHandler = (io: Server, socket: Socket): void => {
+const bidSocketHandler = (io: Server | Namespace, socket: Socket): void => {
   // Handle placing a bid (Example)
   socket.on("newBid", (data) => {
     const { auctionId, bidAmount } = data;

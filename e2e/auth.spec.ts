@@ -23,16 +23,13 @@ describe("Authentication routes", () => {
     if (AppDataSource.isInitialized) {
       await AppDataSource.destroy();
     }
-  });
-
-  afterEach(async () => {
     const userRepository = AppDataSource.getRepository(User);
     await userRepository.delete({ email: "e2e@mail.com" }); // Clean up test user
   });
 
   describe("/api/login", () => {
     it("should return 400 and error message for missing required fields", async () => {
-      const res = await request(app).post("/api/login").send();
+      const res = await request(app).post("/api/auth/login").send();
       expect(res.status).toBe(400);
       expect(res.body).toHaveProperty("message");
       expect(res.body.message).toBe("Missing required fields");
@@ -48,7 +45,7 @@ describe("Authentication routes", () => {
     });
 
     it("should return 200 and user data with token", async () => {
-      const res = await request(app).post("/api/login").send({
+      const res = await request(app).post("/api/auth/login").send({
         email: "admin-0@mail.com",
         password: "admin-0",
       });
@@ -65,7 +62,7 @@ describe("Authentication routes", () => {
     });
 
     it("should return 401 for invalid credentials with an error message", async () => {
-      const res = await request(app).post("/api/login").send({
+      const res = await request(app).post("/api/auth/login").send({
         email: "invalid@mail.com",
         password: "invalid",
       });
@@ -78,7 +75,7 @@ describe("Authentication routes", () => {
 
   describe("/api/register", () => {
     it("should return 200 and message for successful registration", async () => {
-      const res = await request(app).post("/api/register").send({
+      const res = await request(app).post("/api/auth/register").send({
         username: "E2E User",
         email: "e2e@mail.com",
         password: "e2e-password",
@@ -90,14 +87,14 @@ describe("Authentication routes", () => {
     });
 
     it("should return 400 for missing required fields", async () => {
-      const res = await request(app).post("/api/register").send({});
+      const res = await request(app).post("/api/auth/register").send({});
       expect(res.status).toBe(400);
       expect(res.body).toHaveProperty("message");
       expect(res.body.message).toBe("Missing required fields");
     });
 
     it("should return 400 for invalid role", async () => {
-      const res = await request(app).post("/api/register").send({
+      const res = await request(app).post("/api/auth/register").send({
         username: "E2E User",
         email: "e2e@mail.com",
         role: "invalid-role",

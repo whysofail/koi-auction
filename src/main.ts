@@ -3,8 +3,8 @@ import { Server } from "socket.io";
 import createApp from "./app";
 import initializeSockets from "./sockets";
 import { AppDataSource } from "./config/data-source";
-import { socketAuthMiddleware } from "./middlewares/socketauth.middleware";
 import initializeRefreshTokenCleanup from "./cron/scheduler";
+import SocketIOService from "./services/socketio.service";
 
 AppDataSource.initialize()
   .then(() => initializeRefreshTokenCleanup())
@@ -14,7 +14,7 @@ const app = createApp();
 
 const server = http.createServer(app);
 
-export const io = new Server(server, {
+const io = new Server(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"],
@@ -23,8 +23,8 @@ export const io = new Server(server, {
   },
 });
 
+SocketIOService.getInstance().initialize(io);
 initializeSockets(io);
-io.use(socketAuthMiddleware);
 
 server.listen(process.env.PORT || 8001, () => {
   console.log(`This app is running on port ${process.env.PORT || 8001}`);
