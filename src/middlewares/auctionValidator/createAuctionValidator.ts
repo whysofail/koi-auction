@@ -3,6 +3,7 @@ import { validate, isUUID, isDateString } from "class-validator";
 import Auction from "../../entities/Auction";
 import itemRepository from "../../repositories/item.repository";
 import Item from "../../entities/Item";
+import auctionRepository from "../../repositories/auction.repository";
 
 const createAuctionValidator = async (
   req: Request,
@@ -34,6 +35,15 @@ const createAuctionValidator = async (
     const item = await itemRepository.findOne({ where: { item_id } });
     if (!item) {
       res.status(400).json({ message: "Item not found!" });
+      return;
+    }
+
+    const itemAlreadyExist = await auctionRepository.findOne({
+      where: { item: { item_id } },
+    });
+
+    if (itemAlreadyExist) {
+      res.status(400).json({ message: "Item already has an auction!" });
       return;
     }
 

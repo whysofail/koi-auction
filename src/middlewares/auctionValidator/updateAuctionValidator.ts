@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import { validate, isUUID, isDateString } from "class-validator";
+import { validate, isDateString } from "class-validator";
 import auctionRepository from "../../repositories/auction.repository";
 import itemRepository from "../../repositories/item.repository";
-import Item from "../../entities/Item";
+import { ErrorHandler } from "../../utils/response/handleError";
 
 const updateAuctionValidator = async (
   req: Request,
@@ -22,34 +22,51 @@ const updateAuctionValidator = async (
       reserve_price,
       start_datetime,
       end_datetime,
+      status,
     } = req.body;
     const { auction_id } = req.params;
 
     // Validate auction_id (must be a valid UUID)
-    if (!auction_id || !isUUID(auction_id)) {
+    if (!auction_id) {
       res.status(400).json({ message: "Invalid auction ID!" });
       return;
     }
 
     // Check if auction exists in the database
-    const auction = await auctionRepository.findOne({ where: { auction_id } });
+    const auction = await auctionRepository.findAuctionById(auction_id);
     if (!auction) {
-      res.status(400).json({ message: "Auction not found!" });
-      return;
+      throw ErrorHandler.notFound(`Auction with id ${auction_id} not found`);
     }
 
     // Validate item_id (if provided, must be a valid UUID and the item should exist)
-    if (item_id && !isUUID(item_id)) {
+    if (!item_id) {
       res.status(400).json({ message: "Invalid item ID!" });
       return;
     }
+    console.log(auction);
 
-    // Check if item exists in the database (if item_id is provided)
     if (item_id) {
-      const item = await itemRepository.findOne({ where: { item_id } });
-      if (!item) {
-        res.status(400).json({ message: "Item not found!" });
-        return;
+      // If the item_id is being updated (not the same as the current auction's item_id)
+      console.log(item_id, auction.item?.item_id);
+      if (item_id !== auction.item?.item_id) {
+        // Check if item exists in the database
+        const item = await itemRepository.findOne({ where: { item_id } });
+        if (!item) {
+          res.status(400).json({ message: "Item not found!" });
+          return;
+        }
+
+        const itemAlreadyExist = await auctionRepository.findOne({
+          where: { item: { item_id } },
+        });
+
+        if (itemAlreadyExist) {
+          res.status(400).json({ message: "Item already has an auction!" });
+          return;
+        }
+
+        // Update item if valid
+        auction.item = item;
       }
     }
 
@@ -60,6 +77,11 @@ const updateAuctionValidator = async (
     }
     if (description && description.trim().length === 0) {
       res.status(400).json({ message: "Description must not be empty!" });
+      return;
+    }
+
+    if (!status) {
+      res.status(400).json({ message: "Status must not be empty" });
       return;
     }
 
@@ -107,10 +129,7 @@ const updateAuctionValidator = async (
     if (reserve_price !== undefined) auction.reserve_price = parsedReservePrice;
     if (start_datetime) auction.start_datetime = new Date(start_datetime);
     if (end_datetime) auction.end_datetime = new Date(end_datetime);
-    if (item_id) {
-      auction.item = new Item();
-      auction.item.item_id = item_id; // Update item if item_id is provided
-    }
+    if (status) auction.status = status.toUpperCase();
 
     // Validate auction instance
     const errors = await validate(auction, { skipMissingProperties: true });

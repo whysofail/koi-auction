@@ -91,9 +91,6 @@ class Auction {
     scale: 2, // Digits after the decimal point
     default: 0,
   })
-  @IsNumber()
-  @IsPositive()
-  @Min(0, { message: "Current highest bid must be a positive number" })
   declare current_highest_bid: number;
 
   @Column({
@@ -111,7 +108,6 @@ class Auction {
 
   @ManyToOne(() => User, (user) => user.auctions)
   @JoinColumn({ name: "created_by_id" })
-  @IsUUID()
   declare user: User;
 
   @CreateDateColumn({ name: "created_at" })

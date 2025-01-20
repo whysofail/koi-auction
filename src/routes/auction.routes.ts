@@ -9,6 +9,7 @@ import {
 import { authorize, protect } from "../middlewares/auth.middleware";
 import createAuctionValidator from "../middlewares/auctionValidator/createAuctionValidator";
 import updateAuctionValidator from "../middlewares/auctionValidator/updateAuctionValidator";
+import joinAuctionValidator from "../middlewares/auctionValidator/joinAuctionValidator";
 
 const auctionRouter = Router();
 
@@ -28,6 +29,11 @@ auctionRouter.put(
   updateAuctionValidator,
   updateAuction,
 );
-auctionRouter.post("/:auction_id/join", protect, joinAuction);
+auctionRouter.post(
+  "/:auction_id/join",
+  protect,
+  joinAuctionValidator,
+  joinAuction,
+);
 
 export default auctionRouter;
