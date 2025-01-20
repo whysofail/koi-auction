@@ -3,11 +3,10 @@ import { Server } from "socket.io";
 import createApp from "./app";
 import initializeSockets from "./sockets";
 import { AppDataSource } from "./config/data-source";
-import initializeRefreshTokenCleanup from "./cron/scheduler";
 import SocketIOService from "./services/socketio.service";
 
 AppDataSource.initialize()
-  .then(() => initializeRefreshTokenCleanup())
+  .then(() => console.log("Database connected"))
   .catch((error) => console.log(error));
 
 const app = createApp();
