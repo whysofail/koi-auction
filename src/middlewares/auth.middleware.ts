@@ -1,20 +1,13 @@
 import jwt from "jsonwebtoken";
-import { RequestHandler, Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from "express";
+import { AuthenticatedRequest, AuthUser, AuthMiddleware } from "../types/auth";
 
-// Extend the Express Request interface to include a user property
-declare module "express" {
-  export interface Request {
-    user?: { user_id: string; role: string }; // Define the expected structure of the user object
-  }
-}
-
-// Protect middleware to verify JWT token
-export const protect: RequestHandler = async (
+export const protect: AuthMiddleware = (
   req: Request,
   res: Response,
   next: NextFunction,
-): Promise<void> => {
-  const token = req.headers.authorization?.split(" ")[1]; // Extract token from Authorization header
+): void => {
+  const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
     res.status(401).json({ message: "Unauthorized" });
@@ -22,13 +15,15 @@ export const protect: RequestHandler = async (
   }
 
   try {
-    // Verify the token and attach the decoded data to the req.user object
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "") as {
-      user_id: string;
-      role: string;
-    };
-    req.user = decoded; // Attach decoded user data to the request object
-    next(); // Pass control to the next middleware or route handler
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "") as AuthUser;
+
+    // Use type assertion with Request
+    Object.defineProperty(req, "user", {
+      value: decoded,
+      enumerable: true,
+    });
+
+    next();
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
       res.status(401).json({ message: "Token expired" });
@@ -38,14 +33,15 @@ export const protect: RequestHandler = async (
   }
 };
 
-// Authorize middleware to check if the user has the required role
 export const authorize =
-  (roles: string[]): RequestHandler =>
-  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    // Check if the user is authenticated and their role is in the allowed roles
-    if (!req.user || !roles.includes(req.user.role)) {
-      res.status(403).json({ message: "Forbidden" }); // Return a Forbidden response
+  (roles: string[]): AuthMiddleware =>
+  (req: Request, res: Response, next: NextFunction): void => {
+    const { user } = req as AuthenticatedRequest;
+
+    if (!roles.includes(user.role)) {
+      res.status(403).json({ message: "Forbidden" });
       return;
     }
-    next(); // If authorized, move to the next middleware/handler
+
+    next();
   };

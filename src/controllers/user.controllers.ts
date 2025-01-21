@@ -1,34 +1,30 @@
-import { RequestHandler, Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import paginate from "../utils/pagination";
 import userRepository from "../repositories/user.repository";
 import {
   sendErrorResponse,
   sendSuccessResponse,
 } from "../utils/response/handleResponse";
-
+import { userService } from "../services/user.service";
+import {
+  AuthenticatedRequestHandler,
+  AuthenticatedRequest,
+} from "../types/auth";
 // Get information of the logged-in user
-export const getUserInfo: RequestHandler = async (
+// Use the custom type in your handler
+export const getUserInfo: AuthenticatedRequestHandler = async (
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> => {
+  // Type assertion at the beginning of the handler
+  const { user } = req as AuthenticatedRequest;
+
   try {
-    const userId = req.user?.user_id;
-    if (!userId) {
-      res.status(400).json({ message: "User ID not found in token." });
-      return;
-    }
-
-    const user = await userRepository.findUserById(userId);
-
-    if (!user) {
-      sendErrorResponse(res, "User not found.", 404);
-      return;
-    }
-
-    sendSuccessResponse(res, { data: user });
+    const userData = await userService.getUserById(user.user_id);
+    sendSuccessResponse(res, { data: userData });
   } catch (error) {
-    console.error("Error fetching user info:", error);
-    res.status(500).json({ message: "Internal server error." });
+    next(error);
   }
 };
 
@@ -36,6 +32,7 @@ export const getUserInfo: RequestHandler = async (
 export const getAllUsers = async (
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const [users, count] = await userRepository.findAndCount({
@@ -45,8 +42,7 @@ export const getAllUsers = async (
 
     sendSuccessResponse(res, { data: users, count });
   } catch (error) {
-    console.error(error);
-    sendErrorResponse(res, "Internal server error.");
+    next(error);
   }
 };
 
@@ -54,77 +50,35 @@ export const getAllUsers = async (
 export const createUser = async (
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> => {
   try {
-    const { username, email, password, role } = req.body;
-
-    if (!username || !email || !password || !role) {
-      res.status(400).json({ message: "Missing required fields." });
-      return;
-    }
-
-    // Check if the user already exists
-    const existingUser = await userRepository.findUserByEmail(email);
-    if (existingUser) {
-      res.status(400).json({ message: "User with this email already exists." });
-      return;
-    }
-
-    const newUser = userRepository.create({
-      username,
-      email,
-      password,
-      role,
-    });
-
-    await userRepository.save(newUser);
-
+    const newUser = await userService.createUser(req.body);
     sendSuccessResponse(res, { data: newUser });
   } catch (error) {
-    console.error("Error creating user:", error);
-    res.status(500).json({ message: "Internal server error." });
+    next(error);
   }
 };
 
 // Update user details (Admin or self update)
-export const updateUser = async (
+export const updateUser: AuthenticatedRequestHandler = async (
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> => {
+  const { user } = req as AuthenticatedRequest;
   try {
-    const userId = req.user?.user_id;
-    const { username, email, password, role } = req.body;
-
-    if (!userId) {
-      res.status(400).json({ message: "User ID not found in token." });
-      return;
-    }
-
-    // Find user by user_id
-    const user = await userRepository.findUserById(userId);
-
-    if (!user) {
-      res.status(404).json({ message: "User not found." });
-      return;
-    }
-
-    // Update user properties if provided
-    user.username = username || user.username;
-    user.email = email || user.email;
-    user.password = password || user.password;
-    user.role = role || user.role;
-
-    await userRepository.save(user);
+    const userUpdate = await userService.updateUser(user.user_id, req.body);
 
     res.status(200).json({
       user: {
-        ...user,
+        ...userUpdate,
         password: undefined, // Optional, don't expose the password
       },
     });
+    sendSuccessResponse(res, { data: { ...userUpdate, password: undefined } });
   } catch (error) {
-    console.error("Error updating user:", error);
-    sendErrorResponse(res, "Internal server error.");
+    next(error);
   }
 };
 

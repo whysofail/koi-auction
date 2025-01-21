@@ -22,6 +22,19 @@ const notificationRepository = dataSource.getRepository(Notification).extend({
     });
     return this.save(notification);
   },
+  findNotificationByUserId(userId: string): Promise<Notification[]> {
+    return this.find({ where: { user: { user_id: userId } } });
+  },
+  async findNotificationById(notificationId: string): Promise<Notification> {
+    const notification = await this.findOne({
+      where: { notification_id: notificationId },
+    });
+    if (!notification) {
+      throw new Error(`Notification with id ${notificationId} not found`);
+    }
+    return notification;
+  },
+
   async findNotifications(userId: string): Promise<[Notification[], number]> {
     return this.findAndCount({
       where: { user: { user_id: userId } },

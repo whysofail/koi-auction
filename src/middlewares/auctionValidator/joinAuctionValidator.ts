@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import auctionRepository from "../../repositories/auction.repository";
 import userRepository from "../../repositories/user.repository";
 import walletRepository from "../../repositories/wallet.repository";
+import { AuthenticatedRequest } from "../../types/auth";
 
 const joinAuctionValidator = async (
   req: Request,
@@ -15,7 +16,7 @@ const joinAuctionValidator = async (
     }
 
     const { auction_id } = req.params;
-    const user_id = req.user?.user_id;
+    const { user } = req as AuthenticatedRequest;
 
     // Validate auction_id
     if (!auction_id) {
@@ -24,7 +25,7 @@ const joinAuctionValidator = async (
     }
 
     // Validate user_id
-    if (!user_id) {
+    if (!user.user_id) {
       res.status(400).json({ message: "Invalid user ID!" });
       return;
     }
@@ -37,14 +38,14 @@ const joinAuctionValidator = async (
     }
 
     // Check if user exists
-    const user = await userRepository.findUserById(user_id);
-    if (!user) {
+    const userExist = await userRepository.findUserById(user.user_id);
+    if (!userExist) {
       res.status(404).json({ message: "User not found!" });
       return;
     }
 
     // Check if the user has a wallet
-    const wallet = await walletRepository.findWalletByUserId(user_id);
+    const wallet = await walletRepository.findWalletByUserId(user.user_id);
     if (!wallet) {
       res.status(404).json({ message: "Wallet not found for the user!" });
       return;
@@ -67,7 +68,7 @@ const joinAuctionValidator = async (
       .createQueryBuilder("auction")
       .leftJoinAndSelect("auction.participants", "participants")
       .where("auction.auction_id = :auction_id", { auction_id })
-      .andWhere("participants.user_id = :user_id", { user_id })
+      .andWhere("participants.user_id = :user_id", { user_id: user.user_id })
       .getOne();
 
     if (existingParticipant) {

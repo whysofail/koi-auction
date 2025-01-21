@@ -27,6 +27,14 @@ const transactionRepository = dataSource.getRepository(Transaction).extend({
     });
   },
 
+  findTransactionByUserId(user_id: string) {
+    return this.findAndCount({
+      where: { wallet: { user_id } },
+      relations: ["wallet", "user", "admin"], // Assuming relationships with wallet and user
+      order: { created_at: "DESC" }, // Order by creation date
+    });
+  },
+
   async createDepositTransaction(
     wallet_id: string,
     amount: number,

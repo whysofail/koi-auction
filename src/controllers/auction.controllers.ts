@@ -10,17 +10,20 @@ import {
   sendErrorResponse,
 } from "../utils/response/handleResponse";
 import { auctionService } from "../services/auction.service";
+import {
+  AuthenticatedRequest,
+  AuthenticatedRequestHandler,
+} from "../types/auth";
 
 // Create Auction
-export const createAuction = async (
+export const createAuction: AuthenticatedRequestHandler = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  const user_id = req.user?.user_id ?? "";
+  const { user } = req as AuthenticatedRequest;
 
   try {
-    console.log("Creating auction:", req.body); // Debug log
-    const auction = await auctionService.createAuction(req.body, user_id);
+    const auction = await auctionService.createAuction(req.body, user.user_id);
     sendSuccessResponse(res, { data: auction }, 201);
   } catch (error) {
     console.error("Error creating auction:", error);
@@ -90,37 +93,36 @@ export const getAuctionDetails: RequestHandler = async (
 };
 
 // Update Auction
-export const updateAuction: RequestHandler = async (
+export const updateAuction: AuthenticatedRequestHandler = async (
   req: Request,
   res: Response,
   next,
 ): Promise<void> => {
   const { auction_id } = req.params;
-  const user_id = req.user?.user_id ?? "";
+  const { user } = req as AuthenticatedRequest;
 
   try {
     const auction = await auctionService.updateAuction(
       auction_id,
-      user_id,
+      user.user_id,
       req.body,
     );
     sendSuccessResponse(res, auction);
   } catch (error) {
-    console.error("Error updating auction:", error);
     next(error); // Pass the error to global error handler
   }
 };
 
 // Join Auction
-export const joinAuction: RequestHandler = async (
+export const joinAuction: AuthenticatedRequestHandler = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
   const { auction_id } = req.params;
-  const user_id = req.user?.user_id ?? "";
+  const { user } = req as AuthenticatedRequest;
 
   try {
-    await auctionService.joinAuction(auction_id, user_id);
+    await auctionService.joinAuction(auction_id, user.user_id);
     sendSuccessResponse(res, { message: "Joined auction successfully" }, 201);
   } catch (error) {
     console.error("Error in joinAuction:", error);

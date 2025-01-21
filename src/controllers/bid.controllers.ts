@@ -1,19 +1,19 @@
 import { Request, Response, RequestHandler } from "express";
 import { FindOptionsWhere } from "typeorm";
-import Auction, { AuctionStatus } from "../entities/Auction";
 import Bid from "../entities/Bid";
 import paginate from "../utils/pagination";
 import buildDateRangeFilter from "../utils/date/dateRange";
-import userRepository from "../repositories/user.repository";
-import auctionRepository from "../repositories/auction.repository";
 import bidRepository from "../repositories/bid.repository";
 import validateAndParseDates from "../utils/date/validateAndParseDate";
-import socketService from "../services/socket.service";
-import { handleNotFound } from "../utils/response/handleError";
 import {
   sendSuccessResponse,
   sendErrorResponse,
 } from "../utils/response/handleResponse";
+import {
+  AuthenticatedRequest,
+  AuthenticatedRequestHandler,
+} from "../types/auth";
+import { bidService } from "../services/bid.service";
 
 export const getBids: RequestHandler = async (req: Request, res: Response) => {
   try {
@@ -55,116 +55,45 @@ export const getBids: RequestHandler = async (req: Request, res: Response) => {
 export const getBidsByAuctionId: RequestHandler = async (
   req: Request,
   res: Response,
+  next,
 ) => {
   const { auction_id } = req.query as { auction_id: string };
   try {
     const [bids, count] = await bidRepository.findBidByAuctionId(auction_id);
-    return sendSuccessResponse(res, { data: { bids, count } });
+    sendSuccessResponse(res, { data: { bids, count } });
   } catch (error) {
-    console.error("Error fetching bids by auction ID:", error);
-    return sendErrorResponse(res, "Internal Server Error");
+    next(error);
   }
 };
 
 // Get a wallet by user ID
-export const getBidByUserId: RequestHandler = async (
+export const getBidByUserId: AuthenticatedRequestHandler = async (
   req: Request,
   res: Response,
+  next,
 ) => {
   try {
-    const userId = req.user?.user_id;
-    if (!userId) {
-      return sendErrorResponse(res, "User ID not found", 400);
-    }
-    const bid = await bidRepository.findBidByUserId(userId);
-    return sendSuccessResponse(res, { data: bid }, 200);
+    const { user } = req as AuthenticatedRequest;
+    const bid = await bidRepository.findBidByUserId(user.user_id);
+    sendSuccessResponse(res, { data: bid }, 200);
   } catch (error) {
-    return sendErrorResponse(res, (error as Error).message, 500);
+    next(error);
   }
 };
 
-export const placeBid: RequestHandler = async (
+export const placeBid: AuthenticatedRequestHandler = async (
   req: Request,
   res: Response,
+  next,
 ): Promise<void> => {
   const { auction_id } = req.params;
   const { bid_amount } = req.body;
-  const user_id = req.user?.user_id ?? "";
-
-  // Validate input
-  if (!auction_id || !bid_amount) {
-    res.status(400).json({ message: "Auction ID and bid amount are required" });
-    return;
-  }
+  const { user } = req as AuthenticatedRequest;
 
   try {
-    const user = await userRepository.findUserById(user_id);
-    if (!user) {
-      handleNotFound("User", res);
-      return; // Early return to prevent further execution
-    }
-
-    // Use database transactions to prevent race conditions
-    await auctionRepository.manager.transaction(
-      async (transactionalEntityManager) => {
-        const auction = await transactionalEntityManager.findOne(Auction, {
-          where: { auction_id },
-          lock: { mode: "pessimistic_write" },
-        });
-
-        if (!auction) {
-          handleNotFound("Auction", res);
-          return; // Early return to prevent further execution
-        }
-
-        // Ensure the auction is active
-        if (auction.status !== AuctionStatus.ACTIVE) {
-          sendErrorResponse(res, "Auction is not active", 400);
-          return; // Early return to prevent further execution
-        }
-
-        // Ensure bid is higher than current highest bid
-        if (bid_amount <= auction.current_highest_bid) {
-          sendErrorResponse(
-            res,
-            "Bid amount must be higher than current highest bid",
-            400,
-          );
-          return; // Early return to prevent further execution
-        }
-
-        // Create and save the bid
-        const bid = bidRepository.create({
-          auction,
-          user,
-          bid_amount,
-        });
-
-        await transactionalEntityManager.save(bid);
-
-        // Update the auction's current highest bid
-        auction.current_highest_bid = bid_amount;
-        await transactionalEntityManager.save(auction);
-
-        // Emit the bid update event using socketService
-        try {
-          // Here, the auction_id is the room to emit the event to
-          socketService.emitToRoom(auction_id, "bidUpdate", {
-            auctionId: auction_id,
-            bidAmount: bid_amount,
-          });
-        } catch (error) {
-          console.error("Socket emission failed:", error);
-        }
-
-        // Send success response
-        sendSuccessResponse(res, bid, 201);
-      },
-    );
+    const bid = await bidService.placeBid(user.user_id, auction_id, bid_amount);
+    sendSuccessResponse(res, { data: bid }, 201);
   } catch (error) {
-    console.error(error);
-    if (!res.headersSent) {
-      sendErrorResponse(res, "Internal server error");
-    }
+    next(error);
   }
 };

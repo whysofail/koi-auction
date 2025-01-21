@@ -70,8 +70,6 @@ export const errorHandler = (
   next: NextFunction,
 ) => {
   // Check if the error is an instance of ErrorHandler
-  console.error("Error caught by errorHandler:", err);
-
   if (err instanceof ErrorHandler) {
     return res.status(err.statusCode).json({
       message: err.message,

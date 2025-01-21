@@ -8,6 +8,7 @@ import {
   updateWallet,
 } from "../controllers/wallet.controllers";
 import { uploadProofOfPayment } from "../middlewares/upload.middleware"; // Import the multer middleware
+import createDepositValidator from "../middlewares/walletValidator/createDepositValidator";
 
 const walletRouter = Router();
 
@@ -20,6 +21,7 @@ walletRouter.post(
   protect,
   authorize(["user"]),
   uploadProofOfPayment,
+  createDepositValidator,
   createDeposit,
 );
 

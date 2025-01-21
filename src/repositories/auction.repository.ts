@@ -95,9 +95,6 @@ const auctionRepository = dataSource.getRepository(Auction).extend({
 
     // Await the query result
     const auction = await qb.getOne();
-    // if (!auction) {
-    //   throw ErrorHandler.notFound("Auction not found");
-    // }
     return auction;
   },
 });
