@@ -2,6 +2,10 @@ import { Request, Response } from "express";
 import notificationRepository from "../repositories/notification.repository";
 import { sendSuccessResponse } from "../utils/response/handleResponse";
 import notificationSocket from "../sockets/notification.socket";
+import {
+  AuthenticatedRequest,
+  AuthenticatedRequestHandler,
+} from "../types/auth";
 
 // Get all notification
 export const getNotifications = async (
@@ -41,24 +45,18 @@ export const createNotification = async (
 };
 
 // Get unread notifications
-export const getUserNotifications = async (
-  req: Request,
-  res: Response,
+export const getUserNotifications: AuthenticatedRequestHandler = async (
+  req,
+  res,
+  next,
 ): Promise<void> => {
-  const userId = req.user?.user_id;
-
-  if (!userId) {
-    res.status(400).json({ message: "User ID is required" });
-    return;
-  }
-
+  const { user } = req as AuthenticatedRequest;
   try {
     const [notifications, count] =
-      await notificationRepository.findNotifications(userId);
+      await notificationRepository.findNotifications(user.user_id);
     sendSuccessResponse(res, { data: notifications, count }, 200);
   } catch (error) {
-    console.error("Error fetching notifications:", error);
-    res.status(500).json({ message: "Internal server error" });
+    next(error);
   }
 };
 

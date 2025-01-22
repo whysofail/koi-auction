@@ -1,47 +1,34 @@
 import { RequestHandler, Request, Response } from "express";
-import { FindOptionsWhere } from "typeorm";
-import transactionRepository from "../repositories/transaction.repository";
 import {
   sendErrorResponse,
   sendSuccessResponse,
 } from "../utils/response/handleResponse";
-import Transaction, {
-  TransactionStatus,
-  TransactionType,
-} from "../entities/Transaction";
-import paginate from "../utils/pagination";
+
 import {
   AuthenticatedRequest,
   AuthenticatedRequestHandler,
 } from "../types/auth";
 import { transactionService } from "../services/transaction.service";
 
-export const getTransactions: RequestHandler = async (req, res) => {
-  const { status, type } = req.query as {
-    status?: TransactionStatus;
-    type?: TransactionType;
-  };
-  const whereCondition: FindOptionsWhere<Transaction> = {};
-  if (status) {
-    whereCondition.status = String(status).toUpperCase() as TransactionStatus;
-  }
-
-  if (type) {
-    whereCondition.type = String(type).toUpperCase() as TransactionType;
-  }
-
+export const getTransactions: RequestHandler = async (
+  req,
+  res,
+  next,
+): Promise<void> => {
+  const { filters, pagination } = req;
   try {
-    const [transactions, count] = await transactionRepository.findAllAndCount({
-      where: whereCondition,
-      ...paginate(req.query),
+    const { transactions, count } = await transactionService.getAllTransactions(
+      filters,
+      pagination,
+    );
+    sendSuccessResponse(res, {
+      data: transactions,
+      count,
+      page: pagination.page,
+      limit: pagination.limit,
     });
-
-    return sendSuccessResponse(res, { data: transactions, count });
   } catch (error) {
-    if (error instanceof Error) {
-      return sendErrorResponse(res, error.message, 500);
-    }
-    return sendErrorResponse(res, "Failed to fetch transactions", 500);
+    next(error);
   }
 };
 

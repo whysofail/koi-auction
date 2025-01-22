@@ -1,5 +1,4 @@
 import { RequestHandler, Request, Response } from "express";
-import paginate from "../utils/pagination";
 import walletRepository from "../repositories/wallet.repository";
 import {
   sendErrorResponse,
@@ -45,16 +44,14 @@ export const getWalletById: RequestHandler = async (
 export const getWalletByUserId: AuthenticatedRequestHandler = async (
   req: Request,
   res: Response,
-) => {
+  next,
+): Promise<void> => {
   try {
     const { user } = req as AuthenticatedRequest;
-    const wallet = await walletRepository.findWalletByUserId(user.user_id);
-    if (!wallet) {
-      return sendErrorResponse(res, "Wallet not found", 404);
-    }
-    return sendSuccessResponse(res, { data: wallet }, 200);
+    const wallet = await walletService.getWalletByUserId(user.user_id);
+    sendSuccessResponse(res, { data: wallet }, 200);
   } catch (error) {
-    return sendErrorResponse(res, (error as Error).message, 500);
+    next(error);
   }
 };
 
@@ -98,14 +95,23 @@ export const deleteWallet: RequestHandler = async (
 export const getAllWallets: RequestHandler = async (
   req: Request,
   res: Response,
-) => {
+  next,
+): Promise<void> => {
+  const { filters, pagination } = req;
+
   try {
-    const [wallets, count] = await walletRepository.findAndCount({
-      ...paginate(req.query),
+    const { wallets, count } = await walletService.getAllWallets(
+      filters,
+      pagination,
+    );
+    sendSuccessResponse(res, {
+      data: wallets,
+      count,
+      page: pagination.page,
+      limit: pagination.limit,
     });
-    return sendSuccessResponse(res, { data: wallets, count }, 200);
   } catch (error) {
-    return sendErrorResponse(res, (error as Error).message, 500);
+    next(error);
   }
 };
 

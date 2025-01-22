@@ -1,6 +1,8 @@
 import walletRepository from "../repositories/wallet.repository";
 import Wallet from "../entities/Wallet";
 import { ErrorHandler } from "../utils/response/handleError";
+import { IWalletFilter } from "../types/entityfilter";
+import { PaginationOptions } from "../utils/pagination";
 
 export const createWallet = async (data: any) => {
   try {
@@ -9,6 +11,14 @@ export const createWallet = async (data: any) => {
   } catch (error) {
     throw ErrorHandler.internalServerError("Error creating wallet");
   }
+};
+
+export const getAllWallets = async (
+  filters?: IWalletFilter,
+  paginate?: PaginationOptions,
+) => {
+  const wallets = await walletRepository.getAllWallets(filters, paginate);
+  return wallets;
 };
 
 export const getWalletById = async (wallet_id: string): Promise<Wallet> => {
@@ -39,6 +49,7 @@ export const depositToUserWallet = async (
 
 export const walletService = {
   createWallet,
+  getAllWallets,
   getWalletById,
   getWalletByUserId,
   depositToUserWallet,

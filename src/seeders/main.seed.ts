@@ -2,15 +2,14 @@
 import { DataSource } from "typeorm";
 import { Seeder, SeederFactoryManager } from "typeorm-extension";
 import { hash } from "bcrypt";
+import { faker } from "@faker-js/faker";
 import User, { UserRole } from "../entities/User";
-import Item from "../entities/Item";
 import Auction, { AuctionStatus } from "../entities/Auction";
 import Wallet from "../entities/Wallet";
 
 export default class MainSeeder implements Seeder {
   async run(dataSource: DataSource, factoryManager: SeederFactoryManager) {
     const userRepository = dataSource.getRepository(User);
-    const ItemRepository = dataSource.getRepository(Item);
     const auctionRepository = dataSource.getRepository(Auction);
     const walletRepository = dataSource.getRepository(Wallet);
 
@@ -21,7 +20,6 @@ export default class MainSeeder implements Seeder {
     }
 
     const userFactory = factoryManager.get(User);
-    const itemFactory = factoryManager.get(Item);
     const auctionFactory = factoryManager.get(Auction);
     const walletFactory = factoryManager.get(Wallet);
 
@@ -56,23 +54,14 @@ export default class MainSeeder implements Seeder {
       ),
     );
 
-    const items = await Promise.all(
-      Array.from({ length: 10 }, () =>
-        itemFactory.make({
-          user: admins[Math.floor(Math.random() * admins.length)],
-        }),
-      ),
-    );
-
     await userRepository.save([...users, ...admins]);
     await walletRepository.save(wallets);
-    await ItemRepository.save(items);
 
     const auctions = await Promise.all(
       Array.from({ length: 2 }, () =>
         auctionFactory.make({
           user: admins[Math.floor(Math.random() * admins.length)],
-          item: items[Math.floor(Math.random() * items.length)],
+          item: faker.number.int.toString(),
           reserve_price: parseFloat((Math.random() * 1000).toFixed(2)),
           status: AuctionStatus.ACTIVE,
         }),

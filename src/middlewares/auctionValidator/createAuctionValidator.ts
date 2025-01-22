@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { validate, isUUID, isDateString } from "class-validator";
 import Auction from "../../entities/Auction";
-import itemRepository from "../../repositories/item.repository";
-import Item from "../../entities/Item";
 import auctionRepository from "../../repositories/auction.repository";
 
 const createAuctionValidator = async (
@@ -17,7 +15,7 @@ const createAuctionValidator = async (
     }
 
     const {
-      item_id,
+      item,
       title,
       description,
       reserve_price,
@@ -26,20 +24,13 @@ const createAuctionValidator = async (
     } = req.body;
 
     // Validate item_id (must be a valid UUID and the item should exist)
-    if (!item_id || !isUUID(item_id)) {
-      res.status(400).json({ message: "Invalid item ID!" });
-      return;
-    }
-
-    // Check if item exists in the database
-    const item = await itemRepository.findOne({ where: { item_id } });
-    if (!item) {
-      res.status(400).json({ message: "Item not found!" });
+    if (!item || !isUUID(item)) {
+      res.status(400).json({ message: "Invalid item!" });
       return;
     }
 
     const itemAlreadyExist = await auctionRepository.findOne({
-      where: { item: { item_id } },
+      where: { item },
     });
 
     if (itemAlreadyExist) {
@@ -99,8 +90,7 @@ const createAuctionValidator = async (
       parsedReservePrice !== undefined ? parsedReservePrice : null;
     auction.start_datetime = new Date(start_datetime);
     auction.end_datetime = new Date(end_datetime);
-    auction.item = new Item();
-    auction.item.item_id = item.item_id; // Set the actual Item object
+    auction.item = item;
 
     // Validate auction instance
     const errors = await validate(auction, { skipMissingProperties: true });

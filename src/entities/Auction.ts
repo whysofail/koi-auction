@@ -16,13 +16,11 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   JoinColumn,
-  OneToOne,
   OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
 } from "typeorm";
 import User from "./User";
-import Item from "./Item";
 import Bid from "./Bid";
 import AuctionParticipant from "./AuctionParticipant";
 
@@ -59,9 +57,14 @@ class Auction {
   @MinLength(1, { message: "Description must not be empty" })
   declare description: string;
 
-  @OneToOne(() => Item)
-  @JoinColumn({ name: "item_id" })
-  declare item: Item;
+  @Column({
+    type: "varchar",
+    nullable: false,
+    unique: true,
+  })
+  @IsString()
+  @MinLength(1, { message: "Item must not be empty" })
+  declare item: string;
 
   @Column({
     type: "timestamp",

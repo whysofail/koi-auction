@@ -1,7 +1,6 @@
 import { Request, Response, RequestHandler } from "express";
 import { FindOptionsWhere } from "typeorm";
 import Bid from "../entities/Bid";
-import paginate from "../utils/pagination";
 import buildDateRangeFilter from "../utils/date/dateRange";
 import bidRepository from "../repositories/bid.repository";
 import validateAndParseDates from "../utils/date/validateAndParseDate";
@@ -37,9 +36,8 @@ export const getBids: RequestHandler = async (req: Request, res: Response) => {
     };
 
     // Fetch auctions with filters, pagination, and relations
-    const [bids, count] = await bidRepository.findAllAndCount({
+    const [bids, count] = await bidRepository.findAndCount({
       where: whereCondition,
-      ...paginate(req.query), // Apply pagination
     });
 
     sendSuccessResponse(res, {
@@ -59,8 +57,8 @@ export const getBidsByAuctionId: RequestHandler = async (
 ) => {
   const { auction_id } = req.query as { auction_id: string };
   try {
-    const [bids, count] = await bidRepository.findBidByAuctionId(auction_id);
-    sendSuccessResponse(res, { data: { bids, count } });
+    const bids = await bidService.getBidById(auction_id);
+    sendSuccessResponse(res, { data: bids });
   } catch (error) {
     next(error);
   }
@@ -74,8 +72,7 @@ export const getBidByUserId: AuthenticatedRequestHandler = async (
 ) => {
   try {
     const { user } = req as AuthenticatedRequest;
-    const bid = await bidRepository.findBidByUserId(user.user_id);
-    sendSuccessResponse(res, { data: bid }, 200);
+    sendSuccessResponse(res, { data: user }, 200);
   } catch (error) {
     next(error);
   }

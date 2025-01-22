@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import auctionRepository from "../../repositories/auction.repository";
-import userRepository from "../../repositories/user.repository";
 import walletRepository from "../../repositories/wallet.repository";
 import { AuthenticatedRequest } from "../../types/auth";
+import { userService } from "../../services/user.service";
 
 const joinAuctionValidator = async (
   req: Request,
@@ -38,7 +38,7 @@ const joinAuctionValidator = async (
     }
 
     // Check if user exists
-    const userExist = await userRepository.findUserById(user.user_id);
+    const userExist = await userService.getUserById(user.user_id);
     if (!userExist) {
       res.status(404).json({ message: "User not found!" });
       return;

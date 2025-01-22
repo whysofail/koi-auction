@@ -11,23 +11,23 @@ const getBids = async () => {
   return { bids, count };
 };
 
-const getBidsByAuctionId = async (auction_id: string) => {
-  const [bids, count] = await bidRepository.findBidByAuctionId(auction_id);
-  if (!bids) {
-    throw ErrorHandler.notFound(
-      `Bids not found for auction with ID ${auction_id}`,
-    );
-  }
-  return { bids, count };
-};
+// const getBidsByAuctionId = async (auction_id: string) => {
+//   const  a = await bidRepository.findBidByAuctionId(auction_id);
+//   if (!bids) {
+//     throw ErrorHandler.notFound(
+//       `Bids not found for auction with ID ${auction_id}`,
+//     );
+//   }
+//   return { bids, count };
+// };
 
-const getBidByUserId = async (user_id: string) => {
-  const [bids, count] = await bidRepository.findBidByUserId(user_id);
-  if (!bids) {
-    throw ErrorHandler.notFound(`Bids not found for user with ID ${user_id}`);
-  }
-  return { bids, count };
-};
+// const getBidByUserId = async (user_id: string) => {
+//   const [bids, count] = await bidRepository.(user_id);
+//   if (!bids) {
+//     throw ErrorHandler.notFound(`Bids not found for user with ID ${user_id}`);
+//   }
+//   return { bids, count };
+// };
 
 const getBidById = async (bid_id: string) => {
   const bid = await bidRepository.findBidById(bid_id);
@@ -71,8 +71,8 @@ const placeBid = async (
 
 export const bidService = {
   getBids,
-  getBidsByAuctionId,
-  getBidByUserId,
+  // getBidsByAuctionId,
+  // getBidByUserId,
   getBidById,
   placeBid,
 };

@@ -1,10 +1,4 @@
 import { Request, Response, RequestHandler } from "express";
-import { FindOptionsWhere } from "typeorm";
-import Auction, { AuctionStatus } from "../entities/Auction";
-import paginate from "../utils/pagination";
-import buildDateRangeFilter from "../utils/date/dateRange";
-import auctionRepository from "../repositories/auction.repository";
-import validateAndParseDates from "../utils/date/validateAndParseDate";
 import {
   sendSuccessResponse,
   sendErrorResponse,
@@ -35,44 +29,23 @@ export const createAuction: AuthenticatedRequestHandler = async (
 export const getAuctions: RequestHandler = async (
   req: Request,
   res: Response,
+  next,
 ): Promise<void> => {
   try {
-    const { status, date_column } = req.query;
-
-    const {
-      valid,
-      start_datetime: parsedStartDate,
-      end_datetime: parsedEndDate,
-    } = validateAndParseDates(req, res);
-
-    if (!valid) return; // If date validation fails, return early
-
-    const dateRangeFilter = buildDateRangeFilter<Auction>(
-      (date_column ?? "created_at") as keyof Auction,
-      {
-        start_datetime: parsedStartDate?.toISOString(),
-        end_datetime: parsedEndDate?.toISOString(),
-      },
+    const { filters, pagination } = req;
+    const { auctions, count } = await auctionService.getAllAuctions(
+      filters,
+      pagination,
     );
 
-    const whereCondition: FindOptionsWhere<Auction> = {
-      ...dateRangeFilter,
-    };
-
-    if (status) {
-      whereCondition.status = String(status).toUpperCase() as AuctionStatus;
-    }
-
-    const [auctions, count] = await auctionRepository.findAndCount({
-      where: whereCondition,
-      ...paginate(req.query),
-      relations: ["item", "user", "bids"],
+    sendSuccessResponse(res, {
+      data: auctions,
+      count,
+      page: pagination.page,
+      limit: pagination.limit,
     });
-
-    sendSuccessResponse(res, { data: auctions, count });
   } catch (error) {
-    console.error("Error fetching auctions:", error);
-    sendErrorResponse(res, "Internal server error");
+    next(error);
   }
 };
 

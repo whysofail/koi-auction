@@ -5,6 +5,16 @@ import transactionRepository from "../repositories/transaction.repository";
 import { TransactionType, TransactionStatus } from "../entities/Transaction";
 import { ErrorHandler } from "../utils/response/handleError";
 import Auction, { AuctionStatus } from "../entities/Auction";
+import { PaginationOptions } from "../utils/pagination";
+import { IAuctionFilter } from "../types/entityfilter";
+
+const getAllAuctions = async (
+  filters?: IAuctionFilter,
+  pagination?: PaginationOptions,
+) => {
+  const auctions = await auctionRepository.getAllAuctions(filters, pagination);
+  return auctions;
+};
 
 const getAuctionById = async (auction_id: string, filters?: any) => {
   const auction = await auctionRepository.findAuctionById(auction_id, filters);
@@ -37,7 +47,6 @@ const createAuction = async (
   try {
     const auction = await auctionRepository.create({
       ...data,
-      item: { item_id: data.item_id },
       user: { user_id },
     });
     await auctionRepository.save(auction);
@@ -50,11 +59,17 @@ const createAuction = async (
 const updateAuction = async (
   auction_id: string,
   user_id: string,
-  data: Partial<Auction & { item_id: string }>,
+  data: Partial<Auction>,
 ) => {
   try {
-    const { title, description, start_datetime, end_datetime, reserve_price } =
-      data;
+    const {
+      title,
+      description,
+      start_datetime,
+      end_datetime,
+      reserve_price,
+      item,
+    } = data;
     let auction = await auctionRepository.findAuctionById(auction_id);
     if (!auction) {
       throw ErrorHandler.notFound(`Auction with ID ${auction_id} not found`);
@@ -63,11 +78,11 @@ const updateAuction = async (
     await auctionRepository.update(auction_id, {
       title,
       description,
+      item,
       reserve_price,
       start_datetime,
       end_datetime,
       status: data.status?.toUpperCase() as AuctionStatus,
-      item: { item_id: data.item_id },
       user: { user_id },
     });
 
@@ -126,6 +141,7 @@ const joinAuction = async (auction_id: string, user_id: string) => {
 };
 
 export const auctionService = {
+  getAllAuctions,
   getAuctionById,
   getAuctionWithBids,
   joinAuction,

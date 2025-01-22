@@ -16,12 +16,8 @@ const storage = multer.diskStorage({
     file: Express.Multer.File,
     cb: (error: Error | null, filename: string) => void,
   ) => {
-    const fileName = Date.now() + path.extname(file.originalname);
-    const normalizedFilePath = path
-      .join("uploads", fileName)
-      .replace(/\\/g, "/"); // Normalize path
-
-    cb(null, normalizedFilePath); // Unique file name based on timestamp
+    const fileName = Date.now() + path.extname(file.originalname); // Generate unique file name
+    cb(null, fileName); // Use only the file name, without including the path
   },
 });
 
@@ -48,4 +44,4 @@ const upload = multer({
   },
 });
 
-export const uploadProofOfPayment = upload.single("proof"); // 'proof' is the field name for the uploaded file
+export const uploadProofOfPayment = upload.single("proof_of_payment"); // Single file upload

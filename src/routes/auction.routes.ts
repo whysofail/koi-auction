@@ -6,6 +6,7 @@ import {
   joinAuction,
   updateAuction,
 } from "../controllers/auction.controllers";
+import { parsePaginationAndFilters } from "../middlewares/parsePaginationFilter.middleware";
 import { authorize, protect } from "../middlewares/auth.middleware";
 import createAuctionValidator from "../middlewares/auctionValidator/createAuctionValidator";
 import updateAuctionValidator from "../middlewares/auctionValidator/updateAuctionValidator";
@@ -13,7 +14,7 @@ import joinAuctionValidator from "../middlewares/auctionValidator/joinAuctionVal
 
 const auctionRouter = Router();
 
-auctionRouter.get("/", getAuctions);
+auctionRouter.get("/", parsePaginationAndFilters, getAuctions);
 auctionRouter.post(
   "/",
   protect,

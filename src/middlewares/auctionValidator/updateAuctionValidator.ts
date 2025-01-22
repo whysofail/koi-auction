@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { validate, isDateString } from "class-validator";
 import auctionRepository from "../../repositories/auction.repository";
-import itemRepository from "../../repositories/item.repository";
-import { ErrorHandler } from "../../utils/response/handleError";
 
 const updateAuctionValidator = async (
   req: Request,
@@ -16,7 +14,7 @@ const updateAuctionValidator = async (
     }
 
     const {
-      item_id,
+      item,
       title,
       description,
       reserve_price,
@@ -35,29 +33,23 @@ const updateAuctionValidator = async (
     // Check if auction exists in the database
     const auction = await auctionRepository.findAuctionById(auction_id);
     if (!auction) {
-      throw ErrorHandler.notFound(`Auction with id ${auction_id} not found`);
+      res.status(404).json({ message: "Auction not found!" });
+      return;
     }
 
     // Validate item_id (if provided, must be a valid UUID and the item should exist)
-    if (!item_id) {
+    if (!item) {
       res.status(400).json({ message: "Invalid item ID!" });
       return;
     }
-    console.log(auction);
 
-    if (item_id) {
+    if (item) {
       // If the item_id is being updated (not the same as the current auction's item_id)
-      console.log(item_id, auction.item?.item_id);
-      if (item_id !== auction.item?.item_id) {
+      if (item !== auction.item) {
         // Check if item exists in the database
-        const item = await itemRepository.findOne({ where: { item_id } });
-        if (!item) {
-          res.status(400).json({ message: "Item not found!" });
-          return;
-        }
 
         const itemAlreadyExist = await auctionRepository.findOne({
-          where: { item: { item_id } },
+          where: { item },
         });
 
         if (itemAlreadyExist) {

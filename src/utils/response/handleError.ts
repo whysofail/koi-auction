@@ -69,12 +69,13 @@ export const errorHandler = (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   next: NextFunction,
 ) => {
+  console.error(err);
   // Check if the error is an instance of ErrorHandler
   if (err instanceof ErrorHandler) {
     return res.status(err.statusCode).json({
       message: err.message,
       details: err.details || null,
-      stack: process.env.NODE_ENV === "local" ? err.stack : {},
+      stack: process.env.APP_ENV === "local" ? err.stack : {},
     });
   }
 

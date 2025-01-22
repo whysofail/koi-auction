@@ -11,7 +11,6 @@ import {
 
 import Auction from "./Auction";
 import Bid from "./Bid";
-import Item from "./Item";
 import Wallet from "./Wallet";
 import AuctionParticipant from "./AuctionParticipant";
 import RefreshToken from "./RefreshToken";
@@ -60,10 +59,6 @@ class User {
   // One-to-many relationship with Bid (as a parent)
   @OneToMany(() => Bid, (bid) => bid.user)
   declare bids: Bid[] | null;
-
-  // One-to-many relationship with Item (as a parent)
-  @OneToMany(() => Item, (item) => item.user)
-  declare items: Item[] | null;
 
   @OneToOne(() => Wallet, (wallet) => wallet.user)
   declare wallet: Wallet | null;

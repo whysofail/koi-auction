@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class Migration1736415899483 implements MigrationInterface {
-  name = "Migration1736415899483";
+export class Migration1737486759121 implements MigrationInterface {
+  name = "Migration1737486759121";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -14,13 +14,19 @@ export class Migration1736415899483 implements MigrationInterface {
       `CREATE TABLE \`auction_participant\` (\`auction_participant_id\` varchar(36) NOT NULL, \`joined_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`auction_id\` varchar(36) NULL, \`user_id\` varchar(36) NULL, PRIMARY KEY (\`auction_participant_id\`)) ENGINE=InnoDB`,
     );
     await queryRunner.query(
-      `CREATE TABLE \`auction\` (\`auction_id\` varchar(36) NOT NULL, \`start_datetime\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, \`end_datetime\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, \`status\` enum ('DRAFT', 'PENDING', 'ACTIVE', 'COMPLETED', 'CANCELLED', 'EXPIRED', 'FAILED') NOT NULL DEFAULT 'PENDING', \`current_highest_bid\` decimal(10,2) NOT NULL DEFAULT '0.00', \`reserve_price\` decimal(10,2) NULL, \`created_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`updated_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), \`item_id\` varchar(36) NULL, \`created_by_id\` varchar(36) NULL, UNIQUE INDEX \`REL_27c3c60778327d48b589190ab2\` (\`item_id\`), PRIMARY KEY (\`auction_id\`)) ENGINE=InnoDB`,
+      `CREATE TABLE \`auction\` (\`auction_id\` varchar(36) NOT NULL, \`title\` varchar(255) NOT NULL DEFAULT 'Auction Title', \`description\` text NOT NULL, \`start_datetime\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, \`end_datetime\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, \`status\` enum ('DRAFT', 'PENDING', 'ACTIVE', 'COMPLETED', 'CANCELLED', 'EXPIRED', 'FAILED') NOT NULL DEFAULT 'PENDING', \`current_highest_bid\` decimal(10,2) NOT NULL DEFAULT '0.00', \`reserve_price\` decimal(10,2) NULL, \`created_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`updated_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), \`item_id\` varchar(36) NULL, \`created_by_id\` varchar(36) NULL, UNIQUE INDEX \`REL_27c3c60778327d48b589190ab2\` (\`item_id\`), PRIMARY KEY (\`auction_id\`)) ENGINE=InnoDB`,
     );
     await queryRunner.query(
       `CREATE TABLE \`transaction\` (\`transaction_id\` varchar(36) NOT NULL, \`admin_id\` varchar(255) NULL, \`amount\` decimal(12,2) NOT NULL, \`type\` enum ('deposit', 'withdrawal', 'transfer', 'participate') NOT NULL, \`status\` enum ('pending', 'completed', 'failed', 'approved', 'rejected') NOT NULL DEFAULT 'pending', \`proof_of_payment\` text NULL, \`created_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`wallet_id\` varchar(36) NULL, PRIMARY KEY (\`transaction_id\`)) ENGINE=InnoDB`,
     );
     await queryRunner.query(
       `CREATE TABLE \`wallet\` (\`wallet_id\` varchar(36) NOT NULL, \`user_id\` varchar(255) NOT NULL, \`balance\` decimal(12,2) NOT NULL DEFAULT '0.00', \`created_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`updated_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), UNIQUE INDEX \`REL_72548a47ac4a996cd254b08252\` (\`user_id\`), PRIMARY KEY (\`wallet_id\`)) ENGINE=InnoDB`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE \`refresh_token\` (\`token_id\` varchar(36) NOT NULL, \`token\` varchar(255) NOT NULL, \`created_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`expires_at\` datetime NOT NULL, \`is_revoked\` tinyint NOT NULL DEFAULT 0, \`userUserId\` varchar(36) NULL, PRIMARY KEY (\`token_id\`)) ENGINE=InnoDB`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE \`notification\` (\`notification_id\` varchar(36) NOT NULL, \`type\` enum ('BID', 'AUCTION', 'SYSTEM') NOT NULL, \`message\` text NULL, \`reference_id\` varchar(255) NULL, \`status\` enum ('PENDING', 'READ', 'ARCHIVED') NOT NULL DEFAULT 'PENDING', \`created_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`updated_at\` datetime NULL, \`user_id\` varchar(36) NULL, PRIMARY KEY (\`notification_id\`)) ENGINE=InnoDB`,
     );
     await queryRunner.query(
       `CREATE TABLE \`user\` (\`user_id\` varchar(36) NOT NULL, \`username\` varchar(255) NOT NULL, \`role\` enum ('admin', 'user') NOT NULL DEFAULT 'user', \`email\` varchar(255) NOT NULL, \`password\` varchar(255) NOT NULL, \`registration_date\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`last_update\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), PRIMARY KEY (\`user_id\`)) ENGINE=InnoDB`,
@@ -55,9 +61,21 @@ export class Migration1736415899483 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE \`wallet\` ADD CONSTRAINT \`FK_72548a47ac4a996cd254b082522\` FOREIGN KEY (\`user_id\`) REFERENCES \`user\`(\`user_id\`) ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
+    await queryRunner.query(
+      `ALTER TABLE \`refresh_token\` ADD CONSTRAINT \`FK_e45ab0495d24a774bd49731b7a5\` FOREIGN KEY (\`userUserId\`) REFERENCES \`user\`(\`user_id\`) ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE \`notification\` ADD CONSTRAINT \`FK_928b7aa1754e08e1ed7052cb9d8\` FOREIGN KEY (\`user_id\`) REFERENCES \`user\`(\`user_id\`) ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `ALTER TABLE \`notification\` DROP FOREIGN KEY \`FK_928b7aa1754e08e1ed7052cb9d8\``,
+    );
+    await queryRunner.query(
+      `ALTER TABLE \`refresh_token\` DROP FOREIGN KEY \`FK_e45ab0495d24a774bd49731b7a5\``,
+    );
     await queryRunner.query(
       `ALTER TABLE \`wallet\` DROP FOREIGN KEY \`FK_72548a47ac4a996cd254b082522\``,
     );
@@ -89,6 +107,8 @@ export class Migration1736415899483 implements MigrationInterface {
       `ALTER TABLE \`item\` DROP FOREIGN KEY \`FK_fdba209b8f8b24706b3f69fa0f5\``,
     );
     await queryRunner.query(`DROP TABLE \`user\``);
+    await queryRunner.query(`DROP TABLE \`notification\``);
+    await queryRunner.query(`DROP TABLE \`refresh_token\``);
     await queryRunner.query(
       `DROP INDEX \`REL_72548a47ac4a996cd254b08252\` ON \`wallet\``,
     );

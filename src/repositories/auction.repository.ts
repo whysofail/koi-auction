@@ -1,17 +1,24 @@
 import { SelectQueryBuilder } from "typeorm";
 import { AppDataSource as dataSource } from "../config/data-source";
 import Auction from "../entities/Auction";
+import { IAuctionFilter } from "../types/entityfilter";
+import { PaginationOptions } from "../utils/pagination";
 
+// Helper function to apply pagination
+const applyPagination = (
+  queryBuilder: SelectQueryBuilder<Auction>,
+  pagination?: { page?: number; limit?: number },
+) => {
+  if (pagination) {
+    const { page = 1, limit = 10 } = pagination;
+    queryBuilder.skip((page - 1) * limit).take(limit);
+  }
+};
+
+// Function to apply filters to the Auction query
 export const applyAuctionFilters = (
   qb: SelectQueryBuilder<Auction>,
-  filters: Partial<{
-    title: string;
-    description: string;
-    minReservePrice: number;
-    maxReservePrice: number;
-    startDateFrom: Date;
-    startDateTo: Date;
-  }> = {},
+  filters: IAuctionFilter = {},
 ) => {
   if (filters.title) {
     qb.andWhere("auction.title ILIKE :title", { title: `%${filters.title}%` });
@@ -47,13 +54,36 @@ export const applyAuctionFilters = (
     });
   }
 
+  if (filters.status) {
+    qb.andWhere("auction.status = :status", { status: filters.status });
+  }
+
   return qb;
 };
 
 const auctionRepository = dataSource.getRepository(Auction).extend({
-  async findAuctionById(auction_id: string, filters?: any) {
+  async getAllAuctions(
+    filters?: IAuctionFilter,
+    pagination?: PaginationOptions,
+  ) {
     const qb = this.createQueryBuilder("auction")
-      .leftJoinAndSelect("auction.item", "item")
+      .leftJoinAndSelect("auction.bids", "bids")
+      .leftJoinAndSelect("auction.participants", "participants");
+
+    // Apply filters directly using TypeORM's `where`
+    applyAuctionFilters(qb, filters); // Apply filters dynamically
+    applyPagination(qb, pagination); // Apply pagination
+
+    // Fetch results with count
+    const [auctions, count] = await qb.getManyAndCount();
+    return { auctions, count };
+  },
+  async findAuctionById(
+    auction_id: string,
+    filters?: IAuctionFilter,
+    pagination?: { page?: number; limit?: number },
+  ) {
+    const qb = this.createQueryBuilder("auction")
       .leftJoin("auction.user", "user")
       .addSelect(["user.user_id", "user.username"]) // Select only the user_id and username fields
       .leftJoinAndSelect("auction.bids", "bids")
@@ -65,6 +95,7 @@ const auctionRepository = dataSource.getRepository(Auction).extend({
     // Add any additional condition for auction_id
     qb.where("auction.auction_id = :auction_id", { auction_id });
     applyAuctionFilters(qb, filters); // Apply filters dynamically
+    applyPagination(qb, pagination); // Apply pagination
 
     // Execute the query
     const auction = await qb.getOne();
@@ -86,12 +117,17 @@ const auctionRepository = dataSource.getRepository(Auction).extend({
     return auction;
   },
 
-  async findAuctionWithBids(auction_id: string, filters?: any) {
+  async findAuctionWithBids(
+    auction_id: string,
+    filters?: IAuctionFilter,
+    pagination?: { page?: number; limit?: number },
+  ) {
     const qb = this.createQueryBuilder("auction")
       .leftJoinAndSelect("auction.bids", "bids")
       .where("auction.auction_id = :auction_id", { auction_id });
 
     applyAuctionFilters(qb, filters); // Apply filters dynamically
+    applyPagination(qb, pagination); // Apply pagination
 
     // Await the query result
     const auction = await qb.getOne();

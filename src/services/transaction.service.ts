@@ -1,5 +1,7 @@
 import Transaction from "../entities/Transaction";
 import transactionRepository from "../repositories/transaction.repository";
+import { ITransactionFilter } from "../types/entityfilter";
+import { PaginationOptions } from "../utils/pagination";
 import { ErrorHandler } from "../utils/response/handleError";
 import { walletService } from "./wallet.service";
 
@@ -10,6 +12,15 @@ const createTransaction = async (data: Partial<Transaction>) => {
   } catch (error) {
     throw ErrorHandler.internalServerError("Error creating transaction", error);
   }
+};
+
+const getAllTransactions = async (
+  filters?: Partial<ITransactionFilter>,
+  pagination?: PaginationOptions,
+) => {
+  const { transactions, count } =
+    await transactionRepository.getAllTransactions(filters, pagination);
+  return { transactions, count };
 };
 
 const getTransactionById = async (transaction_id: string) => {
@@ -25,7 +36,7 @@ const getTransactionById = async (transaction_id: string) => {
 
 const getTransactionsByUserId = async (user_id: string) => {
   const transactions =
-    await transactionRepository.findTransactionByUserId(user_id);
+    await transactionRepository.findTransactionsByUserId(user_id);
   if (!transactions) {
     throw ErrorHandler.notFound(
       `Transaction with User ID ${user_id} not found`,
@@ -92,6 +103,7 @@ const updateDepositTransaction = async (
 };
 
 export const transactionService = {
+  getAllTransactions,
   createTransaction,
   getTransactionById,
   getTransactionsByUserId,

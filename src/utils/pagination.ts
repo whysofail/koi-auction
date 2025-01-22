@@ -1,18 +1,16 @@
-interface PaginationParams {
-  page?: string; // Page number (default to "1" if not provided)
-  limit?: string; // Number of items per page (default to "10" if not provided)
-}
+import { ObjectLiteral, SelectQueryBuilder } from "typeorm";
 
-// Function to calculate the pagination `skip` and `take` values
-const paginate = (paginationParams: PaginationParams) => {
-  const page = parseInt(paginationParams.page || "1", 10);
-  const limit = parseInt(paginationParams.limit || "10", 10);
-
-  // Ensure valid numbers for page and limit
-  const skip = (page - 1) * limit; // Offset for pagination
-  const take = limit; // Number of items to fetch
-
-  return { skip, take };
+// Define a type for the pagination parameter
+export type PaginationOptions = {
+  page?: number;
+  limit?: number;
 };
 
-export default paginate;
+// Apply pagination function with the defined type
+export const applyPagination = <T extends ObjectLiteral>(
+  qb: SelectQueryBuilder<T>,
+  pagination: PaginationOptions = {},
+) => {
+  const { page = 1, limit = 10 } = pagination;
+  qb.skip((page - 1) * limit).take(limit);
+};
