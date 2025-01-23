@@ -9,8 +9,19 @@ export default function createApp() {
 
   const app = express();
 
+  morgan.token("reqBody", (req: any) => {
+    if (["POST", "PUT"].includes(req.method)) {
+      return JSON.stringify(req.body);
+    }
+    return "";
+  });
+
+  morgan.token("auth", (req: any) => req.headers.authorization || "");
+
   app.use(express.json());
-  app.use(morgan("common"));
+  app.use(
+    morgan(":method :url :status :response-time ms Auth::auth Body::reqBody"),
+  );
   app.use(express.urlencoded({ extended: true }));
   app.use(express.static("public"));
   app.use("/api", router);
