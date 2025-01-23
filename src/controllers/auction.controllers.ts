@@ -60,7 +60,6 @@ export const getAuctionDetails: RequestHandler = async (
     const auction = await auctionService.getAuctionById(auction_id);
     sendSuccessResponse(res, { data: [auction] });
   } catch (error) {
-    console.error("Error fetching auction details:", error);
     next(error);
   }
 };
@@ -90,6 +89,7 @@ export const updateAuction: AuthenticatedRequestHandler = async (
 export const joinAuction: AuthenticatedRequestHandler = async (
   req: Request,
   res: Response,
+  next,
 ): Promise<void> => {
   const { auction_id } = req.params;
   const { user } = req as AuthenticatedRequest;
@@ -98,7 +98,6 @@ export const joinAuction: AuthenticatedRequestHandler = async (
     await auctionService.joinAuction(auction_id, user.user_id);
     sendSuccessResponse(res, { message: "Joined auction successfully" }, 201);
   } catch (error) {
-    console.error("Error in joinAuction:", error);
-    sendErrorResponse(res, "Internal server error");
+    next(error);
   }
 };

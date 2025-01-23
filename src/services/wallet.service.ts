@@ -17,8 +17,11 @@ export const getAllWallets = async (
   filters?: IWalletFilter,
   paginate?: PaginationOptions,
 ) => {
-  const wallets = await walletRepository.getAllWallets(filters, paginate);
-  return wallets;
+  const { wallets, count } = await walletRepository.getAllWallets(
+    filters,
+    paginate,
+  );
+  return { wallets, count };
 };
 
 export const getWalletById = async (wallet_id: string): Promise<Wallet> => {

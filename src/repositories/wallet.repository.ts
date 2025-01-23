@@ -63,10 +63,6 @@ const walletRepository = dataSource.getRepository(Wallet).extend({
       .where("wallet.wallet_id = :wallet_id", { wallet_id })
       .getOne();
 
-    if (!qb) {
-      throw new Error(`Wallet with ID ${wallet_id} not found`);
-    }
-
     return qb;
   },
 
