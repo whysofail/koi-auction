@@ -4,10 +4,17 @@ import {
   updateTransactionStatus,
 } from "../controllers/transaction.controllers";
 import { authorize, protect } from "../middlewares/auth.middleware";
+import { parsePaginationAndFilters } from "../middlewares/parsePaginationFilter.middleware";
 
 const transactionRouter = Router();
 
-transactionRouter.get("/", protect, authorize(["admin"]), getTransactions);
+transactionRouter.get(
+  "/",
+  protect,
+  authorize(["admin"]),
+  parsePaginationAndFilters,
+  getTransactions,
+);
 transactionRouter.get(
   "/me",
   protect,

@@ -16,6 +16,7 @@ export const getTransactions: RequestHandler = async (
   next,
 ): Promise<void> => {
   const { filters, pagination } = req;
+  console.log(filters);
   try {
     const { transactions, count } = await transactionService.getAllTransactions(
       filters,

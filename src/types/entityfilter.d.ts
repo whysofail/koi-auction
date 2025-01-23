@@ -1,5 +1,5 @@
 import { AuctionStatus } from "../entities/Auction";
-import { TransactionStatus } from "../entities/Transaction";
+import { TransactionStatus, TransactionType } from "../entities/Transaction";
 
 export interface IBaseFilter {
   createdAtFrom?: Date; // Filter by creation date (earliest)
@@ -37,6 +37,7 @@ export interface ITransactionFilter extends IBaseFilter {
   amountMin?: number; // Filter transactions with amount greater than or equal to a value
   amountMax?: number; // Filter transactions with amount less than or equal to a value
   transactionId?: string; // Filter by specific transaction ID
+  type?: TransactionType;
   status?: TransactionStatus; // Filter by transaction status
 }
 

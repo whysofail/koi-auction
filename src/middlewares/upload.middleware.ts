@@ -1,27 +1,30 @@
+import fs from "fs";
 import multer, { FileFilterCallback } from "multer";
 import path from "path";
 import { Request } from "express";
 
-// Set storage destination and file naming
 const storage = multer.diskStorage({
   destination: (
     req: Request,
     file: Express.Multer.File,
     cb: (error: Error | null, destination: string) => void,
   ) => {
-    cb(null, "uploads/"); // Directory to store the uploaded files
+    const uploadDir = path.resolve(__dirname, "../../uploads");
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
   },
   filename: (
     req: Request,
     file: Express.Multer.File,
     cb: (error: Error | null, filename: string) => void,
   ) => {
-    const fileName = Date.now() + path.extname(file.originalname); // Generate unique file name
-    cb(null, fileName); // Use only the file name, without including the path
+    const fileName = `${Date.now()}${path.extname(file.originalname)}`;
+    cb(null, fileName);
   },
 });
 
-// File filter to allow only image types (e.g., JPEG, PNG, GIF)
 const fileFilter: multer.Options["fileFilter"] = (
   req: Request,
   file: Express.Multer.File,
@@ -29,19 +32,19 @@ const fileFilter: multer.Options["fileFilter"] = (
 ) => {
   const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
   if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true); // If file type is allowed, proceed with upload
+    cb(null, true);
   } else {
-    cb(new Error("Only image files are allowed!")); // Error if file type is not allowed
+    cb(new Error("Only image files are allowed!"));
   }
 };
 
-// Multer upload configuration
 const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // Max file size 5MB
+    fileSize: 5 * 1024 * 1024, // 5MB max size
   },
 });
 
-export const uploadProofOfPayment = upload.single("proof_of_payment"); // Single file upload
+// Export the single file upload handler
+export const uploadProofOfPayment = upload.single("proof_of_payment");

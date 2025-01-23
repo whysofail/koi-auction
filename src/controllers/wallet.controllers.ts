@@ -119,20 +119,22 @@ export const getAllWallets: RequestHandler = async (
 export const createDeposit: AuthenticatedRequestHandler = async (
   req: Request,
   res: Response,
-) => {
+  next,
+): Promise<void> => {
   const { user } = req as AuthenticatedRequest;
   const { amount } = req.body;
 
-  // Ensure proof_of_payment is provided (file is now handled by multer)
-  const proof_of_payment = req.file?.path; // `req.file` comes from the multer middleware
+  // Ensure proof_of_payment is provided (use only the filename)
+  const proof_of_payment = req.file?.filename; // Use filename, not full path
 
   const parsedAmount = parseFloat(amount);
   if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
-    return sendErrorResponse(
+    sendErrorResponse(
       res,
       "Amount must be a valid positive decimal value",
       400,
     );
+    return;
   }
 
   try {
@@ -144,13 +146,12 @@ export const createDeposit: AuthenticatedRequestHandler = async (
       amount: parsedAmount,
       type: TransactionType.DEPOSIT,
       status: TransactionStatus.PENDING,
-      proof_of_payment,
+      proof_of_payment, // Use only the filename here
     });
 
     // Return the successful response
-    return sendSuccessResponse(res, { data: transaction }, 201);
+    sendSuccessResponse(res, { data: transaction }, 201);
   } catch (error) {
-    console.error(error);
-    return sendErrorResponse(res, "Failed to create deposit request", 500);
+    next(error);
   }
 };

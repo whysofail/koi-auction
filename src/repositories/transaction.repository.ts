@@ -39,6 +39,11 @@ const applyTransactionFilters = (
       walletId: filter.walletId,
     });
   }
+  if (filter.type) {
+    queryBuilder.andWhere("transaction.type = :type", {
+      type: filter.type,
+    });
+  }
 
   if (filter.status) {
     queryBuilder.andWhere("transaction.status = :status", {
@@ -76,6 +81,7 @@ const transactionRepository = dataSource.getRepository(Transaction).extend({
       .leftJoinAndSelect("transaction.admin", "admin");
 
     // Apply filters
+    console.log(filter);
     if (filter) {
       applyTransactionFilters(qb, filter);
     }
