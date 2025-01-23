@@ -1,16 +1,7 @@
 import { FindManyOptions, SelectQueryBuilder } from "typeorm";
 import { AppDataSource as dataSource } from "../config/data-source";
 import Bid from "../entities/Bid";
-
-// Define filter types
-interface BidFilter {
-  minAmount?: number;
-  maxAmount?: number;
-  startDate?: Date;
-  endDate?: Date;
-  userId?: string;
-  auctionId?: string;
-}
+import { IBidFilter } from "../types/entityfilter";
 
 interface PaginationOptions {
   page?: number;
@@ -20,29 +11,29 @@ interface PaginationOptions {
 // Helper function to apply common filters
 const applyBidFilters = (
   queryBuilder: SelectQueryBuilder<Bid>,
-  filter: Partial<BidFilter>,
+  filter: Partial<IBidFilter>,
 ) => {
-  if (filter.minAmount !== undefined) {
-    queryBuilder.andWhere("bid.bid_amount >= :minAmount", {
-      minAmount: filter.minAmount,
+  if (filter.bidAmountMin !== undefined) {
+    queryBuilder.andWhere("bid.bid_amount >= :bidAmountMin", {
+      bidAmountMin: filter.bidAmountMin,
     });
   }
 
-  if (filter.maxAmount !== undefined) {
-    queryBuilder.andWhere("bid.bid_amount <= :maxAmount", {
-      maxAmount: filter.maxAmount,
+  if (filter.bidAmountMin !== undefined) {
+    queryBuilder.andWhere("bid.bid_amount <= :bidAmountMin", {
+      bidAmountMin: filter.bidAmountMin,
     });
   }
 
-  if (filter.startDate) {
-    queryBuilder.andWhere("bid.bid_time >= :startDate", {
-      startDate: filter.startDate,
+  if (filter.bidTimeFrom) {
+    queryBuilder.andWhere("bid.bid_time >= :.bidTimeFrom", {
+      bidTimeFrom: filter.bidTimeFrom,
     });
   }
 
-  if (filter.endDate) {
-    queryBuilder.andWhere("bid.bid_time <= :endDate", {
-      endDate: filter.endDate,
+  if (filter.bidTimeTo) {
+    queryBuilder.andWhere("bid.bid_time <= :bidTimeTo", {
+      bidTimeTo: filter.bidTimeTo,
     });
   }
 
@@ -73,31 +64,32 @@ const applyPagination = (
 // Extend the base repository with additional methods
 const bidRepository = dataSource.getRepository(Bid).extend({
   async findAllAndCount(
-    filter?: BidFilter,
+    filter?: IBidFilter,
     pagination?: PaginationOptions,
     options?: FindManyOptions<Bid>,
   ) {
-    const queryBuilder = this.createQueryBuilder("bid")
+    const qb = this.createQueryBuilder("bid")
       .leftJoinAndSelect("bid.auction", "auction")
-      .leftJoin("bid.user", "user")
-      .select(["user.user_id", "user.username"]);
+      .leftJoinAndSelect("bid.user", "user");
 
     // Apply filters
     if (filter) {
-      applyBidFilters(queryBuilder, filter);
+      applyBidFilters(qb, filter);
     }
 
     // Apply pagination
-    applyPagination(queryBuilder, pagination);
+    applyPagination(qb, pagination);
 
     // Apply additional options if provided
     if (options?.order) {
       Object.entries(options.order).forEach(([key, value]) => {
-        queryBuilder.addOrderBy(`bid.${key}`, value as "ASC" | "DESC");
+        qb.addOrderBy(`bid.${key}`, value as "ASC" | "DESC");
       });
     }
 
-    return queryBuilder.getManyAndCount();
+    const [bids, count] = await qb.getManyAndCount();
+
+    return { bids, count };
   },
 
   async findBidById(bid_id: string) {
@@ -109,28 +101,28 @@ const bidRepository = dataSource.getRepository(Bid).extend({
 
   async findBidByAuctionId(
     auction_id: string,
-    filter?: Omit<BidFilter, "auctionId">,
+    filter?: Omit<IBidFilter, "auctionId">,
     pagination?: PaginationOptions,
   ) {
-    const queryBuilder = this.createQueryBuilder("bid")
+    const qb = this.createQueryBuilder("bid")
       .leftJoinAndSelect("bid.auction", "auction")
       .leftJoinAndSelect("bid.user", "user")
       .where("auction.auction_id = :auction_id", { auction_id });
 
     // Apply filters
     if (filter) {
-      applyBidFilters(queryBuilder, filter);
+      applyBidFilters(qb, filter);
     }
 
     // Apply pagination
-    applyPagination(queryBuilder, pagination);
-
-    return queryBuilder.getManyAndCount();
+    applyPagination(qb, pagination);
+    const [bids, count] = await qb.getManyAndCount();
+    return { bids, count };
   },
 
   async findBidByUserId(
     user_id: string,
-    filter?: Omit<BidFilter, "userId">,
+    filter?: Omit<IBidFilter, "userId">,
     pagination?: PaginationOptions,
   ) {
     const queryBuilder = this.createQueryBuilder("bid")

@@ -1,33 +1,42 @@
 import Auction from "../entities/Auction";
 import auctionRepository from "../repositories/auction.repository";
 import bidRepository from "../repositories/bid.repository";
+import { IBidFilter } from "../types/entityfilter";
+import { PaginationOptions } from "../utils/pagination";
 import { ErrorHandler } from "../utils/response/handleError";
 
-const getBids = async () => {
-  const [bids, count] = await bidRepository.findAllAndCount({});
+const getAllBids = async (
+  filters?: IBidFilter,
+  pagination?: PaginationOptions,
+) => {
+  const { bids, count } = await bidRepository.findAllAndCount(
+    filters,
+    pagination,
+  );
   if (!bids) {
     throw ErrorHandler.notFound("Bids not found");
   }
   return { bids, count };
 };
 
-// const getBidsByAuctionId = async (auction_id: string) => {
-//   const  a = await bidRepository.findBidByAuctionId(auction_id);
-//   if (!bids) {
-//     throw ErrorHandler.notFound(
-//       `Bids not found for auction with ID ${auction_id}`,
-//     );
-//   }
-//   return { bids, count };
-// };
+const getBidsByAuctionId = async (auction_id: string) => {
+  const { bids, count } = await bidRepository.findBidByAuctionId(auction_id);
+  if (!bids) {
+    throw ErrorHandler.notFound(
+      `Bids not found for auction with ID ${auction_id}`,
+    );
+  }
 
-// const getBidByUserId = async (user_id: string) => {
-//   const [bids, count] = await bidRepository.(user_id);
-//   if (!bids) {
-//     throw ErrorHandler.notFound(`Bids not found for user with ID ${user_id}`);
-//   }
-//   return { bids, count };
-// };
+  return { bids, count };
+};
+
+const getBidByUserId = async (user_id: string) => {
+  const [bids, count] = await bidRepository.findBidByUserId(user_id);
+  if (!bids) {
+    throw ErrorHandler.notFound(`Bids not found for user with ID ${user_id}`);
+  }
+  return { bids, count };
+};
 
 const getBidById = async (bid_id: string) => {
   const bid = await bidRepository.findBidById(bid_id);
@@ -70,9 +79,9 @@ const placeBid = async (
   });
 
 export const bidService = {
-  getBids,
-  // getBidsByAuctionId,
-  // getBidByUserId,
+  getAllBids,
+  getBidsByAuctionId,
+  getBidByUserId,
   getBidById,
   placeBid,
 };

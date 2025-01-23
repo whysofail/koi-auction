@@ -1,52 +1,28 @@
 import { Request, Response, RequestHandler } from "express";
-import { FindOptionsWhere } from "typeorm";
-import Bid from "../entities/Bid";
-import buildDateRangeFilter from "../utils/date/dateRange";
-import bidRepository from "../repositories/bid.repository";
-import validateAndParseDates from "../utils/date/validateAndParseDate";
-import {
-  sendSuccessResponse,
-  sendErrorResponse,
-} from "../utils/response/handleResponse";
+import { sendSuccessResponse } from "../utils/response/handleResponse";
 import {
   AuthenticatedRequest,
   AuthenticatedRequestHandler,
 } from "../types/auth";
 import { bidService } from "../services/bid.service";
 
-export const getBids: RequestHandler = async (req: Request, res: Response) => {
+export const getBids: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next,
+) => {
   try {
-    // Validate and parse dates
-    const {
-      valid,
-      start_datetime: parsedStartDate, // Dari req.query
-      end_datetime: parsedEndDate, //  Dari req.query
-    } = validateAndParseDates(req, res);
-    if (!valid) return;
-
-    // Build date range filter
-    const dateRangeFilter = buildDateRangeFilter<Bid>("bid_time" as keyof Bid, {
-      start_datetime: parsedStartDate?.toISOString(),
-      end_datetime: parsedEndDate?.toISOString(),
-    });
-
-    // Construct where condition
-    const whereCondition: FindOptionsWhere<Bid> = {
-      ...dateRangeFilter,
-    };
-
-    // Fetch auctions with filters, pagination, and relations
-    const [bids, count] = await bidRepository.findAndCount({
-      where: whereCondition,
-    });
+    const { filters, pagination } = req;
+    const { bids, count } = await bidService.getAllBids(filters, pagination);
 
     sendSuccessResponse(res, {
       data: bids, // Place auctions directly inside data
       count,
+      page: pagination.page,
+      limit: pagination.limit,
     });
   } catch (error) {
-    console.error("Error fetching Bids:", error);
-    sendErrorResponse(res, "Internal server error");
+    next(error);
   }
 };
 
