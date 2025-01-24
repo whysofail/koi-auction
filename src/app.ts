@@ -2,6 +2,7 @@ import express from "express";
 import { config } from "dotenv";
 import "reflect-metadata";
 import morgan from "morgan";
+import path from "path";
 import router from "./routes";
 
 export default function createApp() {
@@ -24,6 +25,8 @@ export default function createApp() {
   );
   app.use(express.urlencoded({ extended: true }));
   app.use(express.static("public"));
+  app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+
   app.use("/api", router);
 
   return app;
