@@ -109,6 +109,16 @@ class Auction {
   @Min(0, { message: "Reserve price must be a positive number" })
   declare reserve_price: number | null;
 
+  @Column({
+    type: "decimal",
+    precision: 10,
+    scale: 2,
+    default: 50000,
+  })
+  @IsNumber()
+  @IsPositive()
+  declare bid_increment: number;
+
   @ManyToOne(() => User, (user) => user.auctions)
   @JoinColumn({ name: "created_by_id" })
   declare user: User;

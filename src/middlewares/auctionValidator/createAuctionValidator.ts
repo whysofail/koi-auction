@@ -21,6 +21,7 @@ const createAuctionValidator = async (
       reserve_price,
       start_datetime,
       end_datetime,
+      bid_increment,
     } = req.body;
 
     // Validate item_id (must be a valid UUID and the item should exist)
@@ -82,6 +83,22 @@ const createAuctionValidator = async (
       return;
     }
 
+    // Validate bid_increment
+    let parsedBidIncrement = bid_increment;
+    if (bid_increment !== undefined && typeof bid_increment === "string") {
+      parsedBidIncrement = Number(bid_increment);
+    }
+
+    if (
+      parsedBidIncrement !== undefined &&
+      (Number.isNaN(parsedBidIncrement) || parsedBidIncrement <= 0)
+    ) {
+      res
+        .status(400)
+        .json({ message: "Bid increment must be a valid positive number!" });
+      return;
+    }
+
     // Create Auction object and set fields
     const auction = new Auction();
     auction.title = title;
@@ -91,6 +108,7 @@ const createAuctionValidator = async (
     auction.start_datetime = new Date(start_datetime);
     auction.end_datetime = new Date(end_datetime);
     auction.item = item;
+    auction.bid_increment = parsedBidIncrement;
 
     // Validate auction instance
     const errors = await validate(auction, { skipMissingProperties: true });

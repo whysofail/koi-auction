@@ -4,7 +4,7 @@ import userRepository from "../repositories/user.repository";
 import walletRepository from "../repositories/wallet.repository";
 import User from "../entities/User";
 
-const ACCESS_TOKEN_EXPIRY = "1m";
+const ACCESS_TOKEN_EXPIRY = "1d";
 
 const generateToken = (user: Pick<User, "user_id" | "role">) => {
   const payload = { user_id: user.user_id, role: user.role };
