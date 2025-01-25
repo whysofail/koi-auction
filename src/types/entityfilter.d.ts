@@ -49,3 +49,11 @@ export interface IBidFilter extends IBaseFilter {
   userId?: string; // Filter bids by a specific user ID
   auctionId?: string; // Filter bids by a specific auction ID
 }
+
+export interface IWarningFilter extends IBaseFilter {
+  userId?: string; // Filter warnings by user ID
+  warningId?: string; // Filter by specific warning ID
+  reason?: string;
+  createdAtFrom?: Date;
+  createdAtTo?: Date;
+}

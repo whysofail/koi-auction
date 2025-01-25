@@ -6,6 +6,7 @@ import transactionRouter from "./transaction.routes";
 import bidRouter from "./bid.routes";
 import authRouter from "./auth.routes";
 import notificationRouter from "./notification.routes";
+import warningRouter from "./warning.routes";
 import { errorHandler } from "../utils/response/handleError";
 
 const router = Router();
@@ -23,6 +24,7 @@ router.use("/wallets", walletRouter);
 router.use("/transactions", transactionRouter);
 router.use("/bids", bidRouter);
 router.use("/notifications", notificationRouter);
+router.use("/warnings", warningRouter);
 
 // Catch-all route for undefined paths
 router.use((req: Request, res: Response) => {

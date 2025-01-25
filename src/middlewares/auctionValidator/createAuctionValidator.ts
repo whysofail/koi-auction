@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { validate, isUUID, isDateString } from "class-validator";
+import { validate, isDateString } from "class-validator";
 import Auction from "../../entities/Auction";
 import auctionRepository from "../../repositories/auction.repository";
 
@@ -25,7 +25,7 @@ const createAuctionValidator = async (
     } = req.body;
 
     // Validate item_id (must be a valid UUID and the item should exist)
-    if (!item || !isUUID(item)) {
+    if (!item) {
       res.status(400).json({ message: "Invalid item!" });
       return;
     }

@@ -70,7 +70,8 @@ const userRepository = dataSource.getRepository(User).extend({
   async findUserById(user_id: string) {
     const qb = this.createQueryBuilder("user")
       .where("user.user_id = :user_id", { user_id })
-      .leftJoinAndSelect("user.wallet", "wallet");
+      .leftJoinAndSelect("user.wallet", "wallet")
+      .leftJoinAndSelect("user.warnings", "warnings");
 
     return qb.getOne();
   },

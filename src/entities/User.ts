@@ -14,6 +14,7 @@ import Bid from "./Bid";
 import Wallet from "./Wallet";
 import AuctionParticipant from "./AuctionParticipant";
 import Notification from "./Notification";
+import { Warning } from "./Warning";
 
 export enum UserRole {
   ADMIN = "admin",
@@ -70,6 +71,12 @@ class User {
 
   @OneToMany(() => Notification, (notification) => notification.user)
   declare notifications: Notification[];
+
+  @Column({ default: false })
+  declare is_banned: boolean;
+
+  @OneToMany(() => Warning, (warning) => warning.user)
+  declare warnings: Warning[];
 }
 
 export default User;
