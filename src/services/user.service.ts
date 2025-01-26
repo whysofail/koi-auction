@@ -3,13 +3,20 @@ import User from "../entities/User";
 import { ErrorHandler } from "../utils/response/handleError";
 import { walletService } from "./wallet.service";
 import { IUserFilter } from "../types/entityfilter";
+import { PaginationOptions } from "../utils/pagination";
+import { IUserOrder } from "../types/entityorder.types";
 
 // Get all users with optional filters and pagination
 export const getAllUsers = async (
   filters?: IUserFilter,
-  pagination?: { page?: number; limit?: number },
+  pagination?: PaginationOptions,
+  order?: IUserOrder,
 ) => {
-  const { users, count } = await userRepository.getUsers(filters, pagination);
+  const { users, count } = await userRepository.getUsers(
+    filters,
+    pagination,
+    order,
+  );
 
   return { users, count };
 };

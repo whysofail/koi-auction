@@ -5,6 +5,7 @@ import {
   AuthenticatedRequestHandler,
   AuthenticatedRequest,
 } from "../types/auth";
+import { IUserOrder } from "../types/entityorder.types";
 
 export const getUserInfo: AuthenticatedRequestHandler = async (
   req: Request,
@@ -29,9 +30,13 @@ export const getAllUsers = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const { filters, pagination } = req;
+    const { filters, pagination, order } = req;
 
-    const { users, count } = await userService.getAllUsers(filters, pagination);
+    const { users, count } = await userService.getAllUsers(
+      filters,
+      pagination,
+      order as IUserOrder,
+    );
 
     sendSuccessResponse(res, {
       data: users,

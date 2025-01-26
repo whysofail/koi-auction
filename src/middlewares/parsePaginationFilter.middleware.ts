@@ -1,14 +1,18 @@
+/* eslint-disable @typescript-eslint/no-namespace */
 import { Request, Response, NextFunction } from "express";
-import { FindOptionsWhere } from "typeorm";
+import { EntityOrderFields, SortOrder } from "../types/entityorder.types";
 
 declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
-      filters: FindOptionsWhere<unknown>;
+      filters: Record<string, unknown>;
       pagination: {
         page: number;
         limit: number;
+      };
+      order: {
+        orderBy?: string; // A generic field name
+        order: SortOrder;
       };
     }
   }
@@ -17,12 +21,17 @@ declare global {
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
 
+// Helper function to check if a value is a valid number
 const isValidNumber = (value: unknown): boolean => {
-  if (value === "") return false;
   const num = Number(value);
   return !Number.isNaN(num) && num > 0;
 };
 
+// Type guard to validate sorting order
+const isValidOrder = (value: unknown): value is SortOrder =>
+  value === SortOrder.ASC || value === SortOrder.DESC;
+
+// Middleware to parse pagination, filters, and ordering
 export const parsePaginationAndFilters = (
   req: Request,
   res: Response,
@@ -32,24 +41,33 @@ export const parsePaginationAndFilters = (
     const {
       page = DEFAULT_PAGE,
       limit = DEFAULT_LIMIT,
+      orderBy,
+      order,
       ...queryFilters
     } = req.query;
 
-    const pagination = {
+    // Parse and validate pagination
+    req.pagination = {
       page: isValidNumber(page) ? Number(page) : DEFAULT_PAGE,
       limit: isValidNumber(limit) ? Number(limit) : DEFAULT_LIMIT,
     };
 
-    const filters: Record<string, unknown> = {};
+    // Parse filters
+    req.filters = Object.entries(queryFilters).reduce(
+      (acc, [key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+          acc[key] = value;
+        }
+        return acc;
+      },
+      {} as Record<string, unknown>,
+    );
 
-    Object.entries(queryFilters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== "") {
-        filters[key] = value;
-      }
-    });
-
-    req.filters = filters;
-    req.pagination = pagination;
+    // Parse and validate order
+    req.order = {
+      orderBy: orderBy as EntityOrderFields | undefined,
+      order: isValidOrder(order) ? order : SortOrder.DESC,
+    };
 
     next();
   } catch (error) {

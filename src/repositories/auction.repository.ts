@@ -2,21 +2,47 @@ import { SelectQueryBuilder } from "typeorm";
 import { AppDataSource as dataSource } from "../config/data-source";
 import Auction from "../entities/Auction";
 import { IAuctionFilter } from "../types/entityfilter";
-import { PaginationOptions } from "../utils/pagination";
+import { PaginationOptions, applyPagination } from "../utils/pagination";
+import { IAuctionOrder } from "../types/entityorder.types";
 
-// Helper function to apply pagination
-const applyPagination = (
-  queryBuilder: SelectQueryBuilder<Auction>,
-  pagination?: { page?: number; limit?: number },
+const applyAuctionOrdering = (
+  qb: SelectQueryBuilder<Auction>,
+  order?: IAuctionOrder,
 ) => {
-  if (pagination) {
-    const { page = 1, limit = 10 } = pagination;
-    queryBuilder.skip((page - 1) * limit).take(limit);
+  if (!order || !order.orderBy) {
+    qb.addOrderBy("auction.created_at", "DESC");
+    return qb;
   }
+
+  if (order.orderBy === "start_datetime") {
+    qb.orderBy("auction.start_datetime", order.order);
+  }
+
+  if (order.orderBy === "end_datetime") {
+    qb.orderBy("auction.end_datetime", order.order);
+  }
+
+  if (order.orderBy === "reserve_price") {
+    qb.orderBy("auction.reserve_price", order.order);
+  }
+
+  if (order.orderBy === "created_at") {
+    qb.orderBy("auction.created_at", order.order);
+  }
+
+  if (order.orderBy === "updated_at") {
+    qb.orderBy("auction.updated_at", order.order);
+  }
+
+  if (order.orderBy === "current_highest_bid") {
+    qb.orderBy("auction.current_highest_bid", order.order);
+  }
+
+  return qb;
 };
 
 // Function to apply filters to the Auction query
-export const applyAuctionFilters = (
+const applyAuctionFilters = (
   qb: SelectQueryBuilder<Auction>,
   filters: IAuctionFilter = {},
 ) => {
@@ -65,16 +91,16 @@ const auctionRepository = dataSource.getRepository(Auction).extend({
   async getAllAuctions(
     filters?: IAuctionFilter,
     pagination?: PaginationOptions,
+    order?: IAuctionOrder,
   ) {
     const qb = this.createQueryBuilder("auction")
       .leftJoinAndSelect("auction.bids", "bids")
       .leftJoinAndSelect("auction.participants", "participants");
 
-    // Apply filters directly using TypeORM's `where`
-    applyAuctionFilters(qb, filters); // Apply filters dynamically
-    applyPagination(qb, pagination); // Apply pagination
+    applyAuctionFilters(qb, filters);
+    applyAuctionOrdering(qb, order);
+    applyPagination(qb, pagination);
 
-    // Fetch results with count
     const [auctions, count] = await qb.getManyAndCount();
     return { auctions, count };
   },

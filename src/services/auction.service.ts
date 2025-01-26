@@ -7,13 +7,19 @@ import { ErrorHandler } from "../utils/response/handleError";
 import Auction, { AuctionStatus } from "../entities/Auction";
 import { PaginationOptions } from "../utils/pagination";
 import { IAuctionFilter } from "../types/entityfilter";
+import { IAuctionOrder } from "../types/entityorder.types";
 
 const getAllAuctions = async (
   filters?: IAuctionFilter,
   pagination?: PaginationOptions,
+  order?: IAuctionOrder,
 ) => {
-  const auctions = await auctionRepository.getAllAuctions(filters, pagination);
-  return auctions;
+  const { auctions, count } = await auctionRepository.getAllAuctions(
+    filters,
+    pagination,
+    order,
+  );
+  return { auctions, count };
 };
 
 const getAuctionById = async (auction_id: string, filters?: any) => {

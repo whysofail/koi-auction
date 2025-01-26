@@ -2,20 +2,20 @@ import Auction from "../entities/Auction";
 import auctionRepository from "../repositories/auction.repository";
 import bidRepository from "../repositories/bid.repository";
 import { IBidFilter } from "../types/entityfilter";
+import { IBidOrder } from "../types/entityorder.types";
 import { PaginationOptions } from "../utils/pagination";
 import { ErrorHandler } from "../utils/response/handleError";
 
 const getAllBids = async (
   filters?: IBidFilter,
   pagination?: PaginationOptions,
+  order?: IBidOrder,
 ) => {
   const { bids, count } = await bidRepository.findAllAndCount(
     filters,
     pagination,
+    order,
   );
-  if (!bids) {
-    throw ErrorHandler.notFound("Bids not found");
-  }
   return { bids, count };
 };
 

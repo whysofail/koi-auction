@@ -1,9 +1,41 @@
 import { SelectQueryBuilder } from "typeorm";
 import { AppDataSource as dataSource } from "../config/data-source";
 import User from "../entities/User";
-import { applyPagination } from "../utils/pagination";
+import { applyPagination, PaginationOptions } from "../utils/pagination";
 import { IUserFilter } from "../types/entityfilter";
+import { IUserOrder, SortOrder } from "../types/entityorder.types";
+
 // Function to apply filters to the User query
+
+export const applyUserOrdering = (
+  qb: SelectQueryBuilder<User>,
+  order?: IUserOrder, // Optional order parameter
+) => {
+  // Default ordering if no order is provided
+  console.log(order);
+  if (!order || !order.orderBy) {
+    qb.addOrderBy("user.registration_date", SortOrder.DESC);
+    return qb;
+  }
+  if (order.orderBy === "balance") {
+    qb.orderBy("wallet.balance", order.order);
+  }
+  if (order.orderBy === "registration_date") {
+    qb.orderBy("user.registration_date", order.order);
+  }
+  if (order.orderBy === "last_update") {
+    qb.orderBy("user.last_update", order.order);
+  }
+  if (order.orderBy === "username") {
+    qb.orderBy("user.username", order.order);
+  }
+  if (order.orderBy === "email") {
+    qb.orderBy("user.email", order.order);
+  }
+
+  return qb;
+};
+
 export const applyUserFilters = (
   qb: SelectQueryBuilder<User>,
   filters: IUserFilter = {},
@@ -42,7 +74,8 @@ export const applyUserFilters = (
 const userRepository = dataSource.getRepository(User).extend({
   async getUsers(
     filters: IUserFilter = {},
-    pagination?: { page?: number; limit?: number },
+    pagination?: PaginationOptions,
+    order?: IUserOrder,
   ) {
     const qb = this.createQueryBuilder("user")
       .leftJoinAndSelect("user.wallet", "wallet")
@@ -51,6 +84,7 @@ const userRepository = dataSource.getRepository(User).extend({
         "user.username",
         "user.email",
         "user.role",
+        "user.is_banned",
         "user.registration_date",
         "wallet.wallet_id",
         "wallet.balance",
@@ -58,7 +92,8 @@ const userRepository = dataSource.getRepository(User).extend({
 
     // Apply filters
     applyUserFilters(qb, filters);
-
+    // Apply ordering
+    applyUserOrdering(qb, order);
     // Apply pagination
     applyPagination(qb, pagination);
 

@@ -5,6 +5,7 @@ import {
   AuthenticatedRequestHandler,
 } from "../types/auth";
 import { bidService } from "../services/bid.service";
+import { IBidOrder } from "../types/entityorder.types";
 
 export const getBids: RequestHandler = async (
   req: Request,
@@ -12,8 +13,12 @@ export const getBids: RequestHandler = async (
   next,
 ) => {
   try {
-    const { filters, pagination } = req;
-    const { bids, count } = await bidService.getAllBids(filters, pagination);
+    const { filters, pagination, order } = req;
+    const { bids, count } = await bidService.getAllBids(
+      filters,
+      pagination,
+      order as IBidOrder,
+    );
 
     sendSuccessResponse(res, {
       data: bids, // Place auctions directly inside data
@@ -31,10 +36,10 @@ export const getBidsByAuctionId: RequestHandler = async (
   res: Response,
   next,
 ) => {
-  const { auction_id } = req.query as { auction_id: string };
+  const { auction_id } = req.params;
   try {
-    const bids = await bidService.getBidById(auction_id);
-    sendSuccessResponse(res, { data: bids });
+    const { bids, count } = await bidService.getBidsByAuctionId(auction_id);
+    sendSuccessResponse(res, { data: bids, count }, 200);
   } catch (error) {
     next(error);
   }
@@ -48,7 +53,8 @@ export const getBidByUserId: AuthenticatedRequestHandler = async (
 ) => {
   try {
     const { user } = req as AuthenticatedRequest;
-    sendSuccessResponse(res, { data: user }, 200);
+    const { bids, count } = await bidService.getBidByUserId(user.user_id);
+    sendSuccessResponse(res, { data: bids, count }, 200);
   } catch (error) {
     next(error);
   }
@@ -65,7 +71,7 @@ export const placeBid: AuthenticatedRequestHandler = async (
 
   try {
     const bid = await bidService.placeBid(user.user_id, auction_id, bid_amount);
-    sendSuccessResponse(res, { data: bid }, 201);
+    sendSuccessResponse(res, { data: [bid] }, 201);
   } catch (error) {
     next(error);
   }

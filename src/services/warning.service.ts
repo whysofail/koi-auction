@@ -3,7 +3,7 @@ import { ErrorHandler } from "../utils/response/handleError";
 import { IWarningFilter } from "../types/entityfilter";
 import { PaginationOptions } from "../utils/pagination";
 import { userService } from "./user.service";
-import { Warning } from "../entities/Warning";
+import Warning from "../entities/Warning";
 
 const getAllWarnings = async (
   filters?: IWarningFilter,

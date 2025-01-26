@@ -8,7 +8,7 @@ import {
 import User from "./User";
 
 @Entity()
-export class Warning {
+class Warning {
   @PrimaryGeneratedColumn("uuid")
   declare warning_id: string;
 
@@ -21,3 +21,5 @@ export class Warning {
   @CreateDateColumn()
   declare created_at: Date;
 }
+
+export default Warning;

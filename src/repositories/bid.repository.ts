@@ -1,53 +1,68 @@
-import { FindManyOptions, SelectQueryBuilder } from "typeorm";
+import { SelectQueryBuilder } from "typeorm";
 import { AppDataSource as dataSource } from "../config/data-source";
 import Bid from "../entities/Bid";
 import { IBidFilter } from "../types/entityfilter";
+import { PaginationOptions } from "../utils/pagination";
+import { IBidOrder } from "../types/entityorder.types";
 
-interface PaginationOptions {
-  page?: number;
-  limit?: number;
-}
+const applyBidOrdering = (qb: SelectQueryBuilder<Bid>, order?: IBidOrder) => {
+  if (!order || !order.orderBy) {
+    qb.addOrderBy("bid.bid_time", "DESC");
+    return qb;
+  }
+
+  if (order.orderBy === "bid_time") {
+    qb.orderBy("bid.bid_time", order.order);
+  }
+
+  if (order.orderBy === "bid_amount") {
+    qb.orderBy("bid.bid_amount", order.order);
+  }
+
+  return qb;
+};
 
 // Helper function to apply common filters
 const applyBidFilters = (
-  queryBuilder: SelectQueryBuilder<Bid>,
-  filter: Partial<IBidFilter>,
+  qb: SelectQueryBuilder<Bid>,
+  filters: IBidFilter = {},
 ) => {
-  if (filter.bidAmountMin !== undefined) {
-    queryBuilder.andWhere("bid.bid_amount >= :bidAmountMin", {
-      bidAmountMin: filter.bidAmountMin,
+  if (filters.bidAmountMin !== undefined) {
+    qb.andWhere("bid.bid_amount >= :bidAmountMin", {
+      bidAmountMin: filters.bidAmountMin,
     });
   }
 
-  if (filter.bidAmountMin !== undefined) {
-    queryBuilder.andWhere("bid.bid_amount <= :bidAmountMin", {
-      bidAmountMin: filter.bidAmountMin,
+  if (filters.bidAmountMin !== undefined) {
+    qb.andWhere("bid.bid_amount <= :bidAmountMin", {
+      bidAmountMin: filters.bidAmountMin,
     });
   }
 
-  if (filter.bidTimeFrom) {
-    queryBuilder.andWhere("bid.bid_time >= :.bidTimeFrom", {
-      bidTimeFrom: filter.bidTimeFrom,
+  if (filters.bidTimeFrom) {
+    qb.andWhere("bid.bid_time >= :.bidTimeFrom", {
+      bidTimeFrom: filters.bidTimeFrom,
     });
   }
 
-  if (filter.bidTimeTo) {
-    queryBuilder.andWhere("bid.bid_time <= :bidTimeTo", {
-      bidTimeTo: filter.bidTimeTo,
+  if (filters.bidTimeTo) {
+    qb.andWhere("bid.bid_time <= :bidTimeTo", {
+      bidTimeTo: filters.bidTimeTo,
     });
   }
 
-  if (filter.userId) {
-    queryBuilder.andWhere("user.user_id = :userId", {
-      userId: filter.userId,
+  if (filters.userId) {
+    qb.andWhere("user.user_id = :userId", {
+      userId: filters.userId,
     });
   }
 
-  if (filter.auctionId) {
-    queryBuilder.andWhere("auction.auction_id = :auctionId", {
-      auctionId: filter.auctionId,
+  if (filters.auctionId) {
+    qb.andWhere("auction.auction_id = :auctionId", {
+      auctionId: filters.auctionId,
     });
   }
+  return qb;
 };
 
 // Helper function to apply pagination
@@ -64,28 +79,20 @@ const applyPagination = (
 // Extend the base repository with additional methods
 const bidRepository = dataSource.getRepository(Bid).extend({
   async findAllAndCount(
-    filter?: IBidFilter,
+    filters?: IBidFilter,
     pagination?: PaginationOptions,
-    options?: FindManyOptions<Bid>,
+    order?: IBidOrder,
   ) {
     const qb = this.createQueryBuilder("bid")
       .leftJoinAndSelect("bid.auction", "auction")
       .leftJoinAndSelect("bid.user", "user");
 
     // Apply filters
-    if (filter) {
-      applyBidFilters(qb, filter);
-    }
-
+    applyBidFilters(qb, filters);
+    // Apply ordering
+    applyBidOrdering(qb, order);
     // Apply pagination
     applyPagination(qb, pagination);
-
-    // Apply additional options if provided
-    if (options?.order) {
-      Object.entries(options.order).forEach(([key, value]) => {
-        qb.addOrderBy(`bid.${key}`, value as "ASC" | "DESC");
-      });
-    }
 
     const [bids, count] = await qb.getManyAndCount();
 
@@ -106,7 +113,6 @@ const bidRepository = dataSource.getRepository(Bid).extend({
   ) {
     const qb = this.createQueryBuilder("bid")
       .leftJoinAndSelect("bid.auction", "auction")
-      .leftJoinAndSelect("bid.user", "user")
       .where("auction.auction_id = :auction_id", { auction_id });
 
     // Apply filters

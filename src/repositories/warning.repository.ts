@@ -1,7 +1,7 @@
 import { SelectQueryBuilder } from "typeorm";
 import { applyPagination } from "typeorm-extension";
 import { AppDataSource as dataSource } from "../config/data-source";
-import { Warning } from "../entities/Warning";
+import Warning from "../entities/Warning";
 import { IWarningFilter } from "../types/entityfilter";
 import { PaginationOptions } from "../utils/pagination";
 

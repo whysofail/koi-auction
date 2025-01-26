@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { validate } from "class-validator";
-import { Warning } from "../../entities/Warning";
+import Warning from "../../entities/Warning";
 import { userService } from "../../services/user.service";
 
 const warnUserValidator = async (

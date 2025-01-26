@@ -8,6 +8,7 @@ import {
   AuthenticatedRequest,
   AuthenticatedRequestHandler,
 } from "../types/auth";
+import { AuctionOrderFields } from "../types/entityorder.types";
 
 // Create Auction
 export const createAuction: AuthenticatedRequestHandler = async (
@@ -32,12 +33,16 @@ export const getAuctions: RequestHandler = async (
   next,
 ): Promise<void> => {
   try {
-    const { filters, pagination } = req;
+    const { filters, pagination, order } = req;
+    const auctionOrder = {
+      orderBy: order.orderBy as AuctionOrderFields,
+      order: order.order,
+    };
     const { auctions, count } = await auctionService.getAllAuctions(
       filters,
       pagination,
+      auctionOrder,
     );
-
     sendSuccessResponse(res, {
       data: auctions,
       count,
