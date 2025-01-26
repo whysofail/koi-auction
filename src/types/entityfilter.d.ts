@@ -50,6 +50,14 @@ export interface IBidFilter extends IBaseFilter {
   auctionId?: string; // Filter bids by a specific auction ID
 }
 
+export interface IAuctionParticipantFilter extends IBaseFilter {
+  auctionParticipantId?: string; // Filter by auction participant ID
+  userId?: string; // Filter by user ID
+  auctionId?: string; // Filter by auction ID
+  joinedAtFrom?: Date; // Filter by joined date (earliest)
+  joinedAtTo?: Date; // Filter by joined date (latest)
+}
+
 export interface IWarningFilter extends IBaseFilter {
   userId?: string; // Filter warnings by user ID
   warningId?: string; // Filter by specific warning ID
