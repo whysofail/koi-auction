@@ -3,6 +3,7 @@ import auctionRepository from "../../repositories/auction.repository";
 import walletRepository from "../../repositories/wallet.repository";
 import { AuthenticatedRequest } from "../../types/auth";
 import { userService } from "../../services/user.service";
+import { AuctionStatus } from "../../entities/Auction";
 
 const joinAuctionValidator = async (
   req: Request,
@@ -34,6 +35,11 @@ const joinAuctionValidator = async (
     const auction = await auctionRepository.findAuctionById(auction_id);
     if (!auction) {
       res.status(404).json({ message: "Auction not found!" });
+      return;
+    }
+
+    if (auction.status !== AuctionStatus.STARTED) {
+      res.status(400).json({ message: "Auction has not started yet" });
       return;
     }
 

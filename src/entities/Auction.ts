@@ -32,6 +32,7 @@ export enum AuctionStatus {
   CANCELLED = "CANCELLED",
   EXPIRED = "EXPIRED",
   FAILED = "FAILED",
+  STARTED = "STARTED",
 }
 
 @Entity()
