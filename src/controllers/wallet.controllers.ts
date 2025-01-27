@@ -11,6 +11,7 @@ import {
 import { walletService } from "../services/wallet.service";
 import { transactionService } from "../services/transaction.service";
 import { TransactionStatus, TransactionType } from "../entities/Transaction";
+import { IWalletOrder } from "../types/entityorder.types";
 // Create a new wallet
 export const createWallet: RequestHandler = async (
   req: Request,
@@ -97,12 +98,13 @@ export const getAllWallets: RequestHandler = async (
   res: Response,
   next,
 ): Promise<void> => {
-  const { filters, pagination } = req;
+  const { filters, pagination, order } = req;
 
   try {
     const { wallets, count } = await walletService.getAllWallets(
       filters,
       pagination,
+      order as IWalletOrder,
     );
     sendSuccessResponse(res, {
       data: wallets,

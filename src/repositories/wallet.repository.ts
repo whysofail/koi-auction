@@ -4,6 +4,28 @@ import { AppDataSource as dataSource } from "../config/data-source";
 import Wallet from "../entities/Wallet";
 import { IWalletFilter } from "../types/entityfilter";
 import { PaginationOptions } from "../utils/pagination";
+import { IWalletOrder } from "../types/entityorder.types";
+
+// Function to apply ordering to the Wallet query
+const applyWalletOrdering = (
+  qb: SelectQueryBuilder<Wallet>,
+  order?: IWalletOrder,
+) => {
+  if (!order || !order.orderBy) {
+    qb.addOrderBy("wallet.created_at", "DESC");
+    return qb;
+  }
+
+  if (order.orderBy === "balance") {
+    qb.orderBy("wallet.balance", order.order);
+  }
+
+  if (order.orderBy === "created_at") {
+    qb.orderBy("wallet.created_at", order.order);
+  }
+
+  return qb;
+};
 
 // Function to apply filters to the Wallet query
 const applyWalletFilters = (
@@ -46,11 +68,16 @@ const applyWalletFilters = (
 };
 
 const walletRepository = dataSource.getRepository(Wallet).extend({
-  async getAllWallets(filters?: IWalletFilter, pagination?: PaginationOptions) {
+  async getAllWallets(
+    filters?: IWalletFilter,
+    pagination?: PaginationOptions,
+    order?: IWalletOrder,
+  ) {
     const qb = this.createQueryBuilder("wallet");
 
     // Apply filters
     applyWalletFilters(qb, filters);
+    applyWalletOrdering(qb, order);
     applyPagination(qb, pagination);
 
     // Fetch results

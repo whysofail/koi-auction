@@ -3,6 +3,7 @@ import Wallet from "../entities/Wallet";
 import { ErrorHandler } from "../utils/response/handleError";
 import { IWalletFilter } from "../types/entityfilter";
 import { PaginationOptions } from "../utils/pagination";
+import { IWalletOrder } from "../types/entityorder.types";
 
 export const createWallet = async (data: any) => {
   try {
@@ -16,10 +17,12 @@ export const createWallet = async (data: any) => {
 export const getAllWallets = async (
   filters?: IWalletFilter,
   paginate?: PaginationOptions,
+  order?: IWalletOrder,
 ) => {
   const { wallets, count } = await walletRepository.getAllWallets(
     filters,
     paginate,
+    order,
   );
   return { wallets, count };
 };
