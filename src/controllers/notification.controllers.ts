@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Request, RequestHandler, Response } from "express";
 import notificationRepository from "../repositories/notification.repository";
 import { sendSuccessResponse } from "../utils/response/handleResponse";
 import notificationSocket from "../sockets/notification.socket";
@@ -6,19 +6,34 @@ import {
   AuthenticatedRequest,
   AuthenticatedRequestHandler,
 } from "../types/auth";
+import { notificationService } from "../services/notfication.service";
+import { INotificationOrder } from "../types/entityorder.types";
 
 // Get all notification
-export const getNotifications = async (
+export const getNotifications: RequestHandler = async (
   req: Request,
   res: Response,
+  next,
 ): Promise<void> => {
   try {
-    const [notifications, count] = await notificationRepository.findAndCount();
-    sendSuccessResponse(res, { data: notifications, count }, 200);
-    res.status(200).json(notifications);
+    const { filters, order, pagination } = req;
+    const { notifications, count } = await notificationService.getNotifications(
+      filters,
+      order as INotificationOrder,
+      pagination,
+    );
+    sendSuccessResponse(
+      res,
+      {
+        data: notifications,
+        count,
+        page: pagination.page,
+        limit: pagination.limit,
+      },
+      200,
+    );
   } catch (error) {
-    console.error("Error fetching notifications:", error);
-    res.status(500).json({ message: "Internal server error" });
+    next(error);
   }
 };
 

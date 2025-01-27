@@ -7,10 +7,17 @@ import {
 } from "../controllers/notification.controllers";
 import { authorize, protect } from "../middlewares/auth.middleware";
 import createNotificationValidator from "../middlewares/notificationValidator/createNotificationValidator";
+import { parsePaginationAndFilters } from "../middlewares/parsePaginationFilter.middleware";
 
 const notificationRouter = Router();
 
-notificationRouter.get("/", protect, authorize(["admin"]), getNotifications);
+notificationRouter.get(
+  "/",
+  protect,
+  authorize(["admin"]),
+  parsePaginationAndFilters,
+  getNotifications,
+);
 notificationRouter.post(
   "/",
   protect,

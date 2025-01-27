@@ -1,3 +1,4 @@
+import { SelectQueryBuilder } from "typeorm";
 import { AppDataSource as dataSource } from "../config/data-source";
 import Notification, {
   NotificationStatus,
@@ -5,8 +6,79 @@ import Notification, {
 } from "../entities/Notification";
 import User, { UserRole } from "../entities/User";
 import userRepository from "./user.repository";
+import { INotificationFilter } from "../types/entityfilter";
+import { applyPagination, PaginationOptions } from "../utils/pagination";
+import { INotificationOrder } from "../types/entityorder.types";
+
+const applyNotificationOrdering = (
+  qb: SelectQueryBuilder<Notification>,
+  order?: INotificationOrder,
+) => {
+  if (!order || !order.orderBy) {
+    qb.addOrderBy("notification.created_at", "DESC");
+    return qb;
+  }
+
+  if (order.orderBy === "created_at") {
+    qb.orderBy("notification.created_at", order.order);
+  }
+
+  if (order.orderBy === "type") {
+    qb.orderBy("notification.type", order.order);
+  }
+
+  if (order.orderBy === "status") {
+    qb.orderBy("notification.status", order.order);
+  }
+
+  if (order.orderBy === "reference_id") {
+    qb.orderBy("notification.reference_id", order.order);
+  }
+
+  return qb;
+};
+
+const applyNotificationFilters = (
+  qb: SelectQueryBuilder<Notification>,
+  filters: INotificationFilter = {},
+) => {
+  if (filters.userId) {
+    qb.andWhere("notification.user.user_id = :userId", {
+      userId: filters.userId,
+    });
+  }
+
+  if (filters.type) {
+    qb.andWhere("notification.type = :type", { type: filters.type });
+  }
+
+  if (filters.type) {
+    qb.andWhere("notification.status = :status", { status: filters.status });
+  }
+  if (filters.referenceId) {
+    qb.andWhere("notification.reference_id = :referenceId", {
+      referenceId: filters.referenceId,
+    });
+  }
+
+  return qb;
+};
 
 const notificationRepository = dataSource.getRepository(Notification).extend({
+  async findAllNotifications(
+    filters?: INotificationFilter,
+    order?: INotificationOrder,
+    pagination?: PaginationOptions,
+  ) {
+    const qb = this.createQueryBuilder("notification")
+      .leftJoinAndSelect("notification.user", "user")
+      .select(["notification", "user.user_id", "user.username"]);
+    applyNotificationFilters(qb, filters);
+    applyNotificationOrdering(qb, order);
+    applyPagination(qb, pagination);
+    const [notifications, count] = await qb.getManyAndCount();
+    return { notifications, count };
+  },
   createNotification(
     userId: string,
     type: NotificationType,

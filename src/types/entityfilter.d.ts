@@ -65,3 +65,13 @@ export interface IWarningFilter extends IBaseFilter {
   createdAtFrom?: Date;
   createdAtTo?: Date;
 }
+
+export interface INotificationFilter extends IBaseFilter {
+  userId?: string; // Filter notifications by user ID
+  notificationId?: string; // Filter by specific notification ID
+  type?: string;
+  status?: string;
+  referenceId?: string;
+  createdAtFrom?: Date;
+  createdAtTo?: Date;
+}

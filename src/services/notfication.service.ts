@@ -1,10 +1,22 @@
 import { NotificationStatus } from "../entities/Notification";
 import notificationRepository from "../repositories/notification.repository";
+import { INotificationFilter } from "../types/entityfilter";
+import { INotificationOrder } from "../types/entityorder.types";
+import { PaginationOptions } from "../utils/pagination";
 import { ErrorHandler } from "../utils/response/handleError";
 
-const getNotifications = async () => {
+const getNotifications = async (
+  filters?: INotificationFilter,
+  order?: INotificationOrder,
+  pagination?: PaginationOptions,
+) => {
   try {
-    const [notifications, count] = await notificationRepository.findAndCount();
+    const { notifications, count } =
+      await notificationRepository.findAllNotifications(
+        filters,
+        order,
+        pagination,
+      );
     return { notifications, count };
   } catch (error) {
     throw ErrorHandler.internalServerError(

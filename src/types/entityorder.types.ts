@@ -5,6 +5,7 @@ import Transaction from "../entities/Transaction";
 import Bid from "../entities/Bid";
 import AuctionParticipant from "../entities/AuctionParticipant";
 import Warning from "../entities/Warning";
+import Notification from "../entities/Notification";
 
 // Define sort order types
 export enum SortOrder {
@@ -32,6 +33,7 @@ export type AuctionParticipantOrderFields =
   | `user.${keyof User}`
   | `auction.${keyof Auction}`;
 export type WarningOrderFields = keyof Warning | `user.${keyof User}`;
+export type NotificationOrderFields = keyof Notification | `user.${keyof User}`;
 
 export type EntityOrderFields =
   | UserOrderFields
@@ -40,7 +42,8 @@ export type EntityOrderFields =
   | TransactionOrderFields
   | BidOrderFields
   | AuctionParticipantOrderFields
-  | WarningOrderFields;
+  | WarningOrderFields
+  | NotificationOrderFields;
 
 // Specific order interfaces extending IBaseOrder
 export type IUserOrder = IBaseOrder<UserOrderFields>;
@@ -50,3 +53,4 @@ export type ITransactionOrder = IBaseOrder<TransactionOrderFields>;
 export type IBidOrder = IBaseOrder<keyof Bid>;
 export type IAuctionParticipantOrder = IBaseOrder<keyof AuctionParticipant>;
 export type IWarningOrder = IBaseOrder<keyof Warning>;
+export type INotificationOrder = IBaseOrder<keyof Notification>;
