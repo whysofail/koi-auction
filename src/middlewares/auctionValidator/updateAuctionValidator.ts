@@ -18,6 +18,7 @@ const updateAuctionValidator = async (
       title,
       description,
       reserve_price,
+      bid_increment,
       start_datetime,
       end_datetime,
       status,
@@ -93,6 +94,22 @@ const updateAuctionValidator = async (
       return;
     }
 
+    // Ensure bid_increment is a valid positive number, if provided
+    let parsedBidIncrement = bid_increment;
+    if (bid_increment !== undefined && typeof bid_increment === "string") {
+      parsedBidIncrement = Number(bid_increment);
+    }
+
+    if (
+      parsedBidIncrement !== undefined &&
+      (Number.isNaN(parsedBidIncrement) || parsedBidIncrement <= 0)
+    ) {
+      res
+        .status(400)
+        .json({ message: "Bid increment must be a valid positive number!" });
+      return;
+    }
+
     // Validate start_datetime and end_datetime (only if provided, ensure they are valid dates)
     if (start_datetime && !isDateString(start_datetime)) {
       res.status(400).json({ message: "Invalid start datetime!" });
@@ -119,6 +136,7 @@ const updateAuctionValidator = async (
     if (title) auction.title = title;
     if (description) auction.description = description;
     if (reserve_price !== undefined) auction.reserve_price = parsedReservePrice;
+    if (bid_increment !== undefined) auction.bid_increment = parsedBidIncrement;
     if (start_datetime) auction.start_datetime = new Date(start_datetime);
     if (end_datetime) auction.end_datetime = new Date(end_datetime);
     if (status) auction.status = status.toUpperCase();

@@ -73,8 +73,10 @@ const updateAuction = async (
       description,
       start_datetime,
       end_datetime,
-      reserve_price,
       item,
+      reserve_price,
+      bid_increment,
+      status,
     } = data;
     let auction = await auctionRepository.findAuctionById(auction_id);
     if (!auction) {
@@ -85,10 +87,11 @@ const updateAuction = async (
       title,
       description,
       item,
-      reserve_price,
       start_datetime,
       end_datetime,
-      status: data.status?.toUpperCase() as AuctionStatus,
+      reserve_price,
+      bid_increment,
+      status: status?.toUpperCase() as AuctionStatus,
       user: { user_id },
     });
 
