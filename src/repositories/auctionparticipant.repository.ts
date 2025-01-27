@@ -44,7 +44,6 @@ const applyAuctionParticipantFilter = (
   return qb;
 };
 
-// TODO: Extend the bid repository with QueryBuilder for more complex queries
 const auctionParticipantRepository = dataSource
   .getRepository(AuctionParticipant)
   .extend({
