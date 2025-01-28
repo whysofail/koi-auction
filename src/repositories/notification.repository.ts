@@ -90,7 +90,7 @@ const notificationRepository = dataSource.getRepository(Notification).extend({
       type,
       message,
       reference_id: referenceId,
-      status: NotificationStatus.PENDING,
+      status: NotificationStatus.UNREAD,
     });
     return this.save(notification);
   },

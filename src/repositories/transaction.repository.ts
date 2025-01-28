@@ -81,7 +81,6 @@ const transactionRepository = dataSource.getRepository(Transaction).extend({
       .leftJoinAndSelect("transaction.admin", "admin");
 
     // Apply filters
-    console.log(filter);
     if (filter) {
       applyTransactionFilters(qb, filter);
     }

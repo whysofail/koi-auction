@@ -12,7 +12,7 @@ export const applyUserOrdering = (
   order?: IUserOrder, // Optional order parameter
 ) => {
   // Default ordering if no order is provided
-  console.log(order);
+
   if (!order || !order.orderBy) {
     qb.addOrderBy("user.registration_date", SortOrder.DESC);
     return qb;

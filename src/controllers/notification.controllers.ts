@@ -6,7 +6,7 @@ import {
   AuthenticatedRequest,
   AuthenticatedRequestHandler,
 } from "../types/auth";
-import { notificationService } from "../services/notfication.service";
+import { notificationService } from "../services/notification.service";
 import { INotificationOrder } from "../types/entityorder.types";
 
 // Get all notification

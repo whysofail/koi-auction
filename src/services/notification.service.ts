@@ -1,4 +1,4 @@
-import { NotificationStatus } from "../entities/Notification";
+import { NotificationStatus, NotificationType } from "../entities/Notification";
 import notificationRepository from "../repositories/notification.repository";
 import { INotificationFilter } from "../types/entityfilter";
 import { INotificationOrder } from "../types/entityorder.types";
@@ -21,6 +21,28 @@ const getNotifications = async (
   } catch (error) {
     throw ErrorHandler.internalServerError(
       "Error fetching notifications",
+      error,
+    );
+  }
+};
+
+const createNotification = async (
+  user_id: string,
+  type: NotificationType,
+  message: string,
+  reference_id: string,
+) => {
+  try {
+    const notification = await notificationRepository.createNotification(
+      user_id,
+      type,
+      message,
+      reference_id,
+    );
+    return notification;
+  } catch (error) {
+    throw ErrorHandler.internalServerError(
+      "Error creating notification",
       error,
     );
   }
@@ -60,4 +82,5 @@ export const notificationService = {
   getNotificationById,
   getNotificationsByUserId,
   markNotificationAsRead,
+  createNotification,
 };

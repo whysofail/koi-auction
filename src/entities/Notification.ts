@@ -12,11 +12,13 @@ export enum NotificationType {
   BID = "BID",
   AUCTION = "AUCTION",
   SYSTEM = "SYSTEM",
+  TRANSACTION = "TRANSACTION",
   // Add other notification types as needed
 }
 
 export enum NotificationStatus {
   PENDING = "PENDING",
+  UNREAD = "UNREAD",
   READ = "READ",
   ARCHIVED = "ARCHIVED",
 }
@@ -42,7 +44,7 @@ class Notification {
   @Column({
     type: "enum",
     enum: NotificationStatus,
-    default: NotificationStatus.PENDING,
+    default: NotificationStatus.UNREAD,
   })
   declare status: NotificationStatus;
 

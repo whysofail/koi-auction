@@ -33,6 +33,9 @@ export const socketAuthMiddleware = (
 
         // Attach user data to socket after verification
         const userData = decoded as { user_id: string; role: string };
+        if (userData.role !== "admin") {
+          return next(new Error("Authentication error: User is not an admin"));
+        }
         const updatedSocket = socket as any;
         updatedSocket.user = userData; // Attach decoded user data to socket
 

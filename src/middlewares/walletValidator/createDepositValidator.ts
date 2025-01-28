@@ -10,8 +10,6 @@ const createDepositValidator = async (
   next: NextFunction,
 ): Promise<void> => {
   const proof_of_payment = req.file?.filename; // Use only the filename
-  console.log(req.file);
-
   try {
     if (!req.body) {
       // Remove photo if uploaded

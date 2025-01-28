@@ -12,6 +12,9 @@ import { walletService } from "../services/wallet.service";
 import { transactionService } from "../services/transaction.service";
 import { TransactionStatus, TransactionType } from "../entities/Transaction";
 import { IWalletOrder } from "../types/entityorder.types";
+import socketService from "../services/socket.service";
+import { notificationService } from "../services/notification.service";
+import { NotificationType } from "../entities/Notification";
 // Create a new wallet
 export const createWallet: RequestHandler = async (
   req: Request,
@@ -150,6 +153,22 @@ export const createDeposit: AuthenticatedRequestHandler = async (
       status: TransactionStatus.PENDING,
       proof_of_payment, // Use only the filename here
     });
+    if (transaction) {
+      const notificateAdminData = await notificationService.createNotification(
+        "admin",
+        NotificationType.TRANSACTION,
+        `New deposit of $${parsedAmount} from user ${user.user_id}`,
+        transaction.transaction_id,
+      );
+      const notificateUserData = await notificationService.createNotification(
+        user.user_id,
+        NotificationType.TRANSACTION,
+        `Your deposit of $${parsedAmount} is pending approval`,
+        transaction.transaction_id,
+      );
+      await socketService.emitToUser(user.user_id, "user", notificateUserData);
+      await socketService.emitToAdminRoom(notificateAdminData);
+    }
 
     // Return the successful response
     sendSuccessResponse(res, { data: transaction }, 201);

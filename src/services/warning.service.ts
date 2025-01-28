@@ -35,7 +35,7 @@ export const warnUser = async (user_id: string, reason: string) => {
     }
 
     const warningsCount = user.warnings?.length ?? 0;
-    console.log({ warningsCount });
+
     if (warningsCount >= 3) {
       user.is_banned = true;
       await userService.updateUser(user.user_id, { is_banned: true }); // Save the updated user

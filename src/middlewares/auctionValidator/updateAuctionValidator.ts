@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { validate, isDateString } from "class-validator";
 import auctionRepository from "../../repositories/auction.repository";
+import { AuctionStatus } from "../../entities/Auction";
 
 const updateAuctionValidator = async (
   req: Request,
@@ -10,6 +11,21 @@ const updateAuctionValidator = async (
   try {
     if (!req.body) {
       res.status(400).json({ message: "Missing request body!" });
+      return;
+    }
+
+    const { auction_id } = req.params;
+
+    // Validate auction_id
+    if (!auction_id) {
+      res.status(400).json({ message: "Invalid auction ID!" });
+      return;
+    }
+
+    // Fetch existing auction
+    const auction = await auctionRepository.findAuctionById(auction_id);
+    if (!auction) {
+      res.status(404).json({ message: "Auction not found!" });
       return;
     }
 
@@ -23,94 +39,56 @@ const updateAuctionValidator = async (
       end_datetime,
       status,
     } = req.body;
-    const { auction_id } = req.params;
 
-    // Validate auction_id (must be a valid UUID)
-    if (!auction_id) {
-      res.status(400).json({ message: "Invalid auction ID!" });
-      return;
-    }
-
-    // Check if auction exists in the database
-    const auction = await auctionRepository.findAuctionById(auction_id);
-    if (!auction) {
-      res.status(404).json({ message: "Auction not found!" });
-      return;
-    }
-
-    // Validate item_id (if provided, must be a valid UUID and the item should exist)
-    if (!item) {
-      res.status(400).json({ message: "Invalid item ID!" });
-      return;
-    }
-
-    if (item) {
-      // If the item_id is being updated (not the same as the current auction's item_id)
-      if (item !== auction.item) {
-        // Check if item exists in the database
-
-        const itemAlreadyExist = await auctionRepository.findOne({
-          where: { item },
-        });
-
-        if (itemAlreadyExist) {
-          res.status(400).json({ message: "Item already has an auction!" });
-          return;
-        }
-
-        // Update item if valid
-        auction.item = item;
+    // Validate and update `item`
+    if (item && item !== auction.item) {
+      const itemAlreadyExist = await auctionRepository.findOne({
+        where: { item },
+      });
+      if (itemAlreadyExist) {
+        res.status(400).json({ message: "Item already has an auction!" });
+        return;
       }
+      auction.item = item;
     }
 
-    // Validate required fields: title, description (only if they are provided)
-    if (title && title.trim().length === 0) {
+    // Validate and update `title` and `description`
+    if (title !== undefined && title.trim().length === 0) {
       res.status(400).json({ message: "Title must not be empty!" });
       return;
     }
-    if (description && description.trim().length === 0) {
+    if (description !== undefined && description.trim().length === 0) {
       res.status(400).json({ message: "Description must not be empty!" });
       return;
     }
+    if (title) auction.title = title;
+    if (description) auction.description = description;
 
-    if (!status) {
-      res.status(400).json({ message: "Status must not be empty" });
-      return;
+    // Validate and update `reserve_price`
+    if (reserve_price !== undefined) {
+      const parsedReservePrice = Number(reserve_price);
+      if (Number.isNaN(parsedReservePrice) || parsedReservePrice <= 0) {
+        res
+          .status(400)
+          .json({ message: "Reserve price must be a valid positive number!" });
+        return;
+      }
+      auction.reserve_price = parsedReservePrice;
     }
 
-    // Ensure reserve_price is a valid positive number, if provided
-    let parsedReservePrice = reserve_price;
-    if (reserve_price !== undefined && typeof reserve_price === "string") {
-      parsedReservePrice = Number(reserve_price);
+    // Validate and update `bid_increment`
+    if (bid_increment !== undefined) {
+      const parsedBidIncrement = Number(bid_increment);
+      if (Number.isNaN(parsedBidIncrement) || parsedBidIncrement <= 0) {
+        res
+          .status(400)
+          .json({ message: "Bid increment must be a valid positive number!" });
+        return;
+      }
+      auction.bid_increment = parsedBidIncrement;
     }
 
-    if (
-      parsedReservePrice !== undefined &&
-      (Number.isNaN(parsedReservePrice) || parsedReservePrice <= 0)
-    ) {
-      res
-        .status(400)
-        .json({ message: "Reserve price must be a valid positive number!" });
-      return;
-    }
-
-    // Ensure bid_increment is a valid positive number, if provided
-    let parsedBidIncrement = bid_increment;
-    if (bid_increment !== undefined && typeof bid_increment === "string") {
-      parsedBidIncrement = Number(bid_increment);
-    }
-
-    if (
-      parsedBidIncrement !== undefined &&
-      (Number.isNaN(parsedBidIncrement) || parsedBidIncrement <= 0)
-    ) {
-      res
-        .status(400)
-        .json({ message: "Bid increment must be a valid positive number!" });
-      return;
-    }
-
-    // Validate start_datetime and end_datetime (only if provided, ensure they are valid dates)
+    // Validate and update `start_datetime` and `end_datetime`
     if (start_datetime && !isDateString(start_datetime)) {
       res.status(400).json({ message: "Invalid start datetime!" });
       return;
@@ -119,8 +97,6 @@ const updateAuctionValidator = async (
       res.status(400).json({ message: "Invalid end datetime!" });
       return;
     }
-
-    // Ensure end_datetime is after start_datetime if both are provided
     if (
       start_datetime &&
       end_datetime &&
@@ -131,17 +107,19 @@ const updateAuctionValidator = async (
         .json({ message: "End datetime must be after start datetime!" });
       return;
     }
-
-    // Apply changes to auction object (only update provided fields)
-    if (title) auction.title = title;
-    if (description) auction.description = description;
-    if (reserve_price !== undefined) auction.reserve_price = parsedReservePrice;
-    if (bid_increment !== undefined) auction.bid_increment = parsedBidIncrement;
     if (start_datetime) auction.start_datetime = new Date(start_datetime);
     if (end_datetime) auction.end_datetime = new Date(end_datetime);
-    if (status) auction.status = status.toUpperCase();
 
-    // Validate auction instance
+    // Validate and update `status`
+    if (status !== undefined) {
+      if (typeof status !== "string" || status.trim().length === 0) {
+        res.status(400).json({ message: "Status must not be empty!" });
+        return;
+      }
+      auction.status = status.toUpperCase() as AuctionStatus;
+    }
+
+    // Validate the updated auction object
     const errors = await validate(auction, { skipMissingProperties: true });
     if (errors.length > 0) {
       res.status(400).json({
@@ -154,7 +132,6 @@ const updateAuctionValidator = async (
       return;
     }
 
-    // Proceed to the next middleware if validation passes
     next();
   } catch (e: any) {
     res.status(500).json({ message: e.message });

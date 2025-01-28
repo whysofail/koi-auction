@@ -1,5 +1,6 @@
 import SocketIOService from "./socketio.service";
 import { AuthenticatedSocket } from "../sockets";
+import Notification from "../entities/Notification";
 
 const emitToRoom = async (
   room: string,
@@ -119,6 +120,16 @@ const emitToAuthRoom = async (
   console.log(`Event "${event}" emitted to room "user:${room}"`);
 };
 
+const emitToAdminRoom = async (data: Notification) => {
+  const io = SocketIOService.getInstance().getIO();
+  const adminNamespace = io.of("/admin");
+
+  adminNamespace.emit("admin", data);
+
+  // Log after emitting to admin room
+  console.log(`Event "admin-event" sent to admin namespace`);
+};
+
 const emitToAll = (event: string, data: any): void => {
   const io = SocketIOService.getInstance().getIO();
 
@@ -137,4 +148,5 @@ export default {
   emitToAuthenticatedNamespace,
   emitToAuthRoom,
   emitToAll,
+  emitToAdminRoom,
 };
