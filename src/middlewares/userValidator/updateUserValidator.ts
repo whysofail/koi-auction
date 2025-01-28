@@ -46,7 +46,9 @@ const updateUserValidator = async (
           message: "Balance must be a valid non-negative number",
         });
       }
-      user.balance = balance;
+      if (user.wallet) {
+        user.wallet.balance = balance;
+      }
     }
 
     const errors = await validate(user, { skipMissingProperties: true });

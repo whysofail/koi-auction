@@ -15,6 +15,7 @@ import { IWalletOrder } from "../types/entityorder.types";
 import socketService from "../services/socket.service";
 import { notificationService } from "../services/notification.service";
 import { NotificationType } from "../entities/Notification";
+import { userService } from "../services/user.service";
 // Create a new wallet
 export const createWallet: RequestHandler = async (
   req: Request,
@@ -154,12 +155,16 @@ export const createDeposit: AuthenticatedRequestHandler = async (
       proof_of_payment, // Use only the filename here
     });
     if (transaction) {
-      const notificateAdminData = await notificationService.createNotification(
-        "admin",
-        NotificationType.TRANSACTION,
-        `New deposit of $${parsedAmount} from user ${user.user_id}`,
-        transaction.transaction_id,
+      const admins = await userService.getAllUsers({ role: "admin" });
+      const adminNotifications = admins.users.map((admin) =>
+        notificationService.createNotification(
+          admin.user_id,
+          NotificationType.TRANSACTION,
+          `New deposit of $${parsedAmount} from user ${user.user_id}`,
+          transaction.transaction_id,
+        ),
       );
+
       const notificateUserData = await notificationService.createNotification(
         user.user_id,
         NotificationType.TRANSACTION,
@@ -167,7 +172,10 @@ export const createDeposit: AuthenticatedRequestHandler = async (
         transaction.transaction_id,
       );
       await socketService.emitToUser(user.user_id, "user", notificateUserData);
-      await socketService.emitToAdminRoom(notificateAdminData);
+      const lastAdminNotification =
+        adminNotifications[adminNotifications.length - 1];
+
+      await socketService.emitToAdminRoom(await lastAdminNotification);
     }
 
     // Return the successful response
