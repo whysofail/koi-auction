@@ -42,7 +42,7 @@ export const createNotification = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  const { user_id, type, message, reference_id } = req.body;
+  const { user_id, type, message, reference_id, role } = req.body;
 
   try {
     const notification = await notificationRepository.createNotification(
@@ -50,6 +50,7 @@ export const createNotification = async (
       type,
       message,
       reference_id,
+      role,
     );
     await notificationSocket.send(user_id, "notification", notification);
     sendSuccessResponse(res, { data: notification }, 201);
@@ -67,8 +68,8 @@ export const getUserNotifications: AuthenticatedRequestHandler = async (
 ): Promise<void> => {
   const { user } = req as AuthenticatedRequest;
   try {
-    const [notifications, count] =
-      await notificationRepository.findNotifications(user.user_id);
+    const { notifications, count } =
+      await notificationService.getNotificationsByUserId(user.user_id);
     sendSuccessResponse(res, { data: notifications, count }, 200);
   } catch (error) {
     next(error);

@@ -23,6 +23,11 @@ export enum NotificationStatus {
   ARCHIVED = "ARCHIVED",
 }
 
+export enum NotificationRole {
+  ADMIN = "ADMIN",
+  USER = "USER",
+}
+
 @Entity()
 class Notification {
   @PrimaryGeneratedColumn("uuid")
@@ -47,6 +52,13 @@ class Notification {
     default: NotificationStatus.UNREAD,
   })
   declare status: NotificationStatus;
+
+  @Column({
+    type: "enum",
+    enum: NotificationRole,
+    default: NotificationRole.USER,
+  })
+  declare role: NotificationRole;
 
   @CreateDateColumn()
   declare created_at: Date;

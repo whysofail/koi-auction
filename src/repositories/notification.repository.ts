@@ -1,6 +1,7 @@
 import { SelectQueryBuilder } from "typeorm";
 import { AppDataSource as dataSource } from "../config/data-source";
 import Notification, {
+  NotificationRole,
   NotificationStatus,
   NotificationType,
 } from "../entities/Notification";
@@ -61,6 +62,10 @@ const applyNotificationFilters = (
     });
   }
 
+  if (filters.role) {
+    qb.andWhere("notification.role = :role", { role: filters.role });
+  }
+
   return qb;
 };
 
@@ -84,6 +89,7 @@ const notificationRepository = dataSource.getRepository(Notification).extend({
     type: NotificationType,
     message: string,
     referenceId: string,
+    role: NotificationRole,
   ): Promise<Notification> {
     const notification = this.create({
       user: { user_id: userId },
@@ -91,6 +97,7 @@ const notificationRepository = dataSource.getRepository(Notification).extend({
       message,
       reference_id: referenceId,
       status: NotificationStatus.UNREAD,
+      role,
     });
     return this.save(notification);
   },
@@ -128,7 +135,13 @@ const notificationRepository = dataSource.getRepository(Notification).extend({
       .find({ where: { role: UserRole.USER }, select: ["user_id"] })
       .then((users) => {
         const notifications = users.map((user: User) =>
-          this.createNotification(user.user_id, type, message, referenceId),
+          this.createNotification(
+            user.user_id,
+            type,
+            message,
+            referenceId,
+            NotificationRole.USER,
+          ),
         );
         return Promise.all(notifications);
       });

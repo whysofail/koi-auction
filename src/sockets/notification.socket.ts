@@ -24,6 +24,7 @@ const notificationSocket = (io: Server | Namespace, socket: Socket): void => {
       reference_id,
       type,
       status,
+      role,
       created_at,
       updated_at,
     } = data;
@@ -38,6 +39,7 @@ const notificationSocket = (io: Server | Namespace, socket: Socket): void => {
       reference_id,
       type,
       status,
+      role,
       created_at,
       updated_at,
     });

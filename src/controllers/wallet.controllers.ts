@@ -14,7 +14,7 @@ import { TransactionStatus, TransactionType } from "../entities/Transaction";
 import { IWalletOrder } from "../types/entityorder.types";
 import socketService from "../services/socket.service";
 import { notificationService } from "../services/notification.service";
-import { NotificationType } from "../entities/Notification";
+import { NotificationRole, NotificationType } from "../entities/Notification";
 import { userService } from "../services/user.service";
 // Create a new wallet
 export const createWallet: RequestHandler = async (
@@ -121,7 +121,6 @@ export const getAllWallets: RequestHandler = async (
   }
 };
 
-// Create Deposit Transaction
 export const createDeposit: AuthenticatedRequestHandler = async (
   req: Request,
   res: Response,
@@ -154,28 +153,42 @@ export const createDeposit: AuthenticatedRequestHandler = async (
       status: TransactionStatus.PENDING,
       proof_of_payment, // Use only the filename here
     });
+
     if (transaction) {
       const admins = await userService.getAllUsers({ role: "admin" });
-      const adminNotifications = admins.users.map((admin) =>
-        notificationService.createNotification(
-          admin.user_id,
-          NotificationType.TRANSACTION,
-          `New deposit of $${parsedAmount} from user ${user.user_id}`,
-          transaction.transaction_id,
+
+      // Create notifications for all admins
+      const adminNotifications = await Promise.all(
+        admins.users.map((admin) =>
+          notificationService.createNotification(
+            admin.user_id,
+            NotificationType.TRANSACTION,
+            `New deposit of $${parsedAmount} from user ${user.user_id}`,
+            transaction.transaction_id,
+            NotificationRole.ADMIN,
+          ),
         ),
       );
 
-      const notificateUserData = await notificationService.createNotification(
+      const lastAdminNotification =
+        await notificationService.getNotificationById(
+          adminNotifications[adminNotifications.length - 1].notification_id,
+        );
+      if (lastAdminNotification) {
+        await socketService.emitToAdminRoom(lastAdminNotification);
+      }
+
+      // Create a notification for the user
+      const userNotification = await notificationService.createNotification(
         user.user_id,
         NotificationType.TRANSACTION,
         `Your deposit of $${parsedAmount} is pending approval`,
         transaction.transaction_id,
+        NotificationRole.USER,
       );
-      await socketService.emitToUser(user.user_id, "user", notificateUserData);
-      const lastAdminNotification =
-        adminNotifications[adminNotifications.length - 1];
 
-      await socketService.emitToAdminRoom(await lastAdminNotification);
+      // Emit the user notification to the user
+      await socketService.emitToUser(user.user_id, "user", userNotification);
     }
 
     // Return the successful response

@@ -1,4 +1,8 @@
-import { NotificationStatus, NotificationType } from "../entities/Notification";
+import {
+  NotificationRole,
+  NotificationStatus,
+  NotificationType,
+} from "../entities/Notification";
 import notificationRepository from "../repositories/notification.repository";
 import { INotificationFilter } from "../types/entityfilter";
 import { INotificationOrder } from "../types/entityorder.types";
@@ -31,6 +35,7 @@ const createNotification = async (
   type: NotificationType,
   message: string,
   reference_id: string,
+  role: NotificationRole,
 ) => {
   try {
     const notification = await notificationRepository.createNotification(
@@ -38,6 +43,7 @@ const createNotification = async (
       type,
       message,
       reference_id,
+      role,
     );
     return notification;
   } catch (error) {
@@ -60,14 +66,14 @@ const getNotificationById = async (notification_id: string) => {
 };
 
 const getNotificationsByUserId = async (user_id: string) => {
-  const notifications =
-    await notificationRepository.findNotificationByUserId(user_id);
+  const { notifications, count } =
+    await notificationRepository.findAllNotifications({ userId: user_id });
   if (!notifications) {
     throw ErrorHandler.notFound(
       `Notification with User ID ${user_id} not found`,
     );
   }
-  return notifications;
+  return { notifications, count };
 };
 
 const markNotificationAsRead = async (notification_id: string) => {

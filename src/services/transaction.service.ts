@@ -8,6 +8,7 @@ import { walletService } from "./wallet.service";
 const createTransaction = async (data: Partial<Transaction>) => {
   try {
     const transaction = await transactionRepository.create(data);
+    await transactionRepository.save(transaction);
     return transaction;
   } catch (error) {
     throw ErrorHandler.internalServerError("Error creating transaction", error);

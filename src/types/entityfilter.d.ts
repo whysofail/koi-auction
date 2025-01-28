@@ -71,6 +71,7 @@ export interface INotificationFilter extends IBaseFilter {
   notificationId?: string; // Filter by specific notification ID
   type?: string;
   status?: string;
+  role?: string;
   referenceId?: string;
   createdAtFrom?: Date;
   createdAtTo?: Date;
