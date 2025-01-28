@@ -84,7 +84,7 @@ class Auction {
   @Column({
     type: "enum",
     enum: AuctionStatus,
-    default: AuctionStatus.PENDING,
+    default: AuctionStatus.DRAFT,
   })
   @IsEnum(AuctionStatus)
   declare status: AuctionStatus;

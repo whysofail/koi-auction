@@ -42,7 +42,8 @@ const warningRepository = dataSource.getRepository(Warning).extend({
   ) {
     const qb = this.createQueryBuilder("warning")
       .leftJoin("warning.user", "user")
-      .select(["warning", "user.user_id", "user.username", "user.is_banned"]);
+      .select(["warning", "user.user_id", "user.username", "user.is_banned"])
+      .addOrderBy("warning.created_at", "DESC");
 
     // Apply filters
     applyWarningFilters(qb, filters);

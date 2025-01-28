@@ -3,12 +3,21 @@ import { config } from "dotenv";
 import "reflect-metadata";
 import morgan from "morgan";
 import path from "path";
+import cors from "cors";
 import router from "./routes";
 
 export default function createApp() {
   config();
 
   const app = express();
+
+  app.use(
+    cors({
+      origin: "http://localhost:3000", // Frontend origin
+      methods: ["GET", "POST", "PUT", "DELETE"], // Allowed HTTP methods
+      credentials: true, // If sending cookies or authentication headers
+    }),
+  );
 
   morgan.token("reqBody", (req: any) => {
     if (["POST", "PUT"].includes(req.method)) {
