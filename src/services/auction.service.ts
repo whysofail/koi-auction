@@ -149,6 +149,19 @@ const joinAuction = async (auction_id: string, user_id: string) => {
   }
 };
 
+export const getAuctionEndingSoon = async (
+  startDateFrom: Date = new Date(), // Default to the start of today
+  startDateTo: Date = new Date(new Date().setHours(23, 59, 59, 999)), // Default to the end of today
+) => {
+  const filter: IAuctionFilter = {
+    startDateFrom, // Pass Date object directly
+    startDateTo, // Pass Date object directly
+  };
+
+  const { auctions, count } = await auctionRepository.getAllAuctions(filter);
+  return { auctions, count };
+};
+
 export const auctionService = {
   getAllAuctions,
   getAuctionById,
@@ -156,4 +169,5 @@ export const auctionService = {
   joinAuction,
   createAuction,
   updateAuction,
+  getAuctionEndingSoon,
 };

@@ -59,9 +59,25 @@ export const updateUser = async (user_id: string, data: Partial<User>) => {
   }
 };
 
+const getNewUserThisWeek = async () => {
+  const startOfWeek = new Date();
+  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Start of the week (Sunday)
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6); // End of the week (Saturday)
+  endOfWeek.setHours(23, 59, 59, 999);
+  const users = await userRepository.getUsers({
+    createdAtFrom: startOfWeek,
+    createdAtTo: endOfWeek,
+  });
+  return users;
+};
+
 export const userService = {
   getAllUsers,
   getUserById,
   createUser,
   updateUser,
+  getNewUserThisWeek,
 };
