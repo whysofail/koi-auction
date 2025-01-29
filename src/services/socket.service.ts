@@ -127,7 +127,7 @@ const emitToAdminRoom = async (data: Notification) => {
   adminNamespace.emit("admin", data);
 
   // Log after emitting to admin room
-  console.log(`Event "admin-event" sent to admin namespace`);
+  console.log(`Event "admin" sent to admin namespace`);
 };
 
 const emitToAll = (event: string, data: any): void => {

@@ -1,6 +1,7 @@
 import Transaction from "../entities/Transaction";
 import transactionRepository from "../repositories/transaction.repository";
 import { ITransactionFilter } from "../types/entityfilter";
+import { ITransactionOrder } from "../types/entityorder.types";
 import { PaginationOptions } from "../utils/pagination";
 import { ErrorHandler } from "../utils/response/handleError";
 import { walletService } from "./wallet.service";
@@ -18,9 +19,10 @@ const createTransaction = async (data: Partial<Transaction>) => {
 const getAllTransactions = async (
   filters?: Partial<ITransactionFilter>,
   pagination?: PaginationOptions,
+  order?: ITransactionOrder,
 ) => {
   const { transactions, count } =
-    await transactionRepository.getAllTransactions(filters, pagination);
+    await transactionRepository.getAllTransactions(filters, pagination, order);
   return { transactions, count };
 };
 

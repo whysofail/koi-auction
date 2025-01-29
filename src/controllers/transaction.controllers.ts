@@ -9,17 +9,19 @@ import {
   AuthenticatedRequestHandler,
 } from "../types/auth";
 import { transactionService } from "../services/transaction.service";
+import { ITransactionOrder } from "../types/entityorder.types";
 
 export const getTransactions: RequestHandler = async (
   req,
   res,
   next,
 ): Promise<void> => {
-  const { filters, pagination } = req;
+  const { filters, pagination, order } = req;
   try {
     const { transactions, count } = await transactionService.getAllTransactions(
       filters,
       pagination,
+      order as ITransactionOrder,
     );
     sendSuccessResponse(res, {
       data: transactions,
