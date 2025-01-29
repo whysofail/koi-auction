@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   getTransactions,
+  getUserTransactions,
   updateTransactionStatus,
 } from "../controllers/transaction.controllers";
 import { authorize, protect } from "../middlewares/auth.middleware";
@@ -19,7 +20,8 @@ transactionRouter.get(
   "/me",
   protect,
   authorize(["user", "admin"]),
-  getTransactions,
+  parsePaginationAndFilters,
+  getUserTransactions,
 );
 transactionRouter.post(
   "/",

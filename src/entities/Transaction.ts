@@ -11,18 +11,18 @@ import Wallet from "./Wallet";
 import User from "./User";
 
 export enum TransactionType {
-  DEPOSIT = "deposit",
-  WITHDRAWAL = "withdrawal",
-  TRANSFER = "transfer",
-  PARTICIPATE = "participate",
+  DEPOSIT = "DEPOSIT",
+  WITHDRAWAL = "WITHDRAWAL",
+  TRANSFER = "TRANSFER",
+  PARTICIPATE = "PARTICIPATE",
 }
 
 export enum TransactionStatus {
-  PENDING = "pending",
-  COMPLETED = "completed",
-  FAILED = "failed",
-  APPROVED = "approved",
-  REJECTED = "rejected",
+  PENDING = "PENDING",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED",
 }
 
 @Entity()

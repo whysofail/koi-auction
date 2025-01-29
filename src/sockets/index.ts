@@ -30,7 +30,7 @@ export default function initializeSockets(io: Server): void {
   const authNamespace = io.of("/auth");
 
   // Apply the authentication middleware for this namespace
-  authNamespace.use(socketAuthMiddleware);
+  authNamespace.use(socketAuthMiddleware(["user", "admin"]));
 
   authNamespace.on("connection", (socket: AuthenticatedSocket) => {
     const userId = socket.user?.user_id;
@@ -48,7 +48,7 @@ export default function initializeSockets(io: Server): void {
   });
 
   const adminNamespace = io.of("/admin");
-  adminNamespace.use(socketAuthMiddleware);
+  adminNamespace.use(socketAuthMiddleware(["admin"]));
   adminNamespace.on("connection", (socket: AuthenticatedSocket) => {
     const userId = socket.user?.user_id;
     if (userId) {

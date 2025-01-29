@@ -35,6 +35,7 @@ export interface IWalletFilter extends IBaseFilter {
 export interface ITransactionFilter extends IBaseFilter {
   walletId?: string; // Filter transactions by wallet ID
   userId?: string;
+  username?: string;
   amountMin?: number; // Filter transactions with amount greater than or equal to a value
   amountMax?: number; // Filter transactions with amount less than or equal to a value
   transactionId?: string; // Filter by specific transaction ID

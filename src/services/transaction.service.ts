@@ -37,15 +37,26 @@ const getTransactionById = async (transaction_id: string) => {
   return transaction;
 };
 
-const getTransactionsByUserId = async (user_id: string) => {
-  const transactions =
-    await transactionRepository.findTransactionsByUserId(user_id);
-  if (!transactions) {
-    throw ErrorHandler.notFound(
-      `Transaction with User ID ${user_id} not found`,
+const getTransactionsByUserId = async (
+  user_id: string,
+  filters?: ITransactionFilter,
+  pagination?: PaginationOptions,
+  order?: ITransactionOrder,
+) => {
+  const { transactions, count } =
+    await transactionRepository.getAllTransactions(
+      {
+        userId: user_id,
+        ...filters, // Ensure additional filters are applied
+      },
+      pagination,
+      order,
     );
-  }
-  return transactions;
+  console.log({
+    ...filters, // Ensure additional filters are applied
+  });
+
+  return { transactions, count };
 };
 
 const updateTransaction = async (
@@ -90,7 +101,7 @@ const updateDepositTransaction = async (
     const updatedTransaction = await transactionRepository
       .update(transaction_id, data)
       .then(async () => {
-        if (transaction.status === "approved") {
+        if (transaction.status === "APPROVED") {
           // Deposit the amount to the user's wallet
           await walletService.depositToUserWallet(
             transaction.wallet.user_id,

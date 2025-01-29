@@ -78,8 +78,13 @@ const applyTransactionFilters = (
     });
   }
   if (filters.userId) {
-    qb.andWhere("transaction.wallet.user.user_id = :userId", {
+    qb.andWhere("user.user_id = :userId", {
       userId: filters.userId,
+    });
+  }
+  if (filters.username) {
+    qb.andWhere("user.username = :username", {
+      username: filters.username,
     });
   }
 };

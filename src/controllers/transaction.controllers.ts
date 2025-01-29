@@ -37,15 +37,26 @@ export const getTransactions: RequestHandler = async (
 export const getUserTransactions: AuthenticatedRequestHandler = async (
   req: Request,
   res: Response,
+  next,
 ): Promise<void> => {
-  const { user } = req as AuthenticatedRequest;
+  const { user, pagination, filters, order } = req as AuthenticatedRequest;
+
   try {
-    const transactions = await transactionService.getTransactionsByUserId(
-      user.user_id,
-    );
-    return sendSuccessResponse(res, { data: transactions });
+    const { transactions, count } =
+      await transactionService.getTransactionsByUserId(
+        user.user_id,
+        filters,
+        pagination,
+        order as ITransactionOrder,
+      );
+    sendSuccessResponse(res, {
+      data: transactions,
+      count,
+      page: pagination.page,
+      limit: pagination.limit,
+    });
   } catch (error) {
-    return sendErrorResponse(res, "Failed to fetch user transactions", 500);
+    next(error);
   }
 };
 
