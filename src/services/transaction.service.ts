@@ -52,9 +52,6 @@ const getTransactionsByUserId = async (
       pagination,
       order,
     );
-  console.log({
-    ...filters, // Ensure additional filters are applied
-  });
 
   return { transactions, count };
 };

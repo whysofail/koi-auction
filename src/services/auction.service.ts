@@ -156,6 +156,7 @@ export const getAuctionEndingSoon = async (
   const filter: IAuctionFilter = {
     startDateFrom, // Pass Date object directly
     startDateTo, // Pass Date object directly
+    status: AuctionStatus.STARTED,
   };
 
   const { auctions, count } = await auctionRepository.getAllAuctions(filter);
