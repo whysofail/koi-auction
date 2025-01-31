@@ -2,22 +2,6 @@
 import { Request, Response, NextFunction } from "express";
 import { EntityOrderFields, SortOrder } from "../types/entityorder.types";
 
-declare global {
-  namespace Express {
-    interface Request {
-      filters: Record<string, unknown>;
-      pagination: {
-        page: number;
-        limit: number;
-      };
-      order: {
-        orderBy?: string; // A generic field name
-        order: SortOrder;
-      };
-    }
-  }
-}
-
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
 

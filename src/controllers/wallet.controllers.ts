@@ -130,7 +130,8 @@ export const createDeposit: AuthenticatedRequestHandler = async (
   const { amount } = req.body;
 
   // Ensure proof_of_payment is provided (use only the filename)
-  const proof_of_payment = req.file?.filename; // Use filename, not full path
+  const file = req.file as MulterS3File | undefined;
+  const proof_of_payment = file?.key;
 
   const parsedAmount = parseFloat(amount);
   if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {

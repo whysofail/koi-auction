@@ -1,40 +1,49 @@
-import fs from "fs";
 import multer, { FileFilterCallback } from "multer";
-import path from "path";
+import multerS3 from "multer-s3";
 import { Request } from "express";
+import { randomUUID } from "crypto";
+import path from "path";
+import s3 from "../config/s3";
 
-const storage = multer.diskStorage({
-  destination: (
+// Define types for the file and request to ensure type safety
+interface File extends Express.Multer.File {
+  fieldname: "proof_of_payment"; // Adjust the fieldname according to your form field name
+}
+
+// Set up the multer storage engine to use S3
+const storage = multerS3({
+  s3, // The S3 instance
+  bucket: process.env.AWS_S3_BUCKET_NAME || "", // Your S3 bucket name
+  acl: "public-read", // You can set this to private or other ACLs as needed
+  metadata: (
     req: Request,
-    file: Express.Multer.File,
-    cb: (error: Error | null, destination: string) => void,
+    file: File,
+    cb: (error: Error | null, metadata: object) => void,
   ) => {
-    const uploadDir = path.resolve(__dirname, "../../uploads");
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
+    cb(null, { fieldName: file.fieldname });
   },
-  filename: (
+  key: (
     req: Request,
-    file: Express.Multer.File,
-    cb: (error: Error | null, filename: string) => void,
+    file: File,
+    cb: (error: Error | null, key: string) => void,
   ) => {
-    const fileName = `${Date.now()}${path.extname(file.originalname)}`;
-    cb(null, fileName);
+    const extension = path.extname(file.originalname); // Get the file extension
+    const filename = `${Date.now()}-${randomUUID()}${extension}`; // Use the extension in the filename
+    cb(null, filename); // This is the filename that will be stored in S3
   },
 });
 
+// Multer setup with file filter and size limit
 const fileFilter: multer.Options["fileFilter"] = (
   req: Request,
-  file: Express.Multer.File,
+  file: File,
   cb: FileFilterCallback,
 ) => {
   const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
   if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
+    cb(null, true); // Accept the file
   } else {
-    cb(new Error("Only image files are allowed!"));
+    cb(new Error("Only image files are allowed!")); // Reject the file
   }
 };
 
@@ -42,9 +51,9 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB max size
+    fileSize: 5 * 1024 * 1024, // Limit file size to 5MB
   },
 });
 
-// Export the single file upload handler
+// Export single file upload handler with type safety
 export const uploadProofOfPayment = upload.single("proof_of_payment");
