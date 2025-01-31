@@ -37,6 +37,5 @@ export default function createApp() {
   app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
   app.use("/api", router);
-
   return app;
 }

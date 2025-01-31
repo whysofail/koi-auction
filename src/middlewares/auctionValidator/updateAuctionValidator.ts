@@ -97,18 +97,41 @@ const updateAuctionValidator = async (
       res.status(400).json({ message: "Invalid end datetime!" });
       return;
     }
-    if (
-      start_datetime &&
-      end_datetime &&
-      new Date(end_datetime) <= new Date(start_datetime)
-    ) {
+
+    const startDt = start_datetime ? new Date(start_datetime) : undefined;
+    const endDt = end_datetime ? new Date(end_datetime) : undefined;
+
+    // UTC-7 Time Zone Offset (7 hours in milliseconds)
+    const timezoneOffset = 7 * 60 * 60 * 1000;
+
+    // Adjust start datetime to UTC-7
+    if (startDt) {
+      startDt.setTime(startDt.getTime() - timezoneOffset);
+    }
+
+    // Adjust end datetime to UTC-7
+    if (endDt) {
+      endDt.setTime(endDt.getTime() - timezoneOffset);
+    }
+
+    // Ensure start datetime is in the future
+    if (startDt && startDt.getTime() <= new Date().getTime()) {
+      res
+        .status(400)
+        .json({ message: "Start datetime must be in the future!" });
+      return;
+    }
+
+    // Ensure end datetime is after start datetime
+    if (startDt && endDt && endDt.getTime() <= startDt.getTime()) {
       res
         .status(400)
         .json({ message: "End datetime must be after start datetime!" });
       return;
     }
-    if (start_datetime) auction.start_datetime = new Date(start_datetime);
-    if (end_datetime) auction.end_datetime = new Date(end_datetime);
+
+    if (startDt) auction.start_datetime = startDt;
+    if (endDt) auction.end_datetime = endDt;
 
     // Validate and update `status`
     if (status !== undefined) {

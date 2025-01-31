@@ -7,7 +7,8 @@ import bidRouter from "./bid.routes";
 import authRouter from "./auth.routes";
 import notificationRouter from "./notification.routes";
 import warningRouter from "./warning.routes";
-import statsRouter from "./stats.router.ts";
+import statsRouter from "./stats.routes";
+import jobRouter from "./job.routes";
 import { errorHandler } from "../utils/response/handleError";
 
 const router = Router();
@@ -27,6 +28,7 @@ router.use("/bids", bidRouter);
 router.use("/notifications", notificationRouter);
 router.use("/warnings", warningRouter);
 router.use("/stats", statsRouter);
+router.use("/jobs", jobRouter);
 
 // Catch-all route for undefined paths
 router.use((req: Request, res: Response) => {

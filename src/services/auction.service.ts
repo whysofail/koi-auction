@@ -8,8 +8,10 @@ import Auction, { AuctionStatus } from "../entities/Auction";
 import { PaginationOptions } from "../utils/pagination";
 import { IAuctionFilter } from "../types/entityfilter";
 import { IAuctionOrder } from "../types/entityorder.types";
+import { auctionJobs } from "../jobs/auction.jobs";
+import userRepository from "../repositories/user.repository";
 
-const getAllAuctions = async (
+export const getAllAuctions = async (
   filters?: IAuctionFilter,
   pagination?: PaginationOptions,
   order?: IAuctionOrder,
@@ -56,6 +58,7 @@ const createAuction = async (
       user: { user_id },
     });
     await auctionRepository.save(auction);
+
     return auction;
   } catch (error) {
     throw ErrorHandler.internalServerError("Error creating auction", error);
@@ -79,21 +82,46 @@ const updateAuction = async (
       status,
     } = data;
 
-    await auctionRepository.update(auction_id, {
-      title,
-      description,
-      item,
-      start_datetime,
-      end_datetime,
-      reserve_price,
-      bid_increment,
-      status: status?.toUpperCase() as AuctionStatus,
-      user: { user_id },
-    });
-
+    // Fetch the auction by ID to ensure it exists and get the full entity
     const auction = await auctionRepository.findAuctionById(auction_id);
 
-    return auction;
+    if (!auction) {
+      throw ErrorHandler.notFound("Auction not found");
+    }
+
+    // Update the auction entity with new data
+    auction.title = title ?? auction.title;
+    auction.description = description ?? auction.description;
+    auction.item = item ?? auction.item;
+    auction.start_datetime = start_datetime ?? auction.start_datetime;
+    auction.end_datetime = end_datetime ?? auction.end_datetime;
+    auction.reserve_price = reserve_price ?? auction.reserve_price;
+    auction.bid_increment = bid_increment ?? auction.bid_increment;
+    auction.status = (status?.toUpperCase() as AuctionStatus) ?? auction.status;
+
+    // Fetch only necessary user information, e.g., user_id
+    const user = await userRepository.findUserById(user_id);
+    if (!user) {
+      throw ErrorHandler.notFound(`User with ID ${user_id} not found`);
+    }
+
+    auction.user = user; // Assign the user entity with only necessary fields
+
+    // Save the updated auction entity
+    await auctionRepository.save(auction);
+
+    // If the auction is published, schedule its start
+    if (auction.status === AuctionStatus.PUBLISHED) {
+      auctionJobs.schedule(auction);
+    }
+
+    // Return auction without full user details
+    return {
+      ...auction,
+      user: {
+        user_id: auction.user.user_id, // Only return the user_id
+      },
+    };
   } catch (error) {
     throw ErrorHandler.internalServerError("Error updating auction", error);
   }
@@ -170,7 +198,7 @@ const deleteAuction = async (auction_id: string, user_id: string) => {
       status: AuctionStatus.DELETED,
       user: { user_id },
     });
-
+    auctionJobs.cancel(auction_id);
     return auction;
   } catch (error) {
     throw ErrorHandler.internalServerError("Error deleting auction", error);

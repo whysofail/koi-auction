@@ -4,27 +4,43 @@ import createApp from "./app";
 import initializeSockets from "./sockets";
 import { AppDataSource } from "./config/data-source";
 import SocketIOService from "./services/socketio.service";
+import { initializeJobs } from "./jobs"; // Import the job initialization function
 
+// Initialize database connection
 AppDataSource.initialize()
-  .then(() => console.log("Database connected"))
-  .catch((error) => console.log(error));
+  .then(async () => {
+    console.log("Database connected");
 
-const app = createApp();
+    // Initialize jobs after the database is connected
+    await initializeJobs();
+    console.log("All jobs initialized");
 
-const server = http.createServer(app);
+    // Create app after jobs initialization
+    const app = createApp();
 
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type"],
-    credentials: true,
-  },
-});
+    // Create the HTTP server
+    const server = http.createServer(app);
 
-SocketIOService.getInstance().initialize(io);
-initializeSockets(io);
+    // Set up Socket.io server
+    const io = new Server(server, {
+      cors: {
+        origin: "*",
+        methods: ["GET", "POST"],
+        allowedHeaders: ["Content-Type"],
+        credentials: true,
+      },
+    });
 
-server.listen(process.env.PORT || 8001, () => {
-  console.log(`This app is running on port ${process.env.PORT || 8001}`);
-});
+    // Initialize the SocketIO service and sockets
+    SocketIOService.getInstance().initialize(io);
+    initializeSockets(io);
+
+    // Start the server
+    server.listen(process.env.PORT || 8001, () => {
+      console.log(`This app is running on port ${process.env.PORT || 8001}`);
+    });
+  })
+  .catch((error) => {
+    console.error("Database connection failed:", error);
+    process.exit(1); // Exit the process if database connection fails
+  });

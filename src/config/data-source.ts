@@ -9,6 +9,7 @@ const AppDataSource = new DataSource({
   type: "mysql",
   host: DB_HOST,
   port: parseInt(DB_PORT ?? "3306"),
+  timezone: "Z",
   username: DB_USERNAME,
   password: DB_PASS,
   database: DB_NAME,

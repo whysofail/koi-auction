@@ -75,11 +75,42 @@ const createAuctionValidator = async (
       return;
     }
 
-    // Ensure end_datetime is after start_datetime
-    if (new Date(end_datetime) <= new Date(start_datetime)) {
+    // Ensure start datetime is in the future
+    const startDt = new Date(start_datetime);
+    if (startDt.getTime() <= new Date().getTime()) {
+      res
+        .status(400)
+        .json({ message: "Start datetime must be in the future!" });
+      return;
+    }
+
+    // Ensure end datetime is after start datetime
+    const endDt = new Date(end_datetime);
+    if (endDt.getTime() <= startDt.getTime()) {
       res
         .status(400)
         .json({ message: "End datetime must be after start datetime!" });
+      return;
+    }
+
+    // UTC-7 Time Zone Offset (7 hours in milliseconds)
+    const timezoneOffset = 7 * 60 * 60 * 1000;
+
+    // Adjust start datetime to UTC-7
+    startDt.setTime(startDt.getTime() - timezoneOffset);
+
+    // Adjust end datetime to UTC-7
+    endDt.setTime(endDt.getTime() - timezoneOffset);
+
+    if (startDt.getTime() <= new Date().getTime()) {
+      res
+        .status(400)
+        .json({ message: "Start datetime must be in the future!" });
+      return;
+    }
+
+    if (endDt.getTime() <= new Date().getTime()) {
+      res.status(400).json({ message: "End datetime must be in the future!" });
       return;
     }
 
@@ -105,8 +136,8 @@ const createAuctionValidator = async (
     auction.description = description;
     auction.reserve_price =
       parsedReservePrice !== undefined ? parsedReservePrice : null;
-    auction.start_datetime = new Date(start_datetime);
-    auction.end_datetime = new Date(end_datetime);
+    auction.start_datetime = startDt;
+    auction.end_datetime = endDt;
     auction.item = item;
     auction.bid_increment = parsedBidIncrement;
 
