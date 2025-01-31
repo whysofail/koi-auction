@@ -1,6 +1,6 @@
 import { SelectQueryBuilder } from "typeorm";
 import { AppDataSource as dataSource } from "../config/data-source";
-import Auction from "../entities/Auction";
+import Auction, { AuctionStatus } from "../entities/Auction";
 import { IAuctionFilter } from "../types/entityfilter";
 import { PaginationOptions, applyPagination } from "../utils/pagination";
 import { IAuctionOrder } from "../types/entityorder.types";
@@ -82,6 +82,8 @@ const applyAuctionFilters = (
 
   if (filters.status) {
     qb.andWhere("auction.status = :status", { status: filters.status });
+  } else {
+    qb.andWhere("auction.status != :status", { status: AuctionStatus.DELETED });
   }
 
   return qb;
@@ -108,7 +110,6 @@ const auctionRepository = dataSource.getRepository(Auction).extend({
   },
   async findAuctionById(
     auction_id: string,
-    filters?: IAuctionFilter,
     pagination?: { page?: number; limit?: number },
   ) {
     const qb = this.createQueryBuilder("auction")
@@ -122,7 +123,6 @@ const auctionRepository = dataSource.getRepository(Auction).extend({
 
     // Add any additional condition for auction_id
     qb.where("auction.auction_id = :auction_id", { auction_id });
-    applyAuctionFilters(qb, filters); // Apply filters dynamically
     applyPagination(qb, pagination); // Apply pagination
 
     // Execute the query

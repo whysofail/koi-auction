@@ -22,8 +22,8 @@ const getAllAuctions = async (
   return { auctions, count };
 };
 
-const getAuctionById = async (auction_id: string, filters?: any) => {
-  const auction = await auctionRepository.findAuctionById(auction_id, filters);
+const getAuctionById = async (auction_id: string) => {
+  const auction = await auctionRepository.findAuctionById(auction_id);
   if (!auction) {
     throw ErrorHandler.notFound(`Auction with ID ${auction_id} not found`);
   }
@@ -78,10 +78,6 @@ const updateAuction = async (
       bid_increment,
       status,
     } = data;
-    let auction = await auctionRepository.findAuctionById(auction_id);
-    if (!auction) {
-      throw ErrorHandler.notFound(`Auction with ID ${auction_id} not found`);
-    }
 
     await auctionRepository.update(auction_id, {
       title,
@@ -95,7 +91,7 @@ const updateAuction = async (
       user: { user_id },
     });
 
-    auction = await auctionRepository.findAuctionById(auction_id);
+    const auction = await auctionRepository.findAuctionById(auction_id);
 
     return auction;
   } catch (error) {
@@ -163,6 +159,24 @@ export const getAuctionEndingSoon = async (
   return { auctions, count };
 };
 
+const deleteAuction = async (auction_id: string, user_id: string) => {
+  try {
+    const auction = await auctionRepository.findAuctionById(auction_id);
+    if (!auction) {
+      throw ErrorHandler.notFound(`Auction with ID ${auction_id} not found`);
+    }
+
+    await auctionRepository.update(auction_id, {
+      status: AuctionStatus.DELETED,
+      user: { user_id },
+    });
+
+    return auction;
+  } catch (error) {
+    throw ErrorHandler.internalServerError("Error deleting auction", error);
+  }
+};
+
 export const auctionService = {
   getAllAuctions,
   getAuctionById,
@@ -171,4 +185,5 @@ export const auctionService = {
   createAuction,
   updateAuction,
   getAuctionEndingSoon,
+  deleteAuction,
 };

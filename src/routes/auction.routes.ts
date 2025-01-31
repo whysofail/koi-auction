@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createAuction,
+  deleteAuction,
   getAuctionDetails,
   getAuctions,
   joinAuction,
@@ -11,6 +12,7 @@ import { authorize, protect } from "../middlewares/auth.middleware";
 import createAuctionValidator from "../middlewares/auctionValidator/createAuctionValidator";
 import updateAuctionValidator from "../middlewares/auctionValidator/updateAuctionValidator";
 import joinAuctionValidator from "../middlewares/auctionValidator/joinAuctionValidator";
+import { deleteAuctionValidator } from "../middlewares/auctionValidator/deleteAuctionValidator";
 
 const auctionRouter = Router();
 
@@ -35,6 +37,14 @@ auctionRouter.post(
   protect,
   joinAuctionValidator,
   joinAuction,
+);
+
+auctionRouter.delete(
+  "/:auction_id",
+  protect,
+  authorize(["admin"]),
+  deleteAuctionValidator,
+  deleteAuction,
 );
 
 export default auctionRouter;

@@ -63,7 +63,7 @@ export default class MainSeeder implements Seeder {
           user: admins[Math.floor(Math.random() * admins.length)],
           item: faker.number.int({ min: 1, max: 1000 }).toString(),
           reserve_price: parseFloat((Math.random() * 1000).toFixed(2)),
-          status: AuctionStatus.ACTIVE,
+          status: AuctionStatus.PUBLISHED,
         }),
       ),
     );

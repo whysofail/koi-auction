@@ -106,3 +106,22 @@ export const joinAuction: AuthenticatedRequestHandler = async (
     next(error);
   }
 };
+
+export const deleteAuction: AuthenticatedRequestHandler = async (
+  req,
+  res,
+  next,
+) => {
+  const { auction_id } = req.params;
+  const { user } = req as AuthenticatedRequest;
+
+  try {
+    const auction = await auctionService.deleteAuction(
+      auction_id,
+      user.user_id,
+    );
+    sendSuccessResponse(res, auction);
+  } catch (error) {
+    next(error);
+  }
+};

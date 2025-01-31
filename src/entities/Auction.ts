@@ -27,12 +27,13 @@ import AuctionParticipant from "./AuctionParticipant";
 export enum AuctionStatus {
   DRAFT = "DRAFT",
   PENDING = "PENDING",
-  ACTIVE = "ACTIVE",
+  PUBLISHED = "PUBLISHED",
   COMPLETED = "COMPLETED",
   CANCELLED = "CANCELLED",
   EXPIRED = "EXPIRED",
   FAILED = "FAILED",
   STARTED = "STARTED",
+  DELETED = "DELETED",
 }
 
 @Entity()
