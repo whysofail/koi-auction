@@ -101,21 +101,9 @@ const updateAuctionValidator = async (
     const startDt = start_datetime ? new Date(start_datetime) : undefined;
     const endDt = end_datetime ? new Date(end_datetime) : undefined;
 
-    // UTC-7 Time Zone Offset (7 hours in milliseconds)
-    const timezoneOffset = 7 * 60 * 60 * 1000;
-
-    // Adjust start datetime to UTC-7
-    if (startDt) {
-      startDt.setTime(startDt.getTime() - timezoneOffset);
-    }
-
-    // Adjust end datetime to UTC-7
-    if (endDt) {
-      endDt.setTime(endDt.getTime() - timezoneOffset);
-    }
-
     // Ensure start datetime is in the future
-    if (startDt && startDt.getTime() <= new Date().getTime()) {
+    const now = new Date();
+    if (startDt && startDt.getTime() <= now.getTime()) {
       res
         .status(400)
         .json({ message: "Start datetime must be in the future!" });
@@ -123,7 +111,7 @@ const updateAuctionValidator = async (
     }
 
     // Ensure end datetime is after start datetime
-    if (startDt && endDt && endDt.getTime() <= startDt.getTime()) {
+    if (endDt && startDt && endDt.getTime() <= startDt.getTime()) {
       res
         .status(400)
         .json({ message: "End datetime must be after start datetime!" });

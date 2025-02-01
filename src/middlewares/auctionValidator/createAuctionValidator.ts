@@ -74,10 +74,12 @@ const createAuctionValidator = async (
       res.status(400).json({ message: "Invalid end datetime!" });
       return;
     }
+    const startDt = start_datetime ? new Date(start_datetime) : undefined;
+    const endDt = end_datetime ? new Date(end_datetime) : undefined;
 
     // Ensure start datetime is in the future
-    const startDt = new Date(start_datetime);
-    if (startDt.getTime() <= new Date().getTime()) {
+    const now = new Date();
+    if (startDt && startDt.getTime() <= now.getTime()) {
       res
         .status(400)
         .json({ message: "Start datetime must be in the future!" });
@@ -85,32 +87,10 @@ const createAuctionValidator = async (
     }
 
     // Ensure end datetime is after start datetime
-    const endDt = new Date(end_datetime);
-    if (endDt.getTime() <= startDt.getTime()) {
+    if (endDt && startDt && endDt.getTime() <= startDt.getTime()) {
       res
         .status(400)
         .json({ message: "End datetime must be after start datetime!" });
-      return;
-    }
-
-    // UTC-7 Time Zone Offset (7 hours in milliseconds)
-    const timezoneOffset = 7 * 60 * 60 * 1000;
-
-    // Adjust start datetime to UTC-7
-    startDt.setTime(startDt.getTime() - timezoneOffset);
-
-    // Adjust end datetime to UTC-7
-    endDt.setTime(endDt.getTime() - timezoneOffset);
-
-    if (startDt.getTime() <= new Date().getTime()) {
-      res
-        .status(400)
-        .json({ message: "Start datetime must be in the future!" });
-      return;
-    }
-
-    if (endDt.getTime() <= new Date().getTime()) {
-      res.status(400).json({ message: "End datetime must be in the future!" });
       return;
     }
 
@@ -136,8 +116,8 @@ const createAuctionValidator = async (
     auction.description = description;
     auction.reserve_price =
       parsedReservePrice !== undefined ? parsedReservePrice : null;
-    auction.start_datetime = startDt;
-    auction.end_datetime = endDt;
+    auction.start_datetime = startDt ?? new Date();
+    auction.end_datetime = endDt ?? new Date();
     auction.item = item;
     auction.bid_increment = parsedBidIncrement;
 

@@ -18,8 +18,6 @@ import {
   OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
-  BeforeInsert,
-  BeforeUpdate,
 } from "typeorm";
 import User from "./User";
 import Bid from "./Bid";
@@ -138,41 +136,6 @@ class Auction {
     (auctionParticipant) => auctionParticipant.auction,
   )
   declare participants: AuctionParticipant[];
-
-  @BeforeInsert()
-  adjustTimesBeforeInsert() {
-    this.adjustTimes();
-  }
-
-  @BeforeUpdate()
-  adjustTimesBeforeUpdate() {
-    this.adjustTimes();
-  }
-
-  private adjustTimes() {
-    const jakartaOffset = 7 * 60 * 60 * 1000; // 7 hours offset in milliseconds
-
-    // Ensure start_datetime is a Date object
-    if (this.start_datetime && !(this.start_datetime instanceof Date)) {
-      this.start_datetime = new Date(this.start_datetime);
-    }
-    // Ensure end_datetime is a Date object
-    if (this.end_datetime && !(this.end_datetime instanceof Date)) {
-      this.end_datetime = new Date(this.end_datetime);
-      console.log(this.end_datetime);
-    }
-
-    // Adjust times by subtracting the Jakarta offset (7 hours)
-    if (this.start_datetime) {
-      this.start_datetime.setTime(
-        this.start_datetime.getTime() - jakartaOffset,
-      );
-    }
-
-    if (this.end_datetime) {
-      this.end_datetime.setTime(this.end_datetime.getTime() - jakartaOffset);
-    }
-  }
 }
 
 export default Auction;
