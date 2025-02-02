@@ -11,16 +11,16 @@ export default function createApp() {
   const app = express();
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
-
-  app.use("/api", router);
-
   app.use(
     cors({
-      origin: "http://localhost:3000", // Frontend origin
-      methods: ["GET", "POST", "PUT", "DELETE"], // Allowed HTTP methods
-      credentials: true, // If sending cookies or authentication headers
+      credentials: true,
+      preflightContinue: true,
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      origin: true,
     }),
   );
+  app.options("*", cors());
+  app.use("/api", router);
 
   morgan.token("reqBody", (req: any) => {
     if (["POST", "PUT"].includes(req.method)) {

@@ -103,7 +103,8 @@ const updateAuctionValidator = async (
 
     // Ensure start datetime is in the future
     const now = new Date();
-    if (startDt && startDt.getTime() <= now.getTime()) {
+    const oneHourMs = 60 * 60 * 1000;
+    if (startDt && startDt.getTime() <= now.getTime() - oneHourMs) {
       res
         .status(400)
         .json({ message: "Start datetime must be in the future!" });
