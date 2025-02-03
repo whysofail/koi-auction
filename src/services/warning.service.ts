@@ -3,7 +3,9 @@ import { ErrorHandler } from "../utils/response/handleError";
 import { IWarningFilter } from "../types/entityfilter";
 import { PaginationOptions } from "../utils/pagination";
 import { userService } from "./user.service";
-import Warning from "../entities/Warning";
+import Warning, { WarningStatus } from "../entities/Warning";
+import { AppDataSource } from "../config/data-source";
+import User from "../entities/User";
 
 const getAllWarnings = async (
   filters?: IWarningFilter,
@@ -26,64 +28,81 @@ const getWarningsByUserId = async (user_id: string) => {
   }
 };
 
-export const warnUser = async (user_id: string, reason: string) => {
+export const warnUser = async (userId: string, data: Partial<Warning>) => {
   try {
     // Fetch the user by ID along with their warnings
-    const user = await userService.getUserById(user_id);
+    const user = await userService.getUserById(userId);
     if (!user) {
       throw ErrorHandler.notFound("User not found");
     }
 
-    const warningsCount = user.warnings?.length ?? 0;
-
-    if (warningsCount >= 3) {
-      user.is_banned = true;
-      await userService.updateUser(user.user_id, { is_banned: true }); // Save the updated user
+    // Validate admin presence
+    if (!data.admin || !data.admin.user_id) {
+      throw ErrorHandler.badRequest("Admin information is required");
     }
 
-    // Create a new warning entry
+    const admin = await userService.getUserById(data.admin.user_id);
+    if (!admin) {
+      throw ErrorHandler.notFound("Admin not found");
+    }
+
+    // Create and save the warning
     const warning = new Warning();
     warning.user = user;
-    warning.reason = reason;
+    warning.reason = data.reason ?? "No reason provided";
+    warning.admin = admin;
+    warning.status = data.status ?? WarningStatus.ACTIVE;
 
-    // Save the warning
     const savedWarning = await warningRepository.save(warning);
+
+    // Fetch updated warnings count
+    const warningsCount = await warningRepository.count({
+      where: { user: { user_id: userId } },
+    });
+
+    // Ban user if warnings reach threshold
+    if (warningsCount >= 3 && !user.is_banned) {
+      await userService.updateUser(user.user_id, { is_banned: true });
+    }
 
     return {
       warning_id: savedWarning.warning_id,
       reason: savedWarning.reason,
+      status: savedWarning.status,
       created_at: savedWarning.created_at,
       user: {
-        user_id: savedWarning.user.user_id,
-        username: savedWarning.user.username,
-        warnings_count: savedWarning.user.warnings?.length ?? 0,
-        is_banned: savedWarning.user.is_banned,
+        user_id: user.user_id,
+        username: user.username,
+        warnings_count: warningsCount, // Updated count
+        is_banned: user.is_banned,
+      },
+      admin: {
+        user_id: admin.user_id,
+        username: admin.username,
       },
     };
   } catch (error) {
-    console.error(error);
     throw ErrorHandler.internalServerError(
       error instanceof Error ? error.message : "Error creating warning",
     );
   }
 };
-/**
- * Updates a specific warning's reason.
- *
- * @param warning_id - The ID of the warning to update.
- * @param reason - The new reason for the warning.
- * @returns The updated warning.
- */
-const updateWarning = async (warning_id: string, reason: string) => {
+
+const updateWarning = async (warning_id: string, data: Partial<Warning>) => {
   try {
     // Find the warning by ID
-    const warning = await warningRepository.findOne({ where: { warning_id } });
+    const warning = await warningRepository.findOne({
+      where: { warning_id },
+    });
     if (!warning) {
       throw ErrorHandler.notFound("Warning not found");
     }
 
-    // Update the reason
-    warning.reason = reason;
+    Object.keys(data).forEach((key) => {
+      if (key in warning) {
+        (warning as any)[key] = data[key as keyof typeof data];
+      }
+    });
 
     // Save the updated warning
     const updatedWarning = await warningRepository.save(warning);
@@ -92,6 +111,7 @@ const updateWarning = async (warning_id: string, reason: string) => {
     throw ErrorHandler.internalServerError("Error updating warning");
   }
 };
+
 const deleteWarning = async (warning_id: string) => {
   try {
     // Find the warning
@@ -128,10 +148,135 @@ const deleteWarning = async (warning_id: string) => {
   }
 };
 
+/** 
+  * Ban a user by ID
+   @param user_id - The user ID to ban
+   @param data - Warning data, including the reason and admin ID
+*/
+const banUser = async (user_id: string, data: Partial<Warning>) => {
+  const dataSource = AppDataSource; // Get your DataSource instance
+  const queryRunner = dataSource.createQueryRunner();
+
+  try {
+    await queryRunner.startTransaction(); // Start the transaction
+
+    // Fetch the user by ID
+    const user = await queryRunner.manager.findOne(User, {
+      where: { user_id },
+    });
+    if (!user) {
+      throw ErrorHandler.notFound("User not found");
+    }
+
+    // Validate admin presence
+    if (!data.admin || !data.admin.user_id) {
+      throw ErrorHandler.badRequest("Admin information is required");
+    }
+
+    const admin = await queryRunner.manager.findOne(User, {
+      where: { user_id: data.admin.user_id },
+    });
+    if (!admin) {
+      throw ErrorHandler.notFound("Admin not found");
+    }
+
+    // Create a warning for the user
+    const warning = new Warning();
+    warning.user = user;
+    warning.reason = data.reason ?? "No reason provided";
+    warning.admin = admin;
+
+    const savedWarning = await queryRunner.manager.save(warning);
+    if (!savedWarning) {
+      throw ErrorHandler.internalServerError("Error creating warning");
+    }
+
+    // Ban the user
+    user.is_banned = true;
+    const savedUser = await queryRunner.manager.save(user);
+    if (!savedUser) {
+      throw ErrorHandler.internalServerError("Error banning user");
+    }
+
+    await queryRunner.commitTransaction(); // Commit the transaction
+
+    return { message: "User banned successfully" };
+  } catch (error) {
+    // Handle error and rollback if necessary
+    await queryRunner.rollbackTransaction(); // Rollback the transaction in case of an error
+
+    if (error instanceof ErrorHandler) {
+      throw error; // Re-throw the custom error
+    } else {
+      throw ErrorHandler.internalServerError(
+        error instanceof Error ? error.message : "Error banning user",
+      );
+    }
+  } finally {
+    await queryRunner.release(); // Release the query runner
+  }
+};
+
+/** 
+  * Unban a user by ID
+   @param user_id - The user ID to unban
+   @param admin_id - The admin ID performing the action
+*/
+
+const unbanUser = async (user_id: string) => {
+  const dataSource = AppDataSource; // Get your DataSource instance
+  const queryRunner = dataSource.createQueryRunner();
+
+  try {
+    await queryRunner.startTransaction(); // Start the transaction
+
+    // Fetch the user by ID
+    const user = await queryRunner.manager.findOne(User, {
+      where: { user_id },
+    });
+    if (!user) {
+      throw ErrorHandler.notFound("User not found");
+    }
+
+    // Get user warnings and update the enum to deleted
+    const warnings = await queryRunner.manager.find(Warning, {
+      where: { user: { user_id } },
+    });
+
+    // Update the status of each warning to DELETED
+    await Promise.all(
+      warnings.map(async (warning) => {
+        const updatedWarning = { ...warning, status: WarningStatus.DELETED };
+        await queryRunner.manager.save(Warning, updatedWarning);
+      }),
+    );
+
+    // Unban the user
+    user.is_banned = false;
+    await queryRunner.manager.save(User, user);
+
+    await queryRunner.commitTransaction(); // Commit the transaction
+
+    return { message: "User unbanned successfully" };
+  } catch (error) {
+    await queryRunner.rollbackTransaction(); // Rollback the transaction in case of an error
+
+    if (error instanceof ErrorHandler) {
+      throw error; // Re-throw the custom error
+    } else {
+      throw ErrorHandler.internalServerError("Error unbanning user");
+    }
+  } finally {
+    await queryRunner.release(); // Release the query runner
+  }
+};
+
 export const warningService = {
   getAllWarnings,
   getWarningsByUserId,
   warnUser,
   updateWarning,
   deleteWarning,
+  banUser,
+  unbanUser,
 };

@@ -20,6 +20,12 @@ const applyWarningFilters = (
     });
   }
 
+  if (filters.status) {
+    qb.andWhere("warning.status = :status", {
+      status: filters.status,
+    });
+  }
+
   if (filters.createdAtFrom) {
     qb.andWhere("warning.created_at >= :createdAtFrom", {
       createdAtFrom: filters.createdAtFrom,

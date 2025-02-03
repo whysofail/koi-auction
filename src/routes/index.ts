@@ -35,7 +35,6 @@ router.use((req: Request, res: Response) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-// Global error handler middleware (make sure it's the last one!)
 router.use((err: any, req: Request, res: Response, next: NextFunction) => {
   errorHandler(err, req, res, next); // Pass the error to the handler
 });

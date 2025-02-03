@@ -64,6 +64,7 @@ export interface IWarningFilter extends IBaseFilter {
   userId?: string; // Filter warnings by user ID
   warningId?: string; // Filter by specific warning ID
   reason?: string;
+  status?: string;
   createdAtFrom?: Date;
   createdAtTo?: Date;
 }

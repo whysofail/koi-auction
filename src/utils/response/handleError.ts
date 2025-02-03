@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 
+// Handles missing fields by checking for null, undefined, or empty values
 export const handleMissingFields = (
   res: Response,
   fields: { [key: string]: any }, // Expecting an object with key-value pairs
@@ -30,6 +31,7 @@ export const handleNotFound = (
   return true;
 };
 
+// Custom ErrorHandler class to handle different HTTP errors
 export class ErrorHandler extends Error {
   public statusCode: number;
 
@@ -45,17 +47,15 @@ export class ErrorHandler extends Error {
     Object.setPrototypeOf(this, ErrorHandler.prototype);
   }
 
-  // Static method to create a BadRequestError
+  // Static methods to create errors with specific HTTP status codes
   static badRequest(message: string, details?: any) {
     return new ErrorHandler(message, 400, details);
   }
 
-  // Static method to create a NotFoundError
   static notFound(message: string, details?: any) {
     return new ErrorHandler(message, 404, details);
   }
 
-  // Static method to create an InternalServerError
   static internalServerError(message: string, details?: any) {
     return new ErrorHandler(message, 500, details);
   }
