@@ -28,7 +28,7 @@ const createNotificationValidator = async (
 
     const user = await userRepository.findUserById(user_id);
     if (!user) {
-      res.status(400).json({
+      res.status(404).json({
         message: "User not found",
       });
       return;

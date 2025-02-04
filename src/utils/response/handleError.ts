@@ -59,6 +59,10 @@ export class ErrorHandler extends Error {
   static internalServerError(message: string, details?: any) {
     return new ErrorHandler(message, 500, details);
   }
+
+  static forbidden(message: string, details?: any) {
+    return new ErrorHandler(message, 403, details);
+  }
 }
 
 // Global error handling middleware

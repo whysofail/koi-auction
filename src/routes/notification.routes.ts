@@ -4,6 +4,8 @@ import {
   createNotification,
   getNotifications,
   getUserNotifications,
+  markAllNotificationAsRead,
+  markNotificationAsRead,
 } from "../controllers/notification.controllers";
 import { authorize, protect } from "../middlewares/auth.middleware";
 import createNotificationValidator from "../middlewares/notificationValidator/createNotificationValidator";
@@ -37,6 +39,19 @@ notificationRouter.post(
   protect,
   authorize(["admin"]),
   blastNotification,
+);
+
+notificationRouter.put(
+  "/read/:notification_id",
+  protect,
+  authorize(["user", "admin"]),
+  markNotificationAsRead,
+);
+notificationRouter.put(
+  "/read/all",
+  protect,
+  authorize(["user", "admin"]),
+  markAllNotificationAsRead,
 );
 
 export default notificationRouter;

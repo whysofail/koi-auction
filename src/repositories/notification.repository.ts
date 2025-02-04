@@ -101,9 +101,19 @@ const notificationRepository = dataSource.getRepository(Notification).extend({
     });
     return this.save(notification);
   },
-  findNotificationByUserId(userId: string): Promise<Notification[]> {
-    return this.find({ where: { user: { user_id: userId } } });
+
+  async findNotification(filters: INotificationFilter): Promise<Notification> {
+    const qb = this.createQueryBuilder("notification")
+      .leftJoinAndSelect("notification.user", "user")
+      .select(["notification", "user.user_id", "user.username"]);
+    applyNotificationFilters(qb, filters);
+    const notification = await qb.getOne();
+    if (!notification) {
+      throw new Error("Notification not found");
+    }
+    return notification;
   },
+
   async findNotificationById(notificationId: string): Promise<Notification> {
     const notification = await this.findOne({
       where: { notification_id: notificationId },

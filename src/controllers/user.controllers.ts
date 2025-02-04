@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, RequestHandler } from "express";
 import { sendSuccessResponse } from "../utils/response/handleResponse";
 import { userService } from "../services/user.service";
 import {
@@ -44,6 +44,16 @@ export const getAllUsers = async (
       page: pagination.page,
       limit: pagination.limit,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getUserById: RequestHandler = async (req, res, next) => {
+  const { id } = req.params;
+  try {
+    const user = await userService.getUserById(id);
+    sendSuccessResponse(res, { data: user });
   } catch (error) {
     next(error);
   }

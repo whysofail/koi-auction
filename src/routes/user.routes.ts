@@ -1,7 +1,8 @@
 import { Router } from "express";
 import {
-  getUserInfo,
   getAllUsers,
+  getUserById,
+  getUserInfo,
   updateUser,
 } from "../controllers/user.controllers";
 import { authorize, protect } from "../middlewares/auth.middleware";
@@ -16,6 +17,7 @@ userRouter.get(
   authorize(["admin"]),
   getAllUsers,
 );
+userRouter.get("/:id", protect, authorize(["user", "admin"]), getUserById);
 userRouter.get("/me", protect, getUserInfo);
 userRouter.put("/:id", protect, authorize(["user"]), updateUser);
 

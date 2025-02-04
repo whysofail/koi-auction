@@ -77,19 +77,35 @@ export const getUserNotifications: AuthenticatedRequestHandler = async (
 };
 
 // Mark notification as read
-export const markNotificationAsRead = async (req: Request, res: Response) => {
-  const { notificationId } = req.params;
-
-  if (!notificationId) {
-    return res.status(400).json({ message: "Notification ID is required" });
-  }
-
+export const markNotificationAsRead: AuthenticatedRequestHandler = async (
+  req: Request,
+  res: Response,
+  next,
+): Promise<void> => {
+  const { notification_id } = req.params;
+  const { user } = req as AuthenticatedRequest;
   try {
-    await notificationRepository.markNotificationAsRead(notificationId);
-    return res.status(200).json({ message: "Notification marked as read" });
+    await notificationService.markNotificationAsRead(
+      notification_id,
+      user.user_id,
+    );
+    res.status(200).json({ message: "Notification marked as read" });
   } catch (error) {
-    console.error("Error marking notification as read:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    next(error);
+  }
+};
+
+export const markAllNotificationAsRead: AuthenticatedRequestHandler = async (
+  req,
+  res,
+  next,
+) => {
+  const { user } = req as AuthenticatedRequest;
+  try {
+    await notificationService.markAllNotificationAsRead(user.user_id);
+    res.status(200).json({ message: "All notifications marked as read" });
+  } catch (error) {
+    next(error);
   }
 };
 
