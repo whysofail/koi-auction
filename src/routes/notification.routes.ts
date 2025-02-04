@@ -41,13 +41,13 @@ notificationRouter.post(
   blastNotification,
 );
 
-notificationRouter.put(
+notificationRouter.post(
   "/read/:notification_id",
   protect,
   authorize(["user", "admin"]),
   markNotificationAsRead,
 );
-notificationRouter.put(
+notificationRouter.post(
   "/read/all",
   protect,
   authorize(["user", "admin"]),

@@ -1,9 +1,16 @@
-import { Namespace, Server, Socket } from "socket.io";
+import { Namespace, Server } from "socket.io";
 import Notification from "../entities/Notification";
 import socketService from "../services/socket.service";
+import { AuthenticatedSocket } from ".";
 
-const notificationSocket = (io: Server | Namespace, socket: Socket): void => {
-  console.log("New client connected:", socket.id);
+const notificationSocket = (
+  io: Server | Namespace,
+  socket: AuthenticatedSocket,
+): void => {
+  console.log(
+    "New client listening on /auth notification",
+    socket.user?.user_id,
+  );
 
   // Attach the send function to notificationSocket object
   notificationSocket.send = (

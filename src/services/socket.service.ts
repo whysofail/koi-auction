@@ -78,17 +78,20 @@ const emitToUser = async (
   console.log(`Event "${event}" sent to user with socketId: ${socketId}`);
 };
 
-const emitToAuthenticatedNamespace = (event: string, data: any): void => {
+const emitToAuthenticatedNamespace = (
+  userId: string,
+  event: string,
+  data: { entity: string; data: any },
+): void => {
   const io = SocketIOService.getInstance().getIO();
   const authNamespace = io.of("/auth");
 
-  // Log emitting to authenticated namespace
-  console.log(`Emitting event "${event}" to authenticated namespace`);
+  // Emit only to the specific user
+  authNamespace.to(userId).emit(event, data);
 
-  authNamespace.emit(event, data);
-
-  // Log after emitting to the namespace
-  console.log(`Event "${event}" emitted to authenticated namespace`);
+  console.log(
+    `Event "${event}" emitted to user ${userId} in authenticated namespace`,
+  );
 };
 
 const emitToAuthRoom = async (

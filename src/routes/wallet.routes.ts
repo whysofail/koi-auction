@@ -26,7 +26,7 @@ walletRouter.put("/:id", protect, authorize(["admin"]), updateWallet);
 walletRouter.post(
   "/deposit",
   protect,
-  authorize(["user"]),
+  authorize(["user", "admin"]),
   uploadProofOfPayment,
   createDepositValidator,
   createDeposit,

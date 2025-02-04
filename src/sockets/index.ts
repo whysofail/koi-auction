@@ -3,7 +3,6 @@ import auctionSocket from "./auction.socket";
 import bidSocket from "./bid.socket";
 import notificationSocket from "./notification.socket";
 import { socketAuthMiddleware } from "./socketauth.middleware";
-import adminSocketHandler from "./admin.socket";
 
 export interface AuthenticatedSocket extends Socket {
   user?: {
@@ -35,7 +34,7 @@ export default function initializeSockets(io: Server): void {
   authNamespace.on("connection", (socket: AuthenticatedSocket) => {
     const userId = socket.user?.user_id;
     if (userId) {
-      socket.join(`user:${userId}`);
+      socket.join(userId);
     }
     // Initialize authenticated socket functionalities, such as bidSocket
     bidSocket(authNamespace, socket);
@@ -44,22 +43,6 @@ export default function initializeSockets(io: Server): void {
     // Handle disconnect
     socket.on("disconnect", () => {
       console.log("Client disconnected from authenticated namespace");
-    });
-  });
-
-  const adminNamespace = io.of("/admin");
-  adminNamespace.use(socketAuthMiddleware(["admin"]));
-  adminNamespace.on("connection", (socket: AuthenticatedSocket) => {
-    const userId = socket.user?.user_id;
-    if (userId) {
-      socket.join(`user:${userId}`);
-    }
-    // Initialize admin socket functionalities
-    console.log("Client connected to admin namespace");
-    adminSocketHandler(adminNamespace);
-    // Handle disconnect
-    socket.on("disconnect", () => {
-      console.log("Client disconnected from admin namespace");
     });
   });
 }

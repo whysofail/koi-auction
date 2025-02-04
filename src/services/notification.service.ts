@@ -107,16 +107,17 @@ const getNotificationsByUserId = async (user_id: string) => {
 
 const markNotificationAsRead = async (
   notificationId: string,
-  user_id: string, // Add user_id to check ownership
+  userId: string,
 ) => {
   try {
-    const notification = await notificationRepository.findNotification({
-      notificationId,
-    });
-
-    if (!user_id) {
+    if (!userId) {
       throw ErrorHandler.badRequest("User ID is required");
     }
+
+    const notification = await notificationRepository.findOne({
+      where: { notification_id: notificationId },
+      relations: ["user"],
+    });
 
     if (!notification) {
       throw ErrorHandler.notFound(
@@ -124,60 +125,45 @@ const markNotificationAsRead = async (
       );
     }
 
-    // Check if the user is the owner of the notification
-    if (notification.user.user_id !== user_id) {
-      throw ErrorHandler.forbidden(
-        "Forbidden. You cannot mark this notification as read",
-      );
+    if (notification.user.user_id !== userId) {
+      throw ErrorHandler.forbidden("You cannot mark this notification as read");
     }
 
-    // Check if the notification is already marked as read
     if (notification.status === NotificationStatus.READ) {
-      throw ErrorHandler.badRequest("Notification is already marked as read");
+      return notification; // Already marked as read
     }
 
-    // Mark the notification as read
-    notification.status = NotificationStatus.READ;
-    await notificationRepository.save(notification);
+    // Update status
+    await notificationRepository.update(notificationId, {
+      status: NotificationStatus.READ,
+    });
 
-    return notification;
+    return { ...notification, status: NotificationStatus.READ }; // Return updated object
   } catch (error) {
-    if (error instanceof ErrorHandler) {
-      throw error;
-    } else {
-      throw ErrorHandler.internalServerError(
-        "Error marking notification as read",
-        error,
-      );
-    }
+    throw ErrorHandler.internalServerError(
+      "Error marking notification as read",
+      error,
+    );
   }
 };
 
 const markAllNotificationAsRead = async (userId: string) => {
   try {
-    const { notifications } = await notificationRepository.findAllNotifications(
-      {
-        userId,
-      },
-    );
-    if (notifications.length === 0) {
-      throw ErrorHandler.notFound("No notifications found for this user");
+    if (!userId) {
+      throw ErrorHandler.badRequest("User ID is required");
     }
-    const updatedNotifications = await Promise.all(
-      notifications.map((notif) => {
-        const updatedNotification = {
-          ...notif,
-          status: NotificationStatus.READ,
-        };
-        return notificationRepository.save(updatedNotification);
-      }),
+
+    const { affected } = await notificationRepository.update(
+      { user: { user_id: userId }, status: NotificationStatus.UNREAD },
+      { status: NotificationStatus.READ },
     );
-    return updatedNotifications;
+
+    if (!affected) {
+      throw ErrorHandler.notFound("No unread notifications found");
+    }
+
+    return { message: `${affected} notifications marked as read` };
   } catch (error) {
-    console.error(
-      `Error marking all notifications as read for user (${userId}):`,
-      error,
-    );
     throw ErrorHandler.internalServerError(
       "Error marking all notifications as read",
       error,
@@ -198,9 +184,15 @@ const sendNotificationToAdmins = async (
         createNotification(admin.user_id, type, message, reference_id, role),
       ),
     );
-    const lastAdminNotification =
-      adminNotifications[adminNotifications.length - 1];
-    await socketService.emitToAdminRoom(lastAdminNotification);
+
+    admins.users.forEach((admin, index) => {
+      socketService.emitToAuthenticatedNamespace(
+        admin.user_id,
+        "update", // 🔄 Standardized event name
+        { entity: "notification", data: adminNotifications[index] },
+      );
+    });
+
     return adminNotifications;
   } catch (error) {
     console.error("Error sending notifications to admins:", error);
