@@ -86,7 +86,7 @@ export const updateAuction: AuthenticatedRequestHandler = async (
     );
     sendSuccessResponse(res, auction);
   } catch (error) {
-    next(error); // Pass the error to global error handler
+    next(error);
   }
 };
 

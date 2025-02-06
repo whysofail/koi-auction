@@ -9,8 +9,23 @@ export default function createApp() {
   config();
 
   const app = express();
-  app.use(express.json());
+  app.use(express.json()); // Ensure JSON parsing before morgan
   app.use(express.urlencoded({ extended: true }));
+
+  // Morgan custom tokens
+  morgan.token("reqBody", (req: any) =>
+    ["POST", "PUT", "PATCH"].includes(req.method)
+      ? JSON.stringify(req.body)
+      : "",
+  );
+
+  morgan.token("auth", (req: any) => req.headers.authorization || "");
+
+  // // Move Morgan middleware before routes
+  // app.use(
+  //   morgan(":method :url :status :response-time ms Auth::auth Body::reqBody"),
+  // );
+
   app.use(
     cors({
       credentials: true,
@@ -20,20 +35,8 @@ export default function createApp() {
     }),
   );
   app.options("*", cors());
-  app.use("/api", router);
 
-  morgan.token("reqBody", (req: any) => {
-    if (["POST", "PUT"].includes(req.method)) {
-      return JSON.stringify(req.body);
-    }
-
-    return "";
-  });
-
-  morgan.token("auth", (req: any) => req.headers.authorization || "");
-  app.use(
-    morgan(":method :url :status :response-time ms Auth::auth Body::reqBody"),
-  );
+  app.use("/api", router); // Define routes after middleware
 
   return app;
 }

@@ -5,7 +5,7 @@ import {
 } from "../entities/Notification";
 import notificationRepository from "../repositories/notification.repository";
 import { INotificationFilter } from "../types/entityfilter";
-import { INotificationOrder } from "../types/entityorder.types";
+import { INotificationOrder, SortOrder } from "../types/entityorder.types";
 import { PaginationOptions } from "../utils/pagination";
 import { ErrorHandler } from "../utils/response/handleError";
 import socketService from "./socket.service";
@@ -38,7 +38,7 @@ const createNotification = async (
   type: NotificationType,
   message: string,
   reference_id: string,
-  role: NotificationRole,
+  role?: NotificationRole,
 ) => {
   try {
     const notification = await notificationRepository.createNotification(
@@ -46,14 +46,16 @@ const createNotification = async (
       type,
       message,
       reference_id,
-      role,
+      role || NotificationRole.USER,
     );
 
-    await socketService.emitToUser(user_id, "user", notification);
+    await socketService.emitToAuthenticatedNamespace(user_id, "update", {
+      entity: "notification",
+      data: notification,
+    });
 
     return notification;
   } catch (error) {
-    console.error("Error creating notification:", error);
     throw ErrorHandler.internalServerError(
       "Error creating notification",
       error,
@@ -72,10 +74,9 @@ const getNotificationById = async (notification_id: string) => {
     }
     return notification;
   } catch (error) {
-    console.error(
-      `Error fetching notification by ID (${notification_id}):`,
-      error,
-    );
+    if (error instanceof ErrorHandler) {
+      throw error;
+    }
     throw ErrorHandler.internalServerError(
       "Error fetching notification",
       error,
@@ -85,19 +86,21 @@ const getNotificationById = async (notification_id: string) => {
 
 const getNotificationsByUserId = async (user_id: string) => {
   try {
+    const order: INotificationOrder = {
+      orderBy: "created_at",
+      order: SortOrder.DESC,
+    };
     const { notifications, count } =
-      await notificationRepository.findAllNotifications({ userId: user_id });
-    if (!notifications) {
-      throw ErrorHandler.notFound(
-        `Notifications for User ID ${user_id} not found`,
+      await notificationRepository.findAllNotifications(
+        { userId: user_id },
+        order,
+        {
+          page: 1,
+          limit: 100,
+        },
       );
-    }
     return { notifications, count };
   } catch (error) {
-    console.error(
-      `Error fetching notifications for user ID (${user_id}):`,
-      error,
-    );
     throw ErrorHandler.internalServerError(
       "Error fetching user notifications",
       error,
@@ -140,6 +143,9 @@ const markNotificationAsRead = async (
 
     return { ...notification, status: NotificationStatus.READ }; // Return updated object
   } catch (error) {
+    if (error instanceof ErrorHandler) {
+      throw error;
+    }
     throw ErrorHandler.internalServerError(
       "Error marking notification as read",
       error,
@@ -158,12 +164,11 @@ const markAllNotificationAsRead = async (userId: string) => {
       { status: NotificationStatus.READ },
     );
 
-    if (!affected) {
-      throw ErrorHandler.notFound("No unread notifications found");
-    }
-
     return { message: `${affected} notifications marked as read` };
   } catch (error) {
+    if (error instanceof ErrorHandler) {
+      throw error;
+    }
     throw ErrorHandler.internalServerError(
       "Error marking all notifications as read",
       error,
@@ -195,7 +200,9 @@ const sendNotificationToAdmins = async (
 
     return adminNotifications;
   } catch (error) {
-    console.error("Error sending notifications to admins:", error);
+    if (error instanceof ErrorHandler) {
+      throw error;
+    }
     throw ErrorHandler.internalServerError(
       "Error sending notifications to admins",
       error,

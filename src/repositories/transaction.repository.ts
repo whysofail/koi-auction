@@ -133,10 +133,22 @@ const transactionRepository = dataSource.getRepository(Transaction).extend({
   },
 
   async findTransactionById(transaction_id: string) {
-    return this.findOne({
-      where: { transaction_id },
-      relations: ["wallet", "admin"], // Include relationships with wallet and admin
-    });
+    const qb = this.createQueryBuilder("transaction")
+      .leftJoinAndSelect("transaction.wallet", "wallet")
+      .leftJoinAndSelect("wallet.user", "user")
+      .leftJoinAndSelect("transaction.admin", "admin") // Admin relation is optional
+      .where("transaction.transaction_id = :transaction_id", { transaction_id })
+      .select([
+        "transaction",
+        "wallet",
+        "user.user_id", // Selecting user data
+        "user.username", // Selecting user data
+        "admin.user_id", // Selecting admin data if available
+        "admin.username", // Selecting admin data if available
+      ]);
+
+    const transaction = await qb.getOne();
+    return transaction;
   },
 
   async findTransactionsByWalletId(wallet_id: string) {
@@ -158,6 +170,7 @@ const transactionRepository = dataSource.getRepository(Transaction).extend({
   async findTransactionsByUserId(user_id: string) {
     const qb = this.createQueryBuilder("transaction")
       .leftJoin("transaction.wallet", "wallet")
+      .leftJoinAndSelect("transaction.admin", "admin") // Correctly join the admin
       .leftJoin("wallet.user", "user")
       .where("user.user_id = :user_id", { user_id });
 

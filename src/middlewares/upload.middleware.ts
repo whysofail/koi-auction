@@ -14,13 +14,18 @@ interface File extends Express.Multer.File {
 const storage = multerS3({
   s3, // The S3 instance
   bucket: process.env.AWS_S3_BUCKET_NAME || "", // Your S3 bucket name
-  acl: "public-read", // You can set this to private or other ACLs as needed
+  acl: "public-read", // Ensure the file is publicly readable
   metadata: (
     req: Request,
     file: File,
     cb: (error: Error | null, metadata: object) => void,
   ) => {
-    cb(null, { fieldName: file.fieldname });
+    // Set the Content-Disposition to inline to display the file in the browser
+    cb(null, {
+      fieldName: file.fieldname,
+      "Content-Disposition": "inline", // This prevents download and tries to display the file
+      "Content-Type": file.mimetype, // Ensure correct MIME type
+    });
   },
   key: (
     req: Request,

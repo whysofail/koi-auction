@@ -14,6 +14,7 @@ import { TransactionStatus, TransactionType } from "../entities/Transaction";
 import { IWalletOrder } from "../types/entityorder.types";
 import { notificationService } from "../services/notification.service";
 import { NotificationRole, NotificationType } from "../entities/Notification";
+import { formatCurrency } from "../utils/formatCurrency";
 
 // Create a new wallet
 export const createWallet: RequestHandler = async (
@@ -147,7 +148,7 @@ export const createDeposit: AuthenticatedRequestHandler = async (
     });
 
     if (transaction) {
-      const adminMessage = `A new deposit of $${parsedAmount} is waiting approval`;
+      const adminMessage = `A new deposit of ${formatCurrency(parsedAmount)} is waiting approval`;
       await notificationService.sendNotificationToAdmins(
         NotificationType.TRANSACTION,
         adminMessage,
@@ -155,7 +156,7 @@ export const createDeposit: AuthenticatedRequestHandler = async (
         NotificationRole.ADMIN,
       );
 
-      const userMessage = `Your deposit of $${parsedAmount} is waiting approval`;
+      const userMessage = `Your deposit of ${formatCurrency(parsedAmount)} is waiting approval`;
       // Create a notification for the user
       await notificationService.createNotification(
         user.user_id,

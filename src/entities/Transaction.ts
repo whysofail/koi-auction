@@ -3,6 +3,7 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  UpdateDateColumn,
   ManyToOne,
   JoinColumn,
 } from "typeorm";
@@ -65,6 +66,9 @@ class Transaction {
 
   @CreateDateColumn()
   declare created_at: Date; // Timestamp for when the transaction was created
+
+  @UpdateDateColumn()
+  declare updated_at: Date; // Timestamp for when the transaction was last updated
 
   // Relationship with Admin (nullable)
   @ManyToOne(() => User, { nullable: true })

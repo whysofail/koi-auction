@@ -1,8 +1,5 @@
 import { RequestHandler, Request, Response } from "express";
-import {
-  sendErrorResponse,
-  sendSuccessResponse,
-} from "../utils/response/handleResponse";
+import { sendSuccessResponse } from "../utils/response/handleResponse";
 
 import {
   AuthenticatedRequest,
@@ -10,6 +7,8 @@ import {
 } from "../types/auth";
 import { transactionService } from "../services/transaction.service";
 import { ITransactionOrder } from "../types/entityorder.types";
+import { NotificationType } from "../entities/Notification";
+import { notificationService } from "../services/notification.service";
 
 export const getTransactions: RequestHandler = async (
   req,
@@ -40,12 +39,10 @@ export const getTransactionById: AuthenticatedRequestHandler = async (
   next,
 ) => {
   const { user } = req as AuthenticatedRequest;
-  const { transaction_id } = req.params;
+  const { id } = req.params;
+
   try {
-    const transaction = await transactionService.getTransactionById(
-      transaction_id,
-      user,
-    );
+    const transaction = await transactionService.getTransactionById(id, user);
     sendSuccessResponse(res, { data: transaction });
   } catch (error) {
     next(error);
@@ -78,41 +75,27 @@ export const getUserTransactions: AuthenticatedRequestHandler = async (
   }
 };
 
-// Update Transaction Status (Approve/Reject)
-export const updateTransactionStatus: AuthenticatedRequestHandler = async (
-  req: Request,
-  res: Response,
-) => {
-  const { transaction_id } = req.query as { transaction_id: string };
-  try {
-    const transaction = await transactionService.updateTransaction(
-      transaction_id,
-      req.body,
-    );
-    // Return success response with the updated transaction
-    return sendSuccessResponse(res, { data: transaction });
-  } catch (error: any) {
-    // General error handling with specific message
-    const errorMessage =
-      error instanceof Error ? error.message : "An unknown error occurred";
-    return sendErrorResponse(res, errorMessage, 500);
-  }
-};
-
 export const updateDepositTransaction: AuthenticatedRequestHandler = async (
   req: Request,
   res: Response,
   next,
 ): Promise<void> => {
-  const { transaction_id } = req.query as { transaction_id: string };
+  const { id } = req.params;
   const { user } = req as AuthenticatedRequest;
   const { status } = req.body;
 
   const data = { status, admin_id: user.user_id };
   try {
     const transaction = await transactionService.updateDepositTransaction(
-      transaction_id,
+      id,
       data,
+    );
+    const notificationMessage = `Your transaction with ID ${id} has been ${status}`;
+    notificationService.createNotification(
+      transaction.wallet.user_id,
+      NotificationType.TRANSACTION,
+      notificationMessage,
+      transaction.transaction_id,
     );
     sendSuccessResponse(res, { data: transaction });
   } catch (error) {

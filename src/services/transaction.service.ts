@@ -36,8 +36,16 @@ const getTransactionById = async (transactionId: string, user: AuthUser) => {
         "You are not authorized to view this transaction",
       );
     }
+    if (!transaction) {
+      throw ErrorHandler.notFound(
+        `Transaction with ID ${transactionId} not found`,
+      );
+    }
     return transaction;
   } catch (error) {
+    if (error instanceof ErrorHandler) {
+      throw error;
+    }
     throw ErrorHandler.internalServerError("Error fetching transaction", error);
   }
 };
@@ -81,7 +89,14 @@ const updateTransaction = async (
 
     return transaction;
   } catch (error) {
-    throw ErrorHandler.internalServerError("Error updating transaction", error);
+    if (error instanceof ErrorHandler) {
+      throw error;
+    } else {
+      throw ErrorHandler.internalServerError(
+        "Error updating transaction",
+        error,
+      );
+    }
   }
 };
 
@@ -99,21 +114,28 @@ const updateDepositTransaction = async (
         `Transaction with ID ${transaction_id} not found`,
       );
     }
+
     // Update the transaction with the new data
-    const updatedTransaction = await transactionRepository
-      .update(transaction_id, data)
-      .then(async () => {
-        if (transaction.status === "APPROVED") {
-          // Deposit the amount to the user's wallet
-          await walletService.depositToUserWallet(
-            transaction.wallet.user_id,
-            transaction.amount,
-          );
-        }
-      });
+    Object.assign(transaction, data);
+    const updatedTransaction = await transactionRepository.save(transaction);
+
+    if (transaction.status === "APPROVED") {
+      // Deposit the amount to the user's wallet
+      let { amount } = transaction; // Assuming `amount` is a field in your transaction
+
+      // Ensure amount is a valid number
+      amount = parseFloat(amount.toString());
+      await walletService.depositToUserWallet(
+        transaction.wallet.user_id,
+        amount,
+      );
+    }
 
     return updatedTransaction;
   } catch (error) {
+    if (error instanceof ErrorHandler) {
+      throw error;
+    }
     throw ErrorHandler.internalServerError("Error updating transaction", error);
   }
 };
