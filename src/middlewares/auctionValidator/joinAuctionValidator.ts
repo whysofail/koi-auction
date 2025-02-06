@@ -38,8 +38,8 @@ const joinAuctionValidator = async (
       return;
     }
 
-    if (auction.status !== AuctionStatus.STARTED) {
-      res.status(400).json({ message: "Auction has not started yet" });
+    if (auction.status !== AuctionStatus.PUBLISHED) {
+      res.status(400).json({ message: "Cant join this auction yet!" });
       return;
     }
 

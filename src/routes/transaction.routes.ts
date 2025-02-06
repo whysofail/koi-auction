@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  getTransactionById,
   getTransactions,
   getUserTransactions,
   updateTransactionStatus,
@@ -16,6 +17,14 @@ transactionRouter.get(
   parsePaginationAndFilters,
   getTransactions,
 );
+
+transactionRouter.get(
+  "/:id",
+  protect,
+  authorize(["user", "admin"]),
+  getTransactionById,
+);
+
 transactionRouter.get(
   "/me",
   protect,

@@ -19,8 +19,16 @@ const getAllBids = async (
   return { bids, count };
 };
 
-const getBidsByAuctionId = async (auction_id: string) => {
-  const { bids, count } = await bidRepository.findBidByAuctionId(auction_id);
+const getBidsByAuctionId = async (
+  auction_id: string,
+  filters?: IBidFilter,
+  pagination?: PaginationOptions,
+) => {
+  const { bids, count } = await bidRepository.findBidByAuctionId(
+    auction_id,
+    filters,
+    pagination,
+  );
   if (!bids) {
     throw ErrorHandler.notFound(
       `Bids not found for auction with ID ${auction_id}`,
@@ -30,8 +38,16 @@ const getBidsByAuctionId = async (auction_id: string) => {
   return { bids, count };
 };
 
-const getBidByUserId = async (user_id: string) => {
-  const [bids, count] = await bidRepository.findBidByUserId(user_id);
+const getBidByUserId = async (
+  user_id: string,
+  filters?: IBidFilter,
+  pagination?: PaginationOptions,
+) => {
+  const { bids, count } = await bidRepository.findBidByUserId(
+    user_id,
+    filters,
+    pagination,
+  );
   if (!bids) {
     throw ErrorHandler.notFound(`Bids not found for user with ID ${user_id}`);
   }
@@ -51,31 +67,33 @@ const placeBid = async (
   auction_id: string,
   bid_amount: number,
 ) =>
-  // Use a transaction to ensure atomicity
   auctionRepository.manager.transaction(async (transactionalEntityManager) => {
-    // Lock the auction row for updates to avoid race conditions
     const auction = await transactionalEntityManager.findOne(Auction, {
       where: { auction_id },
       lock: { mode: "pessimistic_write" },
     });
 
-    // Check if the auction exists
     if (!auction) {
       throw ErrorHandler.notFound(`Auction with ID ${auction_id} not found`);
     }
 
-    // Create the bid
+    // Extend auction time only if within injury time
+    const injuryTime = 1000 * 60 * 5; // 5 minutes
+    if (auction.end_datetime.getTime() - Date.now() < injuryTime) {
+      auction.end_datetime = new Date(
+        auction.end_datetime.getTime() + injuryTime,
+      );
+      await transactionalEntityManager.save(auction); // Save auction update
+    }
+
+    // Create and save the bid
     const bid = bidRepository.create({
       user: { user_id },
       auction: { auction_id },
       bid_amount,
     });
 
-    // Save the bid inside the transaction
-    const savedBid = await transactionalEntityManager.save(bid);
-
-    // Return the saved bid
-    return savedBid;
+    return transactionalEntityManager.save(bid);
   });
 
 export const bidService = {

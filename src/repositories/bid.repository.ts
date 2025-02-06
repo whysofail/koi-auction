@@ -114,7 +114,7 @@ const bidRepository = dataSource.getRepository(Bid).extend({
 
   async findBidByAuctionId(
     auction_id: string,
-    filter?: Omit<IBidFilter, "auctionId">,
+    filters?: Omit<IBidFilter, "auctionId">,
     pagination?: PaginationOptions,
   ) {
     const qb = this.createQueryBuilder("bid")
@@ -122,8 +122,8 @@ const bidRepository = dataSource.getRepository(Bid).extend({
       .where("auction.auction_id = :auction_id", { auction_id });
 
     // Apply filters
-    if (filter) {
-      applyBidFilters(qb, filter);
+    if (filters) {
+      applyBidFilters(qb, filters);
     }
 
     // Apply pagination
@@ -134,7 +134,7 @@ const bidRepository = dataSource.getRepository(Bid).extend({
 
   async findBidByUserId(
     user_id: string,
-    filter?: Omit<IBidFilter, "userId">,
+    filters?: Omit<IBidFilter, "userId">,
     pagination?: PaginationOptions,
   ) {
     const queryBuilder = this.createQueryBuilder("bid")
@@ -143,14 +143,14 @@ const bidRepository = dataSource.getRepository(Bid).extend({
       .where("user.user_id = :user_id", { user_id });
 
     // Apply filters
-    if (filter) {
-      applyBidFilters(queryBuilder, filter);
+    if (filters) {
+      applyBidFilters(queryBuilder, filters);
     }
 
     // Apply pagination
     applyPagination(queryBuilder, pagination);
-
-    return queryBuilder.getManyAndCount();
+    const [bids, count] = await queryBuilder.getManyAndCount();
+    return { bids, count };
   },
 });
 

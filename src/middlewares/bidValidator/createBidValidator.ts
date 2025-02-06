@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { validate } from "class-validator";
 import Bid from "../../entities/Bid";
 import { auctionService } from "../../services/auction.service";
+import { AuctionStatus } from "../../entities/Auction";
 
 const createBidValidator = async (
   req: Request,
@@ -16,6 +17,13 @@ const createBidValidator = async (
 
     const { bid_amount } = req.body;
     const { auction_id } = req.params;
+
+    const auction = await auctionService.getAuctionById(auction_id);
+
+    if (auction.status === AuctionStatus.STARTED) {
+      res.status(400).json({ message: "Auction has not started yet!" });
+      return;
+    }
 
     // Validate if auction_id is present
     if (!auction_id) {
@@ -37,7 +45,6 @@ const createBidValidator = async (
       return;
     }
 
-    const auction = await auctionService.getAuctionById(auction_id);
     const currentHighestBid = Number(auction.current_highest_bid);
     const bidIncrement = Number(auction.bid_increment);
 

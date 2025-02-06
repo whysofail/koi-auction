@@ -57,7 +57,7 @@ export const warnUser = async (userId: string, data: Partial<Warning>) => {
 
     // Fetch updated warnings count
     const warningsCount = await warningRepository.count({
-      where: { user: { user_id: userId } },
+      where: { user: { user_id: userId }, status: WarningStatus.ACTIVE },
     });
 
     // Ban user if warnings reach threshold

@@ -1,5 +1,6 @@
 import Transaction from "../entities/Transaction";
 import transactionRepository from "../repositories/transaction.repository";
+import { AuthUser } from "../types/auth";
 import { ITransactionFilter } from "../types/entityfilter";
 import { ITransactionOrder } from "../types/entityorder.types";
 import { PaginationOptions } from "../utils/pagination";
@@ -26,15 +27,19 @@ const getAllTransactions = async (
   return { transactions, count };
 };
 
-const getTransactionById = async (transaction_id: string) => {
-  const transaction =
-    await transactionRepository.findTransactionById(transaction_id);
-  if (!transaction) {
-    throw ErrorHandler.notFound(
-      `Transaction with ID ${transaction_id} not found`,
-    );
+const getTransactionById = async (transactionId: string, user: AuthUser) => {
+  try {
+    const transaction =
+      await transactionRepository.findTransactionById(transactionId);
+    if (user.role === "user" && transaction?.wallet.user_id !== user.user_id) {
+      throw ErrorHandler.forbidden(
+        "You are not authorized to view this transaction",
+      );
+    }
+    return transaction;
+  } catch (error) {
+    throw ErrorHandler.internalServerError("Error fetching transaction", error);
   }
-  return transaction;
 };
 
 const getTransactionsByUserId = async (

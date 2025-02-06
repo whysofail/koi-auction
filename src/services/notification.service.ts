@@ -188,7 +188,7 @@ const sendNotificationToAdmins = async (
     admins.users.forEach((admin, index) => {
       socketService.emitToAuthenticatedNamespace(
         admin.user_id,
-        "update", // 🔄 Standardized event name
+        "update", //
         { entity: "notification", data: adminNotifications[index] },
       );
     });

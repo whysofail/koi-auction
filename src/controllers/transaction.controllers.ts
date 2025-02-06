@@ -34,6 +34,24 @@ export const getTransactions: RequestHandler = async (
   }
 };
 
+export const getTransactionById: AuthenticatedRequestHandler = async (
+  req,
+  res,
+  next,
+) => {
+  const { user } = req as AuthenticatedRequest;
+  const { transaction_id } = req.params;
+  try {
+    const transaction = await transactionService.getTransactionById(
+      transaction_id,
+      user,
+    );
+    sendSuccessResponse(res, { data: transaction });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getUserTransactions: AuthenticatedRequestHandler = async (
   req: Request,
   res: Response,

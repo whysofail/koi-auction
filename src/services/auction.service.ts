@@ -151,7 +151,7 @@ const joinAuction = async (auction_id: string, user_id: string) => {
       wallet,
       amount: participationFee,
       type: TransactionType.PARTICIPATE,
-      status: TransactionStatus.PENDING,
+      status: TransactionStatus.COMPLETED,
       proof_of_payment: null,
     });
     await transactionRepository.save(transaction);
@@ -177,13 +177,13 @@ export const getAuctionEndingSoon = async (
   startDateFrom: Date = new Date(), // Default to the start of today
   startDateTo: Date = new Date(new Date().setHours(23, 59, 59, 999)), // Default to the end of today
 ) => {
-  const filter: IAuctionFilter = {
+  const filters: IAuctionFilter = {
     startDateFrom, // Pass Date object directly
     startDateTo, // Pass Date object directly
     status: AuctionStatus.STARTED,
   };
 
-  const { auctions, count } = await auctionRepository.getAllAuctions(filter);
+  const { auctions, count } = await auctionRepository.getAllAuctions(filters);
   return { auctions, count };
 };
 
