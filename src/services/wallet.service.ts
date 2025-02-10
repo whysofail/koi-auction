@@ -48,7 +48,16 @@ export const depositToUserWallet = async (
   amount: number,
 ): Promise<Wallet> => {
   const wallet = await getWalletByUserId(user_id);
-  wallet.balance += amount;
+
+  console.log("Before update:", wallet);
+  console.log("Balance (as string):", wallet.balance);
+  console.log("Amount to add:", amount);
+
+  // Ensure balance is treated as a number
+  wallet.balance = parseFloat(wallet.balance.toString()) + amount;
+
+  console.log("Updated Balance:", wallet.balance);
+
   await walletRepository.save(wallet);
   return wallet;
 };

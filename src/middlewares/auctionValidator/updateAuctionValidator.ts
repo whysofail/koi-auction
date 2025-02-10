@@ -2,6 +2,29 @@ import { Request, Response, NextFunction } from "express";
 import { validate, isDateString } from "class-validator";
 import auctionRepository from "../../repositories/auction.repository";
 import { AuctionStatus } from "../../entities/Auction";
+import { ErrorHandler } from "../../utils/response/handleError";
+
+interface UpdateAuctionData {
+  item?: string;
+  title?: string;
+  description?: string;
+  reserve_price?: number | null;
+  bid_increment?: number | null;
+  start_datetime?: Date;
+  end_datetime?: Date;
+  status?: AuctionStatus;
+}
+
+const validateField = async <T>(
+  value: T,
+  validator: (value: T) => Promise<boolean> | boolean,
+  errorMessage: string,
+): Promise<T | undefined> => {
+  if (value !== undefined && !(await validator(value))) {
+    throw ErrorHandler.badRequest(errorMessage);
+  }
+  return value;
+};
 
 const updateAuctionValidator = async (
   req: Request,
@@ -9,144 +32,132 @@ const updateAuctionValidator = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    if (!req.body) {
-      res.status(400).json({ message: "Missing request body!" });
-      return;
+    if (!req.body || Object.keys(req.body).length === 0) {
+      throw ErrorHandler.badRequest(
+        "At least one field must be provided for update",
+      );
     }
 
     const { auction_id } = req.params;
-
-    // Validate auction_id
     if (!auction_id) {
-      res.status(400).json({ message: "Invalid auction ID!" });
-      return;
+      throw ErrorHandler.badRequest("Invalid auction ID");
     }
 
-    // Fetch existing auction
-    const auction = await auctionRepository.findAuctionById(auction_id);
-    if (!auction) {
-      res.status(404).json({ message: "Auction not found!" });
-      return;
+    const existingAuction = await auctionRepository.findAuctionById(auction_id);
+    if (!existingAuction) {
+      throw ErrorHandler.notFound("Auction not found");
     }
 
-    const {
-      item,
-      title,
-      description,
-      reserve_price,
-      bid_increment,
-      start_datetime,
-      end_datetime,
-      status,
-    } = req.body;
+    const updates: Partial<UpdateAuctionData> = {};
 
-    // Validate and update `item`
-    if (item && item !== auction.item) {
-      const itemAlreadyExist = await auctionRepository.findOne({
-        where: { item },
-      });
-      if (itemAlreadyExist) {
-        res.status(400).json({ message: "Item already has an auction!" });
-        return;
+    // Validate item
+    if ("item" in req.body) {
+      const { item } = req.body;
+      if (item !== existingAuction.item) {
+        const itemExists = await auctionRepository.findOne({ where: { item } });
+        if (itemExists) {
+          throw ErrorHandler.badRequest("Item already has an auction");
+        }
+        updates.item = item;
       }
-      auction.item = item;
     }
 
-    // Validate and update `title` and `description`
-    if (title !== undefined && title.trim().length === 0) {
-      res.status(400).json({ message: "Title must not be empty!" });
-      return;
-    }
-    if (description !== undefined && description.trim().length === 0) {
-      res.status(400).json({ message: "Description must not be empty!" });
-      return;
-    }
-    if (title) auction.title = title;
-    if (description) auction.description = description;
+    // Validate title and description
+    updates.title = await validateField(
+      req.body.title,
+      (val) => typeof val === "string" && val.trim().length > 0,
+      "Title must not be empty",
+    );
+    updates.description = await validateField(
+      req.body.description,
+      (val) => typeof val === "string" && val.trim().length > 0,
+      "Description must not be empty",
+    );
 
-    // Validate and update `reserve_price`
-    if (reserve_price !== undefined) {
-      const parsedReservePrice = Number(reserve_price);
-      if (Number.isNaN(parsedReservePrice) || parsedReservePrice <= 0) {
-        res
-          .status(400)
-          .json({ message: "Reserve price must be a valid positive number!" });
-        return;
+    // Validate reserve_price
+    if ("reserve_price" in req.body) {
+      const price =
+        req.body.reserve_price === null ? null : Number(req.body.reserve_price);
+      if (price !== null) {
+        await validateField(
+          price,
+          (val) => !Number.isNaN(val) && val > 0,
+          "Reserve price must be a valid positive number",
+        );
       }
-      auction.reserve_price = parsedReservePrice;
+      updates.reserve_price = price;
     }
 
-    // Validate and update `bid_increment`
-    if (bid_increment !== undefined) {
-      const parsedBidIncrement = Number(bid_increment);
-      if (Number.isNaN(parsedBidIncrement) || parsedBidIncrement <= 0) {
-        res
-          .status(400)
-          .json({ message: "Bid increment must be a valid positive number!" });
-        return;
+    // Validate bid_increment
+    if ("bid_increment" in req.body) {
+      const increment =
+        req.body.bid_increment === null ? null : Number(req.body.bid_increment);
+      if (increment !== null) {
+        await validateField(
+          increment,
+          (val) => !Number.isNaN(val) && val > 0,
+          "Bid increment must be a valid positive number",
+        );
       }
-      auction.bid_increment = parsedBidIncrement;
+      updates.bid_increment = increment;
     }
 
-    // Validate and update `start_datetime` and `end_datetime`
-    if (start_datetime && !isDateString(start_datetime)) {
-      res.status(400).json({ message: "Invalid start datetime!" });
-      return;
-    }
-    if (end_datetime && !isDateString(end_datetime)) {
-      res.status(400).json({ message: "Invalid end datetime!" });
-      return;
-    }
-
-    const startDt = start_datetime ? new Date(start_datetime) : undefined;
-    const endDt = end_datetime ? new Date(end_datetime) : undefined;
-
-    // Ensure start datetime is in the future
-    const now = new Date();
-    const oneHourMs = 60 * 60 * 1000;
-    if (startDt && startDt.getTime() <= now.getTime() - oneHourMs) {
-      res
-        .status(400)
-        .json({ message: "Start datetime must be in the future!" });
-      return;
+    // Validate start_datetime
+    if ("start_datetime" in req.body) {
+      const startDate = new Date(req.body.start_datetime);
+      console.log(startDate);
+      console.log(new Date());
+      console.log(startDate > new Date());
+      await validateField(
+        req.body.start_datetime,
+        (val) => isDateString(val) && startDate > new Date(),
+        "Start datetime must be a valid future date",
+      );
+      updates.start_datetime = startDate;
     }
 
-    // Ensure end datetime is after start datetime
-    if (endDt && startDt && endDt.getTime() <= startDt.getTime()) {
-      res
-        .status(400)
-        .json({ message: "End datetime must be after start datetime!" });
-      return;
+    // Validate end_datetime
+    if ("end_datetime" in req.body) {
+      const endDate = new Date(req.body.end_datetime);
+      await validateField(
+        req.body.end_datetime,
+        (val) => {
+          const startTime =
+            updates.start_datetime || existingAuction.start_datetime;
+          return isDateString(val) && endDate > startTime;
+        },
+        "End datetime must be after start datetime",
+      );
+      updates.end_datetime = endDate;
     }
 
-    if (startDt) auction.start_datetime = startDt;
-    if (endDt) auction.end_datetime = endDt;
-
-    // Validate and update `status`
-    if (status !== undefined) {
-      if (typeof status !== "string" || status.trim().length === 0) {
-        res.status(400).json({ message: "Status must not be empty!" });
-        return;
-      }
-      auction.status = status.toUpperCase() as AuctionStatus;
+    // Validate status
+    if ("status" in req.body) {
+      const status = req.body.status.toUpperCase() as AuctionStatus;
+      await validateField(
+        status,
+        (val) => Object.values(AuctionStatus).includes(val),
+        "Invalid auction status",
+      );
+      updates.status = status;
     }
 
-    // Validate the updated auction object
-    const errors = await validate(auction, { skipMissingProperties: true });
-    if (errors.length > 0) {
-      res.status(400).json({
-        message: "Validation failed",
-        errors: errors.map((error) => ({
-          property: error.property,
-          constraints: error.constraints,
-        })),
-      });
-      return;
+    // Create a clean auction object with only updatable fields
+    const updatedAuction = Object.assign(auctionRepository.create(), updates);
+
+    // Validate only the updated properties
+    const validationErrors = await validate(updatedAuction, {
+      skipMissingProperties: true,
+      skipUndefinedProperties: true,
+    });
+
+    if (validationErrors.length > 0) {
+      throw ErrorHandler.badRequest("Validation Failed", validationErrors);
     }
 
     next();
-  } catch (e: any) {
-    res.status(500).json({ message: e.message });
+  } catch (error) {
+    next(error);
   }
 };
 

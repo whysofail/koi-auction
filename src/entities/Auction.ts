@@ -1,7 +1,6 @@
 import {
   IsString,
   IsEnum,
-  IsNumber,
   IsOptional,
   IsUUID,
   MinLength,
@@ -93,7 +92,7 @@ class Auction {
     scale: 2, // Digits after the decimal point
     default: 0,
   })
-  declare current_highest_bid: number;
+  declare current_highest_bid: number | null | undefined;
 
   @Column({
     type: "decimal",
@@ -103,10 +102,9 @@ class Auction {
     default: null,
   })
   @IsOptional()
-  @IsNumber()
   @IsPositive()
   @Min(0, { message: "Reserve price must be a positive number" })
-  declare reserve_price: number | null;
+  declare reserve_price: number | null | undefined;
 
   @Column({
     type: "decimal",
@@ -114,9 +112,8 @@ class Auction {
     scale: 2,
     default: 50000,
   })
-  @IsNumber()
   @IsPositive()
-  declare bid_increment: number;
+  declare bid_increment: number | null | undefined;
 
   @ManyToOne(() => User, (user) => user.auctions)
   @JoinColumn({ name: "created_by_id" })

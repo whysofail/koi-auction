@@ -17,8 +17,8 @@ userRouter.get(
   authorize(["admin"]),
   getAllUsers,
 );
-userRouter.get("/:id", protect, authorize(["user", "admin"]), getUserById);
 userRouter.get("/me", protect, getUserInfo);
+userRouter.get("/:id", protect, authorize(["user", "admin"]), getUserById);
 userRouter.put("/:id", protect, authorize(["user"]), updateUser);
 
 export default userRouter;

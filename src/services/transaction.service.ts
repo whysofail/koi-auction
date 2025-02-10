@@ -119,14 +119,14 @@ const updateDepositTransaction = async (
     Object.assign(transaction, data);
     const updatedTransaction = await transactionRepository.save(transaction);
 
-    if (transaction.status === "APPROVED") {
+    if (updatedTransaction.status === "APPROVED") {
       // Deposit the amount to the user's wallet
-      let { amount } = transaction; // Assuming `amount` is a field in your transaction
+      let { amount } = updatedTransaction; // Get the updated amount
 
       // Ensure amount is a valid number
       amount = parseFloat(amount.toString());
       await walletService.depositToUserWallet(
-        transaction.wallet.user_id,
+        updatedTransaction.wallet.user_id,
         amount,
       );
     }
