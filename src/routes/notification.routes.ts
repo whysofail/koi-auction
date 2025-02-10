@@ -31,6 +31,7 @@ notificationRouter.get(
   "/me",
   protect,
   authorize(["user", "admin"]),
+  parsePaginationAndFilters,
   getUserNotifications,
 );
 
@@ -42,16 +43,17 @@ notificationRouter.post(
 );
 
 notificationRouter.post(
-  "/read/:notification_id",
-  protect,
-  authorize(["user", "admin"]),
-  markNotificationAsRead,
-);
-notificationRouter.post(
   "/read/all",
   protect,
   authorize(["user", "admin"]),
   markAllNotificationAsRead,
+);
+
+notificationRouter.post(
+  "/read/:notification_id",
+  protect,
+  authorize(["user", "admin"]),
+  markNotificationAsRead,
 );
 
 export default notificationRouter;

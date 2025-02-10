@@ -1,10 +1,12 @@
 import Auction from "../entities/Auction";
+import { NotificationType } from "../entities/Notification";
 import auctionRepository from "../repositories/auction.repository";
 import bidRepository from "../repositories/bid.repository";
 import { IBidFilter } from "../types/entityfilter";
-import { IBidOrder } from "../types/entityorder.types";
+import { IBidOrder, SortOrder } from "../types/entityorder.types";
 import { PaginationOptions } from "../utils/pagination";
 import { ErrorHandler } from "../utils/response/handleError";
+import { notificationService } from "./notification.service";
 
 const getAllBids = async (
   filters?: IBidFilter,
@@ -23,11 +25,13 @@ const getBidsByAuctionId = async (
   auction_id: string,
   filters?: IBidFilter,
   pagination?: PaginationOptions,
+  order?: IBidOrder,
 ) => {
   const { bids, count } = await bidRepository.findBidByAuctionId(
     auction_id,
     filters,
     pagination,
+    order,
   );
   if (!bids) {
     throw ErrorHandler.notFound(
@@ -83,6 +87,30 @@ const placeBid = async (
       auction.end_datetime = new Date(
         auction.end_datetime.getTime() + injuryTime,
       );
+
+      // Get the current highest bid
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      const currentHighestBid = await bidService.getBidsByAuctionId(
+        auction_id,
+        {},
+        { limit: 1, page: 1 },
+        { orderBy: "bid_amount", order: SortOrder.DESC },
+      );
+
+      if (currentHighestBid.bids.length > 0) {
+        auction.current_highest_bid = currentHighestBid.bids[0].bid_amount;
+
+        const highestBidder = currentHighestBid.bids[0]?.user;
+        if (highestBidder && highestBidder.user_id !== user_id) {
+          await notificationService.createNotification(
+            highestBidder.user_id,
+            NotificationType.AUCTION,
+            `You have been outbid on auction ${auction_id}`,
+            auction_id,
+          );
+        }
+      }
+
       await transactionalEntityManager.save(auction); // Save auction update
     }
 

@@ -5,7 +5,7 @@ import Notification from "../entities/Notification";
 const emitToRoom = async (
   room: string,
   event: string,
-  data: any,
+  data: { entity: string; data: any },
 ): Promise<void> => {
   const io = SocketIOService.getInstance().getIO();
 
@@ -34,7 +34,7 @@ const emitToRoom = async (
 const emitToUser = async (
   socketId: string,
   event: string,
-  data: any,
+  data: { entity: string; data: any },
 ): Promise<void> => {
   const io = SocketIOService.getInstance().getIO();
 

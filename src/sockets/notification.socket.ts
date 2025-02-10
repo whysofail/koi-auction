@@ -63,7 +63,10 @@ notificationSocket.send = (
   console.log(
     `Sending notification to user ${userId} via notificationSocket.send()`,
   );
-  socketService.emitToRoom(userId, event, notification);
+  socketService.emitToRoom(userId, event, {
+    entity: "notification",
+    data: notification,
+  });
 };
 
 export default notificationSocket;

@@ -67,10 +67,26 @@ export const getUserNotifications: AuthenticatedRequestHandler = async (
   next,
 ): Promise<void> => {
   const { user } = req as AuthenticatedRequest;
+  const { filters, order, pagination } = req;
+
   try {
     const { notifications, count } =
-      await notificationService.getNotificationsByUserId(user.user_id);
-    sendSuccessResponse(res, { data: notifications, count }, 200);
+      await notificationService.getNotificationsByUserId(
+        user.user_id,
+        filters,
+        order as INotificationOrder,
+        pagination,
+      );
+    sendSuccessResponse(
+      res,
+      {
+        data: notifications,
+        count,
+        page: pagination.page,
+        limit: pagination.limit,
+      },
+      200,
+    );
   } catch (error) {
     next(error);
   }

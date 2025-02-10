@@ -5,7 +5,7 @@ import {
 } from "../entities/Notification";
 import notificationRepository from "../repositories/notification.repository";
 import { INotificationFilter } from "../types/entityfilter";
-import { INotificationOrder, SortOrder } from "../types/entityorder.types";
+import { INotificationOrder } from "../types/entityorder.types";
 import { PaginationOptions } from "../utils/pagination";
 import { ErrorHandler } from "../utils/response/handleError";
 import socketService from "./socket.service";
@@ -84,20 +84,18 @@ const getNotificationById = async (notification_id: string) => {
   }
 };
 
-const getNotificationsByUserId = async (user_id: string) => {
+const getNotificationsByUserId = async (
+  user_id: string,
+  filters?: INotificationFilter,
+  order?: INotificationOrder,
+  pagination?: PaginationOptions,
+) => {
   try {
-    const order: INotificationOrder = {
-      orderBy: "created_at",
-      order: SortOrder.DESC,
-    };
     const { notifications, count } =
       await notificationRepository.findAllNotifications(
-        { userId: user_id },
+        { userId: user_id, ...filters },
         order,
-        {
-          page: 1,
-          limit: 100,
-        },
+        pagination,
       );
     return { notifications, count };
   } catch (error) {

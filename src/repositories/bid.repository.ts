@@ -116,6 +116,7 @@ const bidRepository = dataSource.getRepository(Bid).extend({
     auction_id: string,
     filters?: Omit<IBidFilter, "auctionId">,
     pagination?: PaginationOptions,
+    order?: IBidOrder,
   ) {
     const qb = this.createQueryBuilder("bid")
       .leftJoinAndSelect("bid.auction", "auction")
@@ -125,6 +126,8 @@ const bidRepository = dataSource.getRepository(Bid).extend({
     if (filters) {
       applyBidFilters(qb, filters);
     }
+
+    applyBidOrdering(qb, order);
 
     // Apply pagination
     applyPagination(qb, pagination);
