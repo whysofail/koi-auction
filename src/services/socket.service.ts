@@ -1,148 +1,157 @@
+import { Namespace, Server } from "socket.io";
 import SocketIOService from "./socketio.service";
 import { AuthenticatedSocket } from "../sockets";
+import {
+  EntityName,
+  SocketEventType,
+  SocketPayload,
+  RoomType,
+  NamespaceType,
+} from "../types/socket.types";
 import Notification from "../entities/Notification";
 
-const emitToRoom = async (
-  room: string,
-  event: string,
-  data: { entity: string; data: any },
-): Promise<void> => {
-  const io = SocketIOService.getInstance().getIO();
-
-  // Check if the room has any connected sockets
-  const sockets = await io.in(`user:${room}`).fetchSockets();
-  console.log({ sockets });
-  const isRoomAvailable = sockets.length > 0;
-
-  // Log the room availability status
-  console.log(
-    `Checking availability of room "${room}". Available: ${isRoomAvailable ? "Yes" : "No"}`,
-  );
-
-  // Log before emitting to room
-  console.log(
-    `Emitting event "${event}" to room "${`user:${room}`}" with data:`,
-    data,
-  );
-
-  io.to(`user:${room}`).emit(event, data);
-
-  // Log after emitting to room
-  console.log(`Event "${event}" emitted to room "${room}"`);
+// Logger utility
+const log = {
+  info: (message: string, data?: any) => console.log(message, data || ""),
+  warn: (message: string, data?: any) => console.warn(message, data || ""),
+  error: (message: string, data?: any) => console.error(message, data || ""),
 };
 
-const emitToUser = async (
-  socketId: string,
-  event: string,
-  data: { entity: string; data: any },
+// Helper functions
+const getRoomSockets = async (
+  namespace: Namespace | Server,
+  room: RoomType,
+) => {
+  try {
+    return await namespace.in(room).fetchSockets();
+  } catch (error) {
+    log.error(`Failed to fetch sockets for room ${room}:`, error);
+    return [];
+  }
+};
+
+const isRoomActive = async (
+  namespace: Namespace | Server,
+  room: RoomType,
+): Promise<boolean> => {
+  const sockets = await getRoomSockets(namespace, room);
+  return sockets.length > 0;
+};
+
+const emitWithLogging = <T extends EntityName>(
+  emitter: any,
+  event: SocketEventType,
+  data: SocketPayload<T>,
+  target: string,
+): void => {
+  log.info(`Emitting "${event}" to ${target} with data:`, data);
+  emitter.emit(event, data);
+  log.info(`Emitted "${event}" to ${target}`);
+};
+
+// Main service functions
+const emitToRoom = async <T extends EntityName>(
+  room: RoomType,
+  event: SocketEventType,
+  data: SocketPayload<T>,
 ): Promise<void> => {
   const io = SocketIOService.getInstance().getIO();
 
-  // Check if the user is in a specific room, assuming the room is named by userId
-  const getRoom = async (userId: string): Promise<boolean> => {
-    const sockets = await io.in(`user:${userId}`).fetchSockets();
-    return sockets.length > 0;
-  };
+  if (!(await isRoomActive(io, room))) {
+    log.warn(`Room "${room}" is not active or empty`);
+    return;
+  }
 
-  // Retrieve userId from socketId or other method, assuming socketId corresponds to a userId
+  emitWithLogging<T>(io.to(room), event, data, `room ${room}`);
+};
+
+const emitToUser = async <T extends EntityName>(
+  socketId: string,
+  event: SocketEventType,
+  data: SocketPayload<T>,
+): Promise<void> => {
+  const io = SocketIOService.getInstance().getIO();
   const socket = io.sockets.sockets.get(socketId) as
     | AuthenticatedSocket
     | undefined;
+
   if (!socket) {
-    console.warn(`No socket found for socketId: ${socketId}`);
+    log.warn(`No socket found for socketId: ${socketId}`);
     return;
   }
 
-  const userId = socket.user?.user_id; // Retrieve userId from socket (assuming user is attached to the socket)
-
+  const userId = socket.user?.user_id;
   if (!userId) {
-    console.warn("No user attached to the socket.");
+    log.warn(`No user attached to socket: ${socketId}`);
     return;
   }
 
-  // Check if the user is connected to a specific room
-  const isUserConnected = await getRoom(userId);
-
-  if (!isUserConnected) {
-    console.warn(`User with userId: ${userId} is not connected to the room.`);
+  const userRoom = `user:${userId}` as RoomType;
+  if (!(await isRoomActive(io, userRoom))) {
+    log.warn(`User ${userId} is not connected to any room`);
     return;
   }
 
-  // Log before emitting to user
-  console.log(`Emitting event "${event}" to user with socketId: ${socketId}`);
-
-  // Emit the event to the specific socket
-  socket.emit(event, data);
-
-  // Log after emitting to user
-  console.log(`Event "${event}" sent to user with socketId: ${socketId}`);
+  emitWithLogging<T>(socket, event, data, `user ${socketId}`);
 };
 
-const emitToAuthenticatedNamespace = (
+const emitToAuthenticatedNamespace = <T extends EntityName>(
   userId: string,
-  event: string,
-  data: { entity: string; data: any },
+  event: SocketEventType,
+  data: SocketPayload<T>,
+): void => {
+  const authNamespace = SocketIOService.getInstance()
+    .getIO()
+    .of("/auth" as NamespaceType);
+  emitWithLogging<T>(
+    authNamespace.to(userId),
+    event,
+    data,
+    `authenticated user ${userId}`,
+  );
+};
+
+const emitToAuthRoom = async <T extends EntityName>(
+  room: string,
+  event: SocketEventType,
+  data: SocketPayload<T>,
+): Promise<void> => {
+  const authNamespace = SocketIOService.getInstance()
+    .getIO()
+    .of("/auth" as NamespaceType);
+  const userRoom = `user:${room}` as RoomType;
+
+  if (!(await isRoomActive(authNamespace, userRoom))) {
+    log.warn(`Auth room "${userRoom}" is not active or empty`);
+    return;
+  }
+
+  emitWithLogging<T>(
+    authNamespace.to(userRoom),
+    event,
+    data,
+    `auth room ${userRoom}`,
+  );
+};
+
+const emitToAdminRoom = async (data: Notification): Promise<void> => {
+  const adminNamespace = SocketIOService.getInstance()
+    .getIO()
+    .of("/admin" as NamespaceType);
+  emitWithLogging(
+    adminNamespace,
+    "admin",
+    { entity: "notification", data },
+    "admin namespace",
+  );
+};
+
+const emitToAll = <T extends EntityName>(
+  event: SocketEventType,
+  data: SocketPayload<T>,
 ): void => {
   const io = SocketIOService.getInstance().getIO();
-  const authNamespace = io.of("/auth");
-
-  // Emit only to the specific user
-  authNamespace.to(userId).emit(event, data);
-
-  console.log(
-    `Event "${event}" emitted to user ${userId} in authenticated namespace`,
-  );
-};
-
-const emitToAuthRoom = async (
-  room: string,
-  event: string,
-  data: any,
-): Promise<void> => {
-  const io = SocketIOService.getInstance().getIO();
-  const authNamespace = io.of("/auth");
-
-  // Check if the room has any connected sockets
-  const sockets = await authNamespace.in(`user:${room}`).fetchSockets();
-  const isRoomAvailable = sockets.length > 0;
-
-  // Log the room availability status
-  console.log(
-    `Checking availability of room "${room}". Available: ${isRoomAvailable ? "Yes" : "No"}`,
-  );
-
-  // Log before emitting to room
-  console.log(
-    `Emitting event "${event}" to room "${`user:${room}`}" with data:`,
-    data,
-  );
-
-  authNamespace.to(`user:${room}`).emit(event, data);
-
-  // Log after emitting to room
-  console.log(`Event "${event}" emitted to room "user:${room}"`);
-};
-
-const emitToAdminRoom = async (data: Notification) => {
-  const io = SocketIOService.getInstance().getIO();
-  const adminNamespace = io.of("/admin");
-
-  adminNamespace.emit("admin", data);
-
-  // Log after emitting to admin room
-  console.log(`Event "admin" sent to admin namespace`);
-};
-
-const emitToAll = (event: string, data: any): void => {
-  const io = SocketIOService.getInstance().getIO();
-
-  // Log before emitting to all
-  console.log(`Emitting event "${event}" to all connected users`);
-
-  io.emit(event, data);
-
-  // Log after emitting to all
-  console.log(`Event "${event}" sent to all connected users`);
+  emitWithLogging<T>(io, event, data, "all connected users");
 };
 
 export default {

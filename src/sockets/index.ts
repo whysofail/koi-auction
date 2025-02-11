@@ -1,48 +1,122 @@
 import { Server, Socket } from "socket.io";
 import auctionSocket from "./auction.socket";
-import bidSocket from "./bid.socket";
 import notificationSocket from "./notification.socket";
 import { socketAuthMiddleware } from "./socketauth.middleware";
+import {
+  NamespaceType,
+  RoomType,
+  SocketConnectionStatus,
+} from "../types/socket.types";
+
+const log = {
+  info: (message: string, data?: any) => console.log(message, data || ""),
+  warn: (message: string, data?: any) => console.warn(message, data || ""),
+  error: (message: string, data?: any) => console.error(message, data || ""),
+};
 
 export interface AuthenticatedSocket extends Socket {
   user?: {
     user_id: string;
     role: string;
   };
+  connectionStatus?: SocketConnectionStatus;
 }
 
-export default function initializeSockets(io: Server): void {
-  // Public (Unauthenticated) namespace
-  io.on("connection", (socket: Socket) => {
-    console.log("Client connected to public namespace");
+const handleSocketConnection = (socket: Socket, namespace: NamespaceType) => {
+  log.info(`Client connected to ${namespace} namespace`, {
+    socketId: socket.id,
+  });
 
-    // Initialize public socket functionalities that do not require authentication
-    auctionSocket(io, socket);
-
-    // Handle disconnect
-    socket.on("disconnect", () => {
-      console.log("Client disconnected from public namespace");
+  socket.on("disconnect", (reason) => {
+    log.info(`Client disconnected from ${namespace} namespace`, {
+      socketId: socket.id,
+      reason,
     });
   });
 
-  // Authenticated namespace
-  const authNamespace = io.of("/auth");
+  socket.on("error", (error) => {
+    log.error(`Socket error in ${namespace} namespace`, {
+      socketId: socket.id,
+      error,
+    });
+  });
+};
 
-  // Apply the authentication middleware for this namespace
-  authNamespace.use(socketAuthMiddleware(["user", "admin"]));
-
-  authNamespace.on("connection", (socket: AuthenticatedSocket) => {
+const initializeAuthenticatedSocket = async (
+  io: Server,
+  socket: AuthenticatedSocket,
+  namespace: NamespaceType,
+): Promise<void> => {
+  try {
     const userId = socket.user?.user_id;
-    if (userId) {
-      socket.join(userId);
+    if (!userId) {
+      log.warn("No user ID found for authenticated socket");
+      socket.disconnect();
+      return;
     }
-    // Initialize authenticated socket functionalities, such as bidSocket
-    bidSocket(authNamespace, socket);
-    notificationSocket(authNamespace, socket);
 
-    // Handle disconnect
-    socket.on("disconnect", () => {
-      console.log("Client disconnected from authenticated namespace");
+    const userRoom = `user:${userId}` as RoomType;
+    await socket.join(userRoom);
+
+    // eslint-disable-next-line no-param-reassign
+    socket.connectionStatus = {
+      connected: true,
+      socketId: socket.id,
+      rooms: [userRoom],
+      lastConnected: new Date(),
+    };
+
+    // Initialize socket handlers
+    notificationSocket(io, socket);
+
+    log.info("Authenticated user connected", {
+      userId,
+      socketId: socket.id,
+      namespace,
+      rooms: Array.from(socket.rooms),
     });
-  });
+  } catch (error) {
+    log.error("Error initializing authenticated socket", {
+      error,
+      socketId: socket.id,
+    });
+    socket.disconnect();
+  }
+};
+
+export default function initializeSockets(io: Server): void {
+  try {
+    // Public namespace
+    const publicNamespace = io.of("" as NamespaceType);
+    publicNamespace.on("connection", (socket: Socket) => {
+      handleSocketConnection(socket, "default");
+      auctionSocket(io, socket);
+    });
+
+    // Authenticated namespace
+    const authNamespace = io.of("/auth" as NamespaceType);
+    authNamespace.use(socketAuthMiddleware(["user", "admin"]));
+
+    authNamespace.on("connection", (socket: AuthenticatedSocket) => {
+      initializeAuthenticatedSocket(io, socket, "auth");
+    });
+
+    // Admin namespace
+    const adminNamespace = io.of("/admin" as NamespaceType);
+    adminNamespace.use(socketAuthMiddleware(["admin"]));
+
+    adminNamespace.on("connection", (socket: AuthenticatedSocket) => {
+      initializeAuthenticatedSocket(io, socket, "admin");
+    });
+
+    // Global error handling
+    io.on("error", (error) => {
+      log.error("Socket.IO server error:", error);
+    });
+
+    log.info("Socket.IO server initialized successfully");
+  } catch (error) {
+    log.error("Failed to initialize Socket.IO server:", error);
+    throw error;
+  }
 }

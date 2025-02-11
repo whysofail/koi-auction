@@ -1,14 +1,14 @@
 import { Router } from "express";
 import {
   blastNotification,
-  createNotification,
+  // createNotification,
   getNotifications,
   getUserNotifications,
   markAllNotificationAsRead,
   markNotificationAsRead,
 } from "../controllers/notification.controllers";
 import { authorize, protect } from "../middlewares/auth.middleware";
-import createNotificationValidator from "../middlewares/notificationValidator/createNotificationValidator";
+// import createNotificationValidator from "../middlewares/notificationValidator/createNotificationValidator";
 import { parsePaginationAndFilters } from "../middlewares/parsePaginationFilter.middleware";
 
 const notificationRouter = Router();
@@ -20,13 +20,13 @@ notificationRouter.get(
   parsePaginationAndFilters,
   getNotifications,
 );
-notificationRouter.post(
-  "/",
-  protect,
-  authorize(["admin"]),
-  createNotificationValidator,
-  createNotification,
-);
+// notificationRouter.post(
+//   "/",
+//   protect,
+//   authorize(["admin"]),
+//   createNotificationValidator,
+//   createNotification,
+// );
 notificationRouter.get(
   "/me",
   protect,

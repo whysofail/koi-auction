@@ -5,6 +5,7 @@ import {
   getAuctionDetails,
   getAuctions,
   joinAuction,
+  leaveAuction,
   updateAuction,
 } from "../controllers/auction.controllers";
 import { parsePaginationAndFilters } from "../middlewares/parsePaginationFilter.middleware";
@@ -38,6 +39,8 @@ auctionRouter.post(
   joinAuctionValidator,
   joinAuction,
 );
+
+auctionRouter.post("/:auction_id/leave", protect, leaveAuction);
 
 auctionRouter.delete(
   "/:auction_id",

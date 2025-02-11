@@ -3,8 +3,6 @@ import { Server, Socket } from "socket.io";
 const userRooms: Record<string, Set<string> | undefined> = {};
 
 const auctionSocketHandler = (io: Server, socket: Socket): void => {
-  console.log("New client connected:", socket.id);
-
   // Handle joining an auction room
   socket.on("joinAuction", (auctionId: string) => {
     console.log(`Client ${socket.id} joined auction: ${auctionId}`);
@@ -43,13 +41,6 @@ const auctionSocketHandler = (io: Server, socket: Socket): void => {
 
     // Notify the client that they left the auction successfully
     socket.emit("success", `You have left auction: ${auctionId}`);
-  });
-
-  // Handle request for users in an auction
-  socket.on("getUsersInAuction", (auctionId: string) => {
-    // Emit the list of users in the specified auction room to the client
-    const users = userRooms[auctionId] ? Array.from(userRooms[auctionId]) : [];
-    socket.emit("usersInAuction", users);
   });
 
   // Handle client disconnection

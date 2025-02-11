@@ -107,6 +107,22 @@ export const joinAuction: AuthenticatedRequestHandler = async (
   }
 };
 
+export const leaveAuction: AuthenticatedRequestHandler = async (
+  req: Request,
+  res: Response,
+  next,
+): Promise<void> => {
+  const { auction_id } = req.params;
+  const { user } = req as AuthenticatedRequest;
+
+  try {
+    await auctionService.leaveAuction(auction_id, user.user_id);
+    sendSuccessResponse(res, { message: "Left auction successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const deleteAuction: AuthenticatedRequestHandler = async (
   req,
   res,

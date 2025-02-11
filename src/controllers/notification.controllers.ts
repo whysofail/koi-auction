@@ -1,7 +1,6 @@
 import { Request, RequestHandler, Response } from "express";
 import notificationRepository from "../repositories/notification.repository";
 import { sendSuccessResponse } from "../utils/response/handleResponse";
-import notificationSocket from "../sockets/notification.socket";
 import {
   AuthenticatedRequest,
   AuthenticatedRequestHandler,
@@ -34,29 +33,6 @@ export const getNotifications: RequestHandler = async (
     );
   } catch (error) {
     next(error);
-  }
-};
-
-// Create notification
-export const createNotification = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
-  const { user_id, type, message, reference_id, role } = req.body;
-
-  try {
-    const notification = await notificationRepository.createNotification(
-      user_id,
-      type,
-      message,
-      reference_id,
-      role,
-    );
-    await notificationSocket.send(user_id, "notification", notification);
-    sendSuccessResponse(res, { data: notification }, 201);
-  } catch (error) {
-    console.error("Error creating notification:", error);
-    res.status(500).json({ message: "Internal server error" });
   }
 };
 

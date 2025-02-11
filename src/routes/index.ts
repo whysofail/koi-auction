@@ -9,6 +9,7 @@ import notificationRouter from "./notification.routes";
 import warningRouter from "./warning.routes";
 import statsRouter from "./stats.routes";
 import jobRouter from "./job.routes";
+import socketRouter from "./socket.routes";
 import { errorHandler } from "../utils/response/handleError";
 
 const router = Router();
@@ -29,6 +30,7 @@ router.use("/notifications", notificationRouter);
 router.use("/warnings", warningRouter);
 router.use("/stats", statsRouter);
 router.use("/jobs", jobRouter);
+router.use("/socket", socketRouter);
 
 // Catch-all route for undefined paths
 router.use((req: Request, res: Response) => {

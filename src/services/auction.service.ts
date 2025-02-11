@@ -187,6 +187,29 @@ export const getAuctionEndingSoon = async (
   return { auctions, count };
 };
 
+const leaveAuction = async (auction_id: string, user_id: string) => {
+  try {
+    const auction = await auctionRepository.findAuctionById(auction_id);
+    if (!auction) {
+      throw ErrorHandler.notFound(`Auction with ID ${auction_id} not found`);
+    }
+
+    const auctionParticipant = await auctionParticipantRepository.findOne({
+      where: { auction, user: { user_id } },
+    });
+    if (!auctionParticipant) {
+      throw ErrorHandler.notFound("User not found in auction");
+    }
+
+    await auctionParticipantRepository.delete(
+      auctionParticipant.auction_participant_id,
+    );
+    return { message: "User successfully left the auction" };
+  } catch (error) {
+    throw ErrorHandler.internalServerError("Error leaving auction", error);
+  }
+};
+
 const deleteAuction = async (auction_id: string, user_id: string) => {
   try {
     const auction = await auctionRepository.findAuctionById(auction_id);
@@ -214,4 +237,5 @@ export const auctionService = {
   updateAuction,
   getAuctionEndingSoon,
   deleteAuction,
+  leaveAuction,
 };
