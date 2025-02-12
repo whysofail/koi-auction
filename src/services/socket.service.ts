@@ -95,7 +95,7 @@ const emitToUser = async <T extends EntityName>(
   emitWithLogging<T>(socket, event, data, `user ${socketId}`);
 };
 
-const emitToAuthenticatedNamespace = <T extends EntityName>(
+const emitToAuthenticatedUser = <T extends EntityName>(
   userId: string,
   event: SocketEventType,
   data: SocketPayload<T>,
@@ -104,7 +104,7 @@ const emitToAuthenticatedNamespace = <T extends EntityName>(
     .getIO()
     .of("/auth" as NamespaceType);
   emitWithLogging<T>(
-    authNamespace.to(userId),
+    authNamespace.to(`user:${userId}`),
     event,
     data,
     `authenticated user ${userId}`,
@@ -157,7 +157,7 @@ const emitToAll = <T extends EntityName>(
 export default {
   emitToRoom,
   emitToUser,
-  emitToAuthenticatedNamespace,
+  emitToAuthenticatedUser,
   emitToAuthRoom,
   emitToAll,
   emitToAdminRoom,

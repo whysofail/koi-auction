@@ -49,7 +49,7 @@ const createNotification = async (
       role || NotificationRole.USER,
     );
 
-    await socketService.emitToAuthenticatedNamespace(user_id, "update", {
+    socketService.emitToAuthenticatedUser(user_id, "update", {
       entity: "notification",
       data: notification,
     });
@@ -189,7 +189,7 @@ const sendNotificationToAdmins = async (
     );
 
     admins.users.forEach((admin, index) => {
-      socketService.emitToAuthenticatedNamespace(
+      socketService.emitToAuthenticatedUser(
         admin.user_id,
         "update", //
         { entity: "notification", data: adminNotifications[index] },

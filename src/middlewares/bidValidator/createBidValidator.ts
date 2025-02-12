@@ -20,7 +20,7 @@ const createBidValidator = async (
 
     const auction = await auctionService.getAuctionById(auction_id);
 
-    if (auction.status === AuctionStatus.STARTED) {
+    if (auction.status !== AuctionStatus.STARTED) {
       res.status(400).json({ message: "Auction has not started yet!" });
       return;
     }

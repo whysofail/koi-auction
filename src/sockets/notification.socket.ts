@@ -14,5 +14,4 @@ const notificationSocket = (
     console.log("Client disconnected from /auth notification");
   });
 };
-
 export default notificationSocket;

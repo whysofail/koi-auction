@@ -10,6 +10,7 @@ import { IAuctionFilter } from "../types/entityfilter";
 import { IAuctionOrder } from "../types/entityorder.types";
 import { auctionJobs } from "../jobs/auction.jobs";
 import userRepository from "../repositories/user.repository";
+import socketService from "./socket.service";
 
 export const getAllAuctions = async (
   filters?: IAuctionFilter,
@@ -163,6 +164,11 @@ const joinAuction = async (auction_id: string, user_id: string) => {
     });
     await auctionParticipantRepository.save(auctionParticipant);
 
+    await socketService.emitToRoom(`auction:${auction_id}`, "update", {
+      entity: "auction",
+      data: auction,
+    });
+
     return {
       message: "User successfully joined the auction",
       participationFee,
@@ -195,7 +201,8 @@ const leaveAuction = async (auction_id: string, user_id: string) => {
     }
 
     const auctionParticipant = await auctionParticipantRepository.findOne({
-      where: { auction, user: { user_id } },
+      where: { auction: { auction_id }, user: { user_id } },
+      relations: ["user", "auction"], // Ensure the relations are correctly loaded
     });
     if (!auctionParticipant) {
       throw ErrorHandler.notFound("User not found in auction");
