@@ -120,6 +120,8 @@ const bidRepository = dataSource.getRepository(Bid).extend({
   ) {
     const qb = this.createQueryBuilder("bid")
       .leftJoinAndSelect("bid.auction", "auction")
+      .leftJoin("bid.user", "user")
+      .select(["bid", "auction", "user.user_id", "user.username", "user.email"])
       .where("auction.auction_id = :auction_id", { auction_id });
 
     // Apply filters

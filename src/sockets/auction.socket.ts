@@ -1,5 +1,5 @@
 import { Server, Socket } from "socket.io";
-import Auction from "../entities/Auction";
+import Auction, { AuctionStatus } from "../entities/Auction";
 import Bid from "../entities/Bid";
 import socketService from "../services/socket.service";
 import AuctionParticipant from "../entities/AuctionParticipant";
@@ -15,28 +15,25 @@ const log = {
 
 const auctionSocketHandler = (io: Server, socket: Socket): void => {
   // Handle joining an auction room
-  socket.on("joinAuction", (auctionId: string) => {
-    const room = `auction:${auctionId}`;
-    console.log(room);
-    console.log(`Client ${socket.id} joined auction: ${auctionId}`);
-    socket.join(room); // Join the auction room
+  socket.on("joinAuction", async (auctionId: string) => {
+    try {
+      if (!auctionId) {
+        throw new Error("Invalid auction ID");
+      }
+      const room = `auction:${auctionId}`;
 
-    log.info("user connected to auction", {
-      socketId: socket.id,
-      rooms: Array.from(socket.rooms),
-    });
+      socket.join(room);
+      log.info("user connected to auction", {
+        socketId: socket.id,
+        room,
+        timestamp: new Date().toISOString(),
+      });
 
-    // Add the user to the auction room's set of users
-    if (!userRooms[room]) {
-      userRooms[room] = new Set();
+      socket.emit("success", `You have joined auction: ${auctionId}`);
+    } catch (error) {
+      log.error("Error joining auction", { error, auctionId });
+      socket.emit("error", "Failed to join auction");
     }
-    userRooms[room].add(socket.id);
-
-    // Emit the updated list of users to all clients in the auction room
-    io.to(auctionId).emit("userListUpdate", Array.from(userRooms[room]));
-
-    // Notify the client that they joined the auction successfully
-    socket.emit("success", `You have joined auction: ${auctionId}`);
   });
 
   // Handle leaving an auction room
@@ -44,19 +41,6 @@ const auctionSocketHandler = (io: Server, socket: Socket): void => {
     const room = `auction:${auctionId}`;
     console.log(`Client ${socket.id} left auction: ${auctionId}`);
     socket.leave(room); // Leave the auction room
-
-    // Remove the user from the auction room's set of users
-    if (userRooms[room]) {
-      userRooms[room].delete(socket.id);
-
-      // Emit the updated list of users to all clients in the auction room
-      io.to(auctionId).emit("userListUpdate", Array.from(userRooms[room]));
-
-      // Cleanup if no users remain in the room
-      if (userRooms[room].size === 0) {
-        userRooms[room] = undefined;
-      }
-    }
 
     // Notify the client that they left the auction successfully
     socket.emit("success", `You have left auction: ${auctionId}`);
@@ -90,7 +74,12 @@ type AuctionUpdateType =
   | "AUCTION_UPDATED";
 
 interface AuctionUpdateData
-  extends Partial<Auction & AuctionParticipant & Bid & User> {}
+  extends Partial<Auction & AuctionParticipant & Bid & User> {
+  auction_id?: string;
+  bids?: Bid[];
+  participants?: AuctionParticipant[];
+  status?: AuctionStatus | undefined;
+}
 
 interface AuctionSocketUpdate {
   entity: "auction";
@@ -103,20 +92,39 @@ const auctionUpdate = async (
   auctionId: string,
   data: Partial<AuctionUpdateData>,
 ): Promise<void> => {
-  const update: AuctionSocketUpdate = {
-    entity: "auction",
-    type,
-    data: {
-      auction_id: auctionId,
-      ...data,
-    },
-  };
+  try {
+    if (!auctionId || !data) {
+      throw new Error("Invalid update data");
+    }
 
-  await socketService.emitToRoom(`auction:${auctionId}`, "update", update);
+    const update: AuctionSocketUpdate = {
+      entity: "auction",
+      type,
+      data: {
+        auction_id: auctionId,
+        ...data,
+      },
+    };
+
+    await socketService.emitToRoom(`auction:${auctionId}`, "update", update);
+  } catch (error) {
+    log.error("Error updating auction", { error, auctionId, type });
+    throw error;
+  }
 };
 
 const bidUpdate = async (auctionId: string, bid: Bid): Promise<void> => {
-  await auctionUpdate("BID_PLACED", auctionId, bid);
+  await auctionUpdate("BID_PLACED", auctionId, {
+    bids: [
+      {
+        bid_id: bid.bid_id,
+        bid_amount: bid.bid_amount,
+        bid_time: bid.bid_time,
+        user: bid.user,
+        auction: bid.auction,
+      },
+    ],
+  });
 };
 
 const participantUpdate = async (

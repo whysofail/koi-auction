@@ -47,10 +47,14 @@ const createBidValidator = async (
 
     const currentHighestBid = Number(auction.current_highest_bid);
     const bidIncrement = Number(auction.bid_increment);
-
-    if (bidAmount <= currentHighestBid + bidIncrement) {
+    const nextValidBid = currentHighestBid + bidIncrement;
+    // Ensure bid is at least the next valid bid and follows the bid increment pattern
+    if (
+      bidAmount < nextValidBid ||
+      (bidAmount - nextValidBid) % bidIncrement !== 0
+    ) {
       res.status(400).json({
-        message: `Bid amount must be greater than the current highest bid by the bid increment of ${auction.bid_increment}`,
+        message: `Bid amount must be at least ${nextValidBid} and follow the bid increment of ${bidIncrement}.`,
       });
       return;
     }
