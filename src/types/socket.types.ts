@@ -2,12 +2,14 @@ import Auction from "../entities/Auction";
 import User from "../entities/User";
 import Bid from "../entities/Bid";
 import Notification from "../entities/Notification";
+import AuctionParticipant from "../entities/AuctionParticipant";
 // Entity Types
 export type EntityMap = {
   user: User;
   auction: Auction;
   bid: Bid;
   notification: Notification;
+  auctionparticipant: AuctionParticipant;
 };
 
 export type EntityName = keyof EntityMap;
@@ -28,7 +30,11 @@ export type RoomType = `user:${string}` | `auction:${string}` | "admin";
 // Socket Message Payload
 export interface SocketPayload<T extends EntityName> {
   entity: T;
-  data: EntityMap[T];
+  data:
+    | EntityMap[T]
+    | EntityMap[T][]
+    | Partial<EntityMap[T]>
+    | Partial<EntityMap[T]>[];
   timestamp?: number;
   metadata?: {
     action?: string;

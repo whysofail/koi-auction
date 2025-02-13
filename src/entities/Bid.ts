@@ -27,15 +27,13 @@ class Bid {
   })
   declare bid_time: Date;
 
-  // Many-to-one relationship with User (buyer) (as a child)
   @ManyToOne(() => User, (user) => user.bids)
   @JoinColumn({ name: "user_id" })
-  declare user: User | null;
+  declare user: User;
 
-  // Many-to-one relationship with Auction (as a child)
   @ManyToOne(() => Auction, (auction) => auction.bids)
   @JoinColumn({ name: "auction_id" })
-  declare auction: Auction | null;
+  declare auction: Auction;
 }
 
 export default Bid;

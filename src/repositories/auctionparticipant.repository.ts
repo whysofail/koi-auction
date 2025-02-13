@@ -66,6 +66,20 @@ const auctionParticipantRepository = dataSource
       const [auctionParticipants, count] = await qb.getManyAndCount();
       return { auctionParticipants, count };
     },
+    async getOne(filter: IAuctionParticipantFilter) {
+      const qb = this.createQueryBuilder("auctionParticipant")
+        .leftJoin("auctionParticipant.user", "user")
+        .leftJoin("auctionParticipant.auction", "auction")
+        .select([
+          "auctionParticipant",
+          "user.user_id",
+          "user.username",
+          "auction.auction_id",
+          "auction.title",
+        ]);
+      applyAuctionParticipantFilter(qb, filter);
+      return qb.getOne();
+    },
     // Fetch a auctionParticipant by ID, always include the wallet relationship
     findAuctionParticipantAuctionByAuctionId(auction_id: string) {
       return this.findOne({

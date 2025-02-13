@@ -10,7 +10,7 @@ import { IAuctionFilter } from "../types/entityfilter";
 import { IAuctionOrder } from "../types/entityorder.types";
 import { auctionJobs } from "../jobs/auction.jobs";
 import userRepository from "../repositories/user.repository";
-import socketService from "./socket.service";
+import { auctionEmitter } from "../sockets/auction.socket";
 
 export const getAllAuctions = async (
   filters?: IAuctionFilter,
@@ -162,12 +162,17 @@ const joinAuction = async (auction_id: string, user_id: string) => {
       auction,
       user: { user_id },
     });
+
     await auctionParticipantRepository.save(auctionParticipant);
 
-    await socketService.emitToRoom(`auction:${auction_id}`, "update", {
-      entity: "auction",
-      data: auction,
+    const participant = await auctionParticipantRepository.getOne({
+      userId: user_id,
+      auctionId: auction_id,
     });
+
+    if (participant) {
+      await auctionEmitter.participantUpdate(auction_id, participant);
+    }
 
     return {
       message: "User successfully joined the auction",
