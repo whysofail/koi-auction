@@ -15,14 +15,7 @@ export type EntityMap = {
 export type EntityName = keyof EntityMap;
 
 // Socket Event Types
-export type SocketEventType =
-  | "create"
-  | "update"
-  | "delete"
-  | "notification"
-  | "bid"
-  | "auction"
-  | "admin";
+export type SocketEventType = "create" | "update" | "delete" | "admin";
 
 // Room Types
 export type RoomType = `user:${string}` | `auction:${string}` | "admin";

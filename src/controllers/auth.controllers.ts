@@ -23,17 +23,19 @@ const loginController: RequestHandler = async (req, res) => {
   }
 };
 
-const registerController: RequestHandler = async (req, res) => {
+const registerController: RequestHandler = async (req, res, next) => {
   try {
-    const { username, email, password } = req.body;
-    const user_id = await authService.register(username, email, password);
+    const { username, email, phone, password } = req.body;
+    const user_id = await authService.register(
+      username,
+      email,
+      phone,
+      password,
+    );
+
     res.status(200).json({ message: "User registered successfully", user_id });
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      res.status(500).json({ message: error.message });
-    } else {
-      res.status(500).json({ message: "Internal server error" });
-    }
+  } catch (error) {
+    next(error);
   }
 };
 

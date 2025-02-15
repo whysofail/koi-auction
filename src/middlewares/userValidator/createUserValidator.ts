@@ -1,6 +1,6 @@
 /* eslint-disable consistent-return */
 import { Request, Response, NextFunction } from "express";
-import { validate } from "class-validator";
+import { isPhoneNumber, validate } from "class-validator";
 import User, { UserRole } from "../../entities/User";
 
 const createUserValidator = async (
@@ -14,7 +14,7 @@ const createUserValidator = async (
       return;
     }
 
-    const requiredFields = ["username", "email", "password"];
+    const requiredFields = ["username", "email", "password", "phone"];
     const missingFields = requiredFields.filter((field) => !req.body[field]);
     if (missingFields.length > 0) {
       res.status(400).json({
@@ -23,10 +23,18 @@ const createUserValidator = async (
       return;
     }
 
+    if (!isPhoneNumber(req.body.phone, "ID")) {
+      res.status(400).json({
+        message: "Invalid phone number",
+      });
+      return;
+    }
+
     const user = new User();
     user.username = req.body.username;
     user.email = req.body.email;
     user.password = req.body.password;
+    user.phone = req.body.phone;
 
     if (req.body.role !== undefined) {
       if (!Object.values(UserRole).includes(req.body.role)) {

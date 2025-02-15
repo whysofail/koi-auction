@@ -16,19 +16,6 @@ import { notificationService } from "../services/notification.service";
 import { NotificationRole, NotificationType } from "../entities/Notification";
 import { formatCurrency } from "../utils/formatCurrency";
 
-// Create a new wallet
-export const createWallet: RequestHandler = async (
-  req: Request,
-  res: Response,
-) => {
-  try {
-    const wallet = await walletRepository.create(req.body);
-    return sendSuccessResponse(res, { data: wallet }, 201);
-  } catch (error) {
-    return sendErrorResponse(res, (error as Error).message, 500);
-  }
-};
-
 // Get a wallet by ID
 export const getWalletById: RequestHandler = async (
   req: Request,
@@ -71,26 +58,6 @@ export const updateWallet: RequestHandler = async (
       return sendErrorResponse(res, "Wallet not found", 404);
     }
     return sendSuccessResponse(res, { data: wallet }, 200);
-  } catch (error) {
-    return sendErrorResponse(res, (error as Error).message, 500);
-  }
-};
-
-// Delete a wallet by ID
-export const deleteWallet: RequestHandler = async (
-  req: Request,
-  res: Response,
-) => {
-  try {
-    const wallet = await walletRepository.delete(req.params.id);
-    if (!wallet) {
-      return sendErrorResponse(res, "Wallet not found", 404);
-    }
-    return sendSuccessResponse(
-      res,
-      { message: "Wallet deleted successfully" },
-      200,
-    );
   } catch (error) {
     return sendErrorResponse(res, (error as Error).message, 500);
   }

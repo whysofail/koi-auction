@@ -83,11 +83,12 @@ const userRepository = dataSource.getRepository(User).extend({
         "user.user_id",
         "user.username",
         "user.email",
+        "user.phone",
         "user.role",
         "user.is_banned",
-        "user.registration_date",
         "wallet.wallet_id",
         "wallet.balance",
+        "user.registration_date",
       ]);
 
     // Apply filters
