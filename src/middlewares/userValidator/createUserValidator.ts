@@ -1,6 +1,6 @@
 /* eslint-disable consistent-return */
 import { Request, Response, NextFunction } from "express";
-import { isPhoneNumber, validate } from "class-validator";
+import { validate } from "class-validator";
 import User, { UserRole } from "../../entities/User";
 
 const createUserValidator = async (
@@ -19,13 +19,6 @@ const createUserValidator = async (
     if (missingFields.length > 0) {
       res.status(400).json({
         message: "Missing required fields",
-      });
-      return;
-    }
-
-    if (!isPhoneNumber(req.body.phone, "ID")) {
-      res.status(400).json({
-        message: "Invalid phone number",
       });
       return;
     }

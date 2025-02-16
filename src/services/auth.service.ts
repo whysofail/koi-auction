@@ -39,16 +39,11 @@ const register = async (
   phone: string,
   password: string,
 ) => {
-  let parsedPhone = phone.trim().replace(/[\s-]/g, ""); // Remove spaces and dashes
-
-  // If starts with 0, replace it with +62
-  if (parsedPhone.startsWith("0")) {
-    parsedPhone = `+62${parsedPhone.substring(1)}`;
-  }
-  // If doesn't start with +, add +62
-  else if (!parsedPhone.startsWith("+")) {
-    parsedPhone = `+62${parsedPhone}`;
-  }
+  const parsedPhone = phone
+    .trim()
+    .replace(/[\s-]/g, "")
+    .replace(/^0/, "+62")
+    .replace(/^(?!\+)/, "+62");
 
   const existingUser = await userRepository.findOne({
     where: [{ email }, { username }, { phone: parsedPhone }],

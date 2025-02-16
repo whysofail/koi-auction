@@ -52,9 +52,8 @@ class User {
   @Column()
   declare password: string;
 
-  @IsPhoneNumber()
+  @IsPhoneNumber("ID")
   @Column("varchar", {
-    length: 20,
     nullable: false,
   })
   declare phone: string;
