@@ -52,7 +52,10 @@ class User {
   @Column()
   declare password: string;
 
-  @IsPhoneNumber("ID")
+  @IsPhoneNumber("ID", {
+    message:
+      "Phone number must be a valid Indonesian number starting with +62, 62, or 0",
+  })
   @Column("varchar", {
     nullable: false,
   })
