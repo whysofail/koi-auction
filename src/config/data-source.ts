@@ -13,7 +13,7 @@ const AppDataSource = new DataSource({
   username: DB_USERNAME,
   password: DB_PASS,
   database: DB_NAME,
-  synchronize: APP_ENV === "local",
+  synchronize: APP_ENV === "dev",
   logging: false,
   entities: ["src/entities/*.ts"],
   migrations: ["src/migrations/*.ts"],
