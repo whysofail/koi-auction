@@ -154,6 +154,15 @@ const emitToAll = <T extends EntityName>(
   emitWithLogging<T>(io, event, data, "all connected users");
 };
 
+const emitToNamespace = <T extends EntityName>(
+  namespace: NamespaceType,
+  event: SocketEventType,
+  data: SocketPayload<T>,
+): void => {
+  const io = SocketIOService.getInstance().getIO();
+  emitWithLogging<T>(io.of(namespace), event, data, namespace);
+};
+
 export default {
   emitToRoom,
   emitToUser,
@@ -161,4 +170,5 @@ export default {
   emitToAuthRoom,
   emitToAll,
   emitToAdminRoom,
+  emitToNamespace,
 };

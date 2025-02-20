@@ -1,5 +1,6 @@
 import Auction, { AuctionStatus } from "../entities/Auction";
 import auctionRepository from "../repositories/auction.repository";
+import { auctionEmitter } from "../sockets/auction.socket";
 import JobManager, { JobHandler } from "./jobManager";
 
 const jobManager = new JobManager();
@@ -24,6 +25,12 @@ const auctionStartHandler: JobHandler = {
       auctionToUpdate.status = AuctionStatus.STARTED;
       await auctionRepository.save(auctionToUpdate);
       console.log(`Auction [${auctionToUpdate.auction_id}] started.`);
+      // Notify via socket
+      auctionEmitter.auctionUpdate(
+        "AUCTION_UPDATED",
+        auctionToUpdate.auction_id,
+        auctionToUpdate,
+      );
 
       return { success: true };
     } catch (error) {

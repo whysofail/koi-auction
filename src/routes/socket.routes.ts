@@ -12,4 +12,11 @@ socketRouter.post("/emit", (req, res) => {
   res.json({ message: "Emitting event" });
 });
 
+socketRouter.post("/emit/namespace", (req, res) => {
+  const { namespace, event, entity, data } = req.body;
+  const socketData = { entity, data };
+  socketService.emitToNamespace(namespace, event, socketData);
+  res.json({ message: "Emitting event" });
+});
+
 export default socketRouter;

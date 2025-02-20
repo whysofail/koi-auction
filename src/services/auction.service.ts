@@ -116,6 +116,11 @@ const updateAuction = async (
       auctionJobs.schedule(updatedAuction);
     }
 
+    // Cancel job if auction changed from published to draft or else
+    if (updatedAuction.status !== AuctionStatus.PUBLISHED) {
+      auctionJobs.cancel(updatedAuction.auction_id);
+    }
+
     // Return auction without full user details
     return {
       ...updatedAuction,

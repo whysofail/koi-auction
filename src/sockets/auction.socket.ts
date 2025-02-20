@@ -107,6 +107,7 @@ const auctionUpdate = async (
     };
 
     await socketService.emitToRoom(`auction:${auctionId}`, "update", update);
+    await socketService.emitToNamespace("admin", "update", update);
   } catch (error) {
     log.error("Error updating auction", { error, auctionId, type });
     throw error;
