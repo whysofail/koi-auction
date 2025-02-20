@@ -58,6 +58,7 @@ class User {
   })
   @Column("varchar", {
     nullable: false,
+    unique: true,
   })
   declare phone: string;
 
