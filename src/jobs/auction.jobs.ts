@@ -29,7 +29,7 @@ const auctionStartHandler: JobHandler = {
       await auctionRepository.save(auctionToUpdate);
       console.log(`Auction [${auctionToUpdate.auction_id}] started.`);
       // Notify via socket
-      auctionEmitter.auctionUpdate(
+      await auctionEmitter.auctionUpdate(
         "AUCTION_UPDATED",
         auctionToUpdate.auction_id,
         auctionToUpdate,
@@ -69,7 +69,7 @@ const auctionEndHandler: JobHandler = {
       await auctionRepository.save(auctionToUpdate);
       console.log(`Auction [${auctionToUpdate.auction_id}] ended.`);
       // Notify via socket
-      auctionEmitter.auctionUpdate(
+      await auctionEmitter.auctionUpdate(
         "AUCTION_UPDATED",
         auctionToUpdate.auction_id,
         auctionToUpdate,

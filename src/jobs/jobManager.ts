@@ -91,13 +91,6 @@ class JobManager {
       return null;
     }
 
-    if (job.runAt < new Date()) {
-      console.warn(
-        `Job ${job.id} was scheduled in the past, skipping scheduling`,
-      );
-      return null;
-    }
-
     const wrappedCallback = async (): Promise<JobResult | void> => {
       try {
         // Update status to running
@@ -179,6 +172,14 @@ class JobManager {
       }
       return { success: true };
     };
+
+    if (job.runAt < new Date()) {
+      console.warn(
+        `Job ${job.id} was scheduled in the past, running immediately`,
+      );
+      await wrappedCallback(); // Run the job immediately
+      return null;
+    }
 
     const scheduledJob = schedule.scheduleJob(
       job.id,

@@ -39,7 +39,6 @@ const auctionSocketHandler = (io: Server, socket: Socket): void => {
   // Handle leaving an auction room
   socket.on("leaveAuction", (auctionId: string) => {
     const room = `auction:${auctionId}`;
-    console.log(`Client ${socket.id} left auction: ${auctionId}`);
     socket.leave(room); // Leave the auction room
 
     // Notify the client that they left the auction successfully
@@ -48,7 +47,6 @@ const auctionSocketHandler = (io: Server, socket: Socket): void => {
 
   // Handle client disconnection
   socket.on("disconnect", () => {
-    console.log("Client disconnected:", socket.id);
     // Remove the user from all rooms they were in
     Object.keys(userRooms).forEach((auctionId) => {
       if (userRooms[auctionId] && userRooms[auctionId].has(socket.id)) {

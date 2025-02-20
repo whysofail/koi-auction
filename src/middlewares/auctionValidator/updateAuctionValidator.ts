@@ -105,9 +105,6 @@ const updateAuctionValidator = async (
     // Validate start_datetime
     if ("start_datetime" in req.body) {
       const startDate = new Date(req.body.start_datetime);
-      console.log(startDate);
-      console.log(new Date());
-      console.log(startDate > new Date());
       await validateField(
         req.body.start_datetime,
         (val) => isDateString(val) && startDate > new Date(),

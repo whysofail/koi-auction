@@ -12,8 +12,6 @@ AppDataSource.initialize()
     console.log("Database connected");
 
     // Initialize jobs after the database is connected
-    await initializeJobs();
-    console.log("All jobs initialized");
 
     // Create app after jobs initialization
     const app = createApp();
@@ -34,6 +32,9 @@ AppDataSource.initialize()
     // Initialize the SocketIO service and sockets
     SocketIOService.getInstance().initialize(io);
     initializeSockets(io);
+
+    await initializeJobs();
+    console.log("All jobs initialized");
 
     // Start the server
     server.listen(process.env.PORT || 8001, () => {

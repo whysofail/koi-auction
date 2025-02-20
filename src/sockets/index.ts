@@ -23,17 +23,6 @@ export interface AuthenticatedSocket extends Socket {
 }
 
 const handleSocketConnection = (socket: Socket, namespace: NamespaceType) => {
-  log.info(`Client connected to ${namespace} namespace`, {
-    socketId: socket.id,
-  });
-
-  socket.on("disconnect", (reason) => {
-    log.info(`Client disconnected from ${namespace} namespace`, {
-      socketId: socket.id,
-      reason,
-    });
-  });
-
   socket.on("error", (error) => {
     log.error(`Socket error in ${namespace} namespace`, {
       socketId: socket.id,
@@ -45,6 +34,7 @@ const handleSocketConnection = (socket: Socket, namespace: NamespaceType) => {
 const initializeAuthenticatedSocket = async (
   io: Server,
   socket: AuthenticatedSocket,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   namespace: NamespaceType,
 ): Promise<void> => {
   try {
@@ -68,13 +58,6 @@ const initializeAuthenticatedSocket = async (
 
     // Initialize socket handlers
     notificationSocket(io, socket);
-
-    log.info("Authenticated user connected", {
-      userId,
-      socketId: socket.id,
-      namespace,
-      rooms: Array.from(socket.rooms),
-    });
   } catch (error) {
     log.error("Error initializing authenticated socket", {
       error,
