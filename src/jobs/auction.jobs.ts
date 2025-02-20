@@ -1,14 +1,52 @@
 import Auction, { AuctionStatus } from "../entities/Auction";
 import auctionRepository from "../repositories/auction.repository";
-import JobManager from "./jobManager";
+import JobManager, { JobHandler } from "./jobManager";
 
 const jobManager = new JobManager();
+
+// Define the auction start handler
+const auctionStartHandler: JobHandler = {
+  execute: async (job): Promise<{ success: boolean; error?: Error }> => {
+    try {
+      const auctionToUpdate = await auctionRepository.findOneBy({
+        auction_id: job.referenceId,
+      });
+
+      if (
+        !auctionToUpdate ||
+        auctionToUpdate.status !== AuctionStatus.PUBLISHED
+      ) {
+        throw new Error(
+          `Auction [${job.referenceId}] not found or not in PUBLISHED state`,
+        );
+      }
+
+      auctionToUpdate.status = AuctionStatus.STARTED;
+      await auctionRepository.save(auctionToUpdate);
+      console.log(`Auction [${auctionToUpdate.auction_id}] started.`);
+
+      return { success: true };
+    } catch (error) {
+      console.error(
+        `Error while starting auction [${job.referenceId}]:`,
+        error,
+      );
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+};
+
+// Register the handler
+jobManager.registerJobHandler("start-auction", auctionStartHandler);
 
 /**
  * Schedule an auction start job.
  * @param auction The auction entity.
  */
-export const schedule = async (auction: Auction) => {
+export const schedule = async (auction: Auction): Promise<void> => {
   if (!auction.start_datetime || !auction.auction_id) {
     console.log(
       `Invalid auction data: ${auction.auction_id} or ${auction.start_datetime}`,
@@ -16,40 +54,18 @@ export const schedule = async (auction: Auction) => {
     return;
   }
 
-  // Scheduling the job to start the auction at localStartDatetime
   try {
     await jobManager.createJob(
       auction.auction_id,
       "start-auction",
-      auction.start_datetime, // Use the local start time for the job
-      async () => {
-        try {
-          const auctionToUpdate = await auctionRepository.findOneBy({
-            auction_id: auction.auction_id,
-          });
-
-          if (
-            auctionToUpdate &&
-            auctionToUpdate.status === AuctionStatus.PUBLISHED
-          ) {
-            auctionToUpdate.status = AuctionStatus.STARTED;
-            await auctionRepository.save(auctionToUpdate);
-            console.log(`Auction [${auctionToUpdate.auction_id}] started.`);
-          } else {
-            console.log(
-              `Auction [${auction.auction_id}] not found or already started.`,
-            );
-          }
-        } catch (error) {
-          console.error(
-            `Error while starting auction [${auction.auction_id}]:`,
-            error,
-          );
-        }
-      },
+      auction.start_datetime,
+      "auction",
     );
+
+    console.log(`Scheduled start job for auction [${auction.auction_id}]`);
   } catch (error) {
     console.error("Error scheduling auction job:", error);
+    throw error;
   }
 };
 

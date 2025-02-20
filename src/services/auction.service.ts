@@ -109,16 +109,16 @@ const updateAuction = async (
     auction.user = user; // Assign the user entity with only necessary fields
 
     // Save the updated auction entity
-    await auctionRepository.save(auction);
+    const updatedAuction = await auctionRepository.save(auction);
 
     // If the auction is published, schedule its start
-    if (auction.status === AuctionStatus.PUBLISHED) {
-      auctionJobs.schedule(auction);
+    if (updatedAuction.status === AuctionStatus.PUBLISHED) {
+      auctionJobs.schedule(updatedAuction);
     }
 
     // Return auction without full user details
     return {
-      ...auction,
+      ...updatedAuction,
       user: {
         user_id: auction.user.user_id, // Only return the user_id
       },

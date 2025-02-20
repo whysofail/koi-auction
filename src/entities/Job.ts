@@ -1,9 +1,9 @@
 import {
   Entity,
   Column,
-  PrimaryColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  PrimaryGeneratedColumn,
 } from "typeorm";
 
 // Improved enum with more descriptive states
@@ -26,7 +26,7 @@ export interface JobConfig {
 
 @Entity("jobs")
 export class Job {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn("uuid")
   declare id: string;
 
   @Column({ type: "timestamp" })
@@ -42,8 +42,15 @@ export class Job {
   })
   declare status: JobStatus;
 
-  @Column({ type: "json" })
-  declare payload: unknown; // Using unknown instead of any for better type safety
+  @Column({
+    type: "varchar",
+  })
+  declare referenceId: string; // Using unknown instead of any for better type safety
+
+  @Column({
+    type: "varchar",
+  })
+  declare entity: string;
 
   @Column({ default: 0 })
   declare retryCount: number;

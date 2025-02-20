@@ -2,6 +2,7 @@ import schedule, { Job as ScheduledJob } from "node-schedule";
 import { Repository } from "typeorm";
 import { Job, JobStatus } from "../entities/Job";
 import { AppDataSource } from "../config/data-source";
+import { EntityName } from "../types/socket.types";
 
 export interface JobConfig {
   maxRetries?: number;
@@ -10,7 +11,7 @@ export interface JobConfig {
 }
 
 export interface JobHandler {
-  execute: (payload: unknown) => Promise<JobResult>;
+  execute(job: Job): Promise<JobResult>;
 }
 
 interface JobResult {
@@ -46,28 +47,37 @@ class JobManager {
    * Create and schedule a new job
    */
   async createJob(
-    jobId: string,
+    reference_id: string,
     jobType: string,
     runAt: Date,
-    payload: unknown,
+    entity: EntityName,
     config?: JobConfig,
   ): Promise<Job> {
-    // Create job record in database
-    const job = this.jobRepository.create({
-      id: jobId,
-      jobType,
-      runAt,
-      payload,
-      status: JobStatus.PENDING,
-      jobConfig: { ...this.defaultConfig, ...config },
-    });
+    try {
+      // Resolve payload if it's a Promise
 
-    await this.jobRepository.save(job);
+      // Create job using static helper
+      const job = await this.jobRepository.create({
+        jobType,
+        runAt,
+        entity: entity as string,
+        referenceId: reference_id,
+        status: JobStatus.PENDING,
+        jobConfig: { ...this.defaultConfig, ...config },
+      });
 
-    // Schedule the job
-    await this.scheduleJob(job);
+      // Save and schedule
+      await this.jobRepository.save(job);
+      await this.scheduleJob(job);
 
-    return job;
+      return job;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to create job: ${error.message}`);
+      } else {
+        throw new Error("Failed to create job: Unknown error");
+      }
+    }
   }
 
   /**
@@ -107,7 +117,7 @@ class JobManager {
 
         // Race between the actual job and the timeout
         const result = await Promise.race([
-          handler.execute(job.payload),
+          handler.execute(job),
           timeoutPromise,
         ]);
 
@@ -136,7 +146,7 @@ class JobManager {
           );
 
           // Schedule retry
-          const updatedJob = {
+          const updatedJob = this.jobRepository.create({
             ...job,
             retryCount: job.retryCount + 1,
             status: JobStatus.RETRY_QUEUED,
@@ -147,7 +157,7 @@ class JobManager {
                   5000),
             ),
             lastError: error instanceof Error ? error.message : String(error),
-          };
+          });
 
           await this.jobRepository.save(updatedJob);
           await this.scheduleJob(updatedJob);
