@@ -1,9 +1,12 @@
+import { AppDataSource } from "../config/data-source";
 import Auction, { AuctionStatus } from "../entities/Auction";
+import { Job } from "../entities/Job";
 import auctionRepository from "../repositories/auction.repository";
 import { auctionEmitter } from "../sockets/auction.socket";
 import JobManager, { JobHandler } from "./jobManager";
 
 const jobManager = new JobManager();
+const jobRepository = AppDataSource.getRepository(Job);
 
 // Define the auction start handler
 const auctionStartHandler: JobHandler = {
@@ -46,8 +49,46 @@ const auctionStartHandler: JobHandler = {
   },
 };
 
+const auctionEndHandler: JobHandler = {
+  execute: async (job): Promise<{ success: boolean; error?: Error }> => {
+    try {
+      const auctionToUpdate = await auctionRepository.findOneBy({
+        auction_id: job.referenceId,
+      });
+
+      if (
+        !auctionToUpdate ||
+        auctionToUpdate.status !== AuctionStatus.STARTED
+      ) {
+        throw new Error(
+          `Auction [${job.referenceId}] not found or not in STARTED state`,
+        );
+      }
+
+      auctionToUpdate.status = AuctionStatus.PENDING;
+      await auctionRepository.save(auctionToUpdate);
+      console.log(`Auction [${auctionToUpdate.auction_id}] ended.`);
+      // Notify via socket
+      auctionEmitter.auctionUpdate(
+        "AUCTION_UPDATED",
+        auctionToUpdate.auction_id,
+        auctionToUpdate,
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error(`Error while ending auction [${job.referenceId}]:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+};
+
 // Register the handler
 jobManager.registerJobHandler("start-auction", auctionStartHandler);
+jobManager.registerJobHandler("end-auction", auctionEndHandler);
 
 /**
  * Schedule an auction start job.
@@ -62,6 +103,7 @@ export const schedule = async (auction: Auction): Promise<void> => {
   }
 
   try {
+    // Schedule the start job
     await jobManager.createJob(
       auction.auction_id,
       "start-auction",
@@ -76,13 +118,45 @@ export const schedule = async (auction: Auction): Promise<void> => {
   }
 };
 
+export const scheduleEndJob = async (auction: Auction): Promise<void> => {
+  if (!auction.end_datetime || !auction.auction_id) {
+    console.log(
+      `Invalid auction data: ${auction.auction_id} or ${auction.end_datetime}`,
+    );
+    return;
+  }
+
+  try {
+    // Schedule the end job
+    await jobManager.createJob(
+      auction.auction_id,
+      "end-auction",
+      auction.end_datetime,
+      "auction",
+    );
+
+    console.log(`Scheduled end job for auction [${auction.auction_id}]`);
+  } catch (error) {
+    console.error("Error scheduling auction job:", error);
+    throw error;
+  }
+};
+
 /**
- * Cancel an auction job.
+ * Cancel all jobs (start and end) associated with an auction.
  * @param auctionId Auction ID.
  */
-export const cancel = (auctionId: string) => {
-  jobManager.cancelJob(auctionId);
-  console.log(`Canceled auction job [${auctionId}].`);
+export const cancel = async (auctionId: string) => {
+  const jobs = await jobRepository.find({
+    where: { referenceId: auctionId },
+  });
+
+  if (jobs.length > 0) {
+    await Promise.all(jobs.map((job) => jobManager.cancelJob(job.id)));
+    console.log(`Canceled ${jobs.length} jobs for auction [${auctionId}]`);
+  } else {
+    console.log(`No jobs found for auction [${auctionId}]`);
+  }
 };
 
 /**
@@ -104,6 +178,7 @@ export const initializeAuctionJobs = async () => {
 
 export const auctionJobs = {
   schedule,
+  scheduleEndJob,
   cancel,
   initializeAuctionJobs,
 };

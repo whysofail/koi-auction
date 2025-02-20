@@ -114,6 +114,7 @@ const updateAuction = async (
     // If the auction is published, schedule its start
     if (updatedAuction.status === AuctionStatus.PUBLISHED) {
       auctionJobs.schedule(updatedAuction);
+      auctionJobs.scheduleEndJob(updatedAuction);
     }
 
     // Cancel job if auction changed from published to draft or else

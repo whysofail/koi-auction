@@ -1,6 +1,7 @@
 import Auction from "../entities/Auction";
 import Bid from "../entities/Bid";
 import { NotificationType } from "../entities/Notification";
+import { auctionJobs } from "../jobs/auction.jobs";
 import auctionRepository from "../repositories/auction.repository";
 import bidRepository from "../repositories/bid.repository";
 import { auctionEmitter } from "../sockets/auction.socket";
@@ -91,6 +92,8 @@ const placeBid = async (
       auction.end_datetime = new Date(
         auction.end_datetime.getTime() + INJURY_TIME,
       );
+      // Reschedule end job
+      await auctionJobs.scheduleEndJob(auction);
     }
 
     // Create the bid entity

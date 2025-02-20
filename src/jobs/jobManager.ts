@@ -129,9 +129,7 @@ class JobManager {
         const completedJob = { ...job, status: JobStatus.COMPLETED };
         await this.jobRepository.save(completedJob);
 
-        console.log(`Job ${job.id} completed successfully`, {
-          data: result.data,
-        });
+        console.log(`Job ${job.id} completed successfully`);
         return result;
       } catch (error) {
         if (
