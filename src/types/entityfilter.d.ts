@@ -13,6 +13,7 @@ export interface IUserFilter extends IBaseFilter {
   role?: string; // Filter by user role
   registrationDateFrom?: Date; // Filter by registration start date
   registrationDateTo?: Date; // Filter by registration end date
+  isBanned?: boolean; // Filter by banned status
 }
 
 export interface IAuctionFilter extends IBaseFilter {

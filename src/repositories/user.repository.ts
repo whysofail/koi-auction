@@ -12,7 +12,6 @@ export const applyUserOrdering = (
   order?: IUserOrder, // Optional order parameter
 ) => {
   // Default ordering if no order is provided
-
   if (!order || !order.orderBy) {
     qb.addOrderBy("user.registration_date", SortOrder.DESC);
     return qb;
@@ -56,12 +55,24 @@ export const applyUserFilters = (
     qb.andWhere("user.role = :role", { role: filters.role });
   }
 
+  // Fix the boolean filter for isBanned
+  if (typeof filters.isBanned === "string") {
+    const isBanned = filters.isBanned === "true";
+
+    qb.andWhere("user.is_banned = :isBanned", {
+      isBanned,
+    });
+  } else if (typeof filters.isBanned === "boolean") {
+    qb.andWhere("user.is_banned = :isBanned", {
+      isBanned: filters.isBanned,
+    });
+  }
+
   if (filters.registrationDateFrom) {
     qb.andWhere("user.registration_date >= :registrationDateFrom", {
       registrationDateFrom: filters.registrationDateFrom,
     });
   }
-
   if (filters.registrationDateTo) {
     qb.andWhere("user.registration_date <= :registrationDateTo", {
       registrationDateTo: filters.registrationDateTo,

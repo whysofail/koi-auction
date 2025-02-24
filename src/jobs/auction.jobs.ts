@@ -56,10 +56,11 @@ const auctionEndHandler: JobHandler = {
         auction_id: job.referenceId,
       });
 
-      if (
-        !auctionToUpdate ||
-        auctionToUpdate.status !== AuctionStatus.STARTED
-      ) {
+      if (!auctionToUpdate) {
+        throw new Error(`Auction [${job.referenceId}] not found`);
+      }
+
+      if (auctionToUpdate.status !== AuctionStatus.STARTED) {
         throw new Error(
           `Auction [${job.referenceId}] not found or not in STARTED state`,
         );
