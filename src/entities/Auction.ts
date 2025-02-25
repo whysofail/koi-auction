@@ -61,7 +61,6 @@ class Auction {
   @Column({
     type: "varchar",
     nullable: false,
-    unique: true,
   })
   @IsString()
   @MinLength(1, { message: "Item must not be empty" })
