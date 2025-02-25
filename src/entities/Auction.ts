@@ -17,6 +17,7 @@ import {
   OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
 } from "typeorm";
 import User from "./User";
 import Bid from "./Bid";
@@ -124,6 +125,9 @@ class Auction {
 
   @UpdateDateColumn({ name: "updated_at" })
   declare updated_at: Date;
+
+  @DeleteDateColumn({ name: "deleted_at" })
+  declare deleted_at: Date;
 
   @OneToMany(() => Bid, (bid) => bid.auction)
   declare bids?: Bid[];

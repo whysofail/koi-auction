@@ -235,10 +235,14 @@ const deleteAuction = async (auction_id: string, user_id: string) => {
       throw ErrorHandler.notFound(`Auction with ID ${auction_id} not found`);
     }
 
-    await auctionRepository.update(auction_id, {
-      status: AuctionStatus.DELETED,
-      user: { user_id },
-    });
+    Promise.all([
+      auctionRepository.update(auction_id, {
+        status: AuctionStatus.DELETED,
+        user: { user_id },
+      }),
+      auctionRepository.softDelete(auction_id),
+    ]);
+
     auctionJobs.cancel(auction_id);
     return auction;
   } catch (error) {

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { validate, isDateString } from "class-validator";
+import { In, Not } from "typeorm";
 import auctionRepository from "../../repositories/auction.repository";
 import { AuctionStatus } from "../../entities/Auction";
 import { ErrorHandler } from "../../utils/response/handleError";
@@ -54,7 +55,21 @@ const updateAuctionValidator = async (
     if ("item" in req.body) {
       const { item } = req.body;
       if (item !== existingAuction.item) {
-        const itemExists = await auctionRepository.findOne({ where: { item } });
+        const itemExists = await auctionRepository.findOne({
+          where: {
+            item,
+            status: Not(
+              In([
+                AuctionStatus.DELETED,
+                AuctionStatus.CANCELLED,
+                AuctionStatus.EXPIRED,
+                AuctionStatus.FAILED,
+              ]),
+            ),
+          },
+          withDeleted: true,
+        });
+
         if (itemExists) {
           throw ErrorHandler.badRequest("Item already has an auction");
         }

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { validate, isDateString } from "class-validator";
-import Auction from "../../entities/Auction";
+import { In, Not } from "typeorm";
+import Auction, { AuctionStatus } from "../../entities/Auction";
 import auctionRepository from "../../repositories/auction.repository";
 
 const createAuctionValidator = async (
@@ -30,12 +31,24 @@ const createAuctionValidator = async (
       return;
     }
 
+    // Check for existing active auction for the item
     const itemAlreadyExist = await auctionRepository.findOne({
-      where: { item },
+      where: {
+        item,
+        status: Not(
+          In([
+            AuctionStatus.DELETED,
+            AuctionStatus.CANCELLED,
+            AuctionStatus.EXPIRED,
+            AuctionStatus.FAILED,
+          ]),
+        ),
+      },
+      withDeleted: true,
     });
 
     if (itemAlreadyExist) {
-      res.status(400).json({ message: "Item already has an auction!" });
+      res.status(400).json({ message: "Item already has an active auction!" });
       return;
     }
 

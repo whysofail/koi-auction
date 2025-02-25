@@ -96,6 +96,7 @@ const auctionRepository = dataSource.getRepository(Auction).extend({
     order?: IAuctionOrder,
   ) {
     const qb = this.createQueryBuilder("auction")
+      .withDeleted()
       .leftJoin("auction.user", "user")
       .addSelect(["user.user_id", "user.username"]) // Select only the user_id and username fields
       .leftJoinAndSelect("auction.bids", "bids")
@@ -113,6 +114,7 @@ const auctionRepository = dataSource.getRepository(Auction).extend({
     pagination?: { page?: number; limit?: number },
   ) {
     const qb = this.createQueryBuilder("auction")
+      .withDeleted()
       .leftJoin("auction.user", "user")
       .addSelect(["user.user_id", "user.username"]) // Select only the user_id and username fields
       .leftJoinAndSelect("auction.bids", "bids")
