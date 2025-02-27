@@ -195,7 +195,11 @@ export const initializeAuctionJobs = async () => {
       where: { status: AuctionStatus.PUBLISHED },
     });
 
-    await Promise.all(auctions.map((auction) => schedule(auction)));
+    await Promise.all(
+      auctions.map((auction) =>
+        schedule(auction).then(() => scheduleEndJob(auction)),
+      ),
+    );
 
     console.log(`Scheduled ${auctions.length} auction jobs.`);
   } catch (error) {
