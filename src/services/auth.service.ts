@@ -62,17 +62,12 @@ const register = async (
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  console.log("Phone number: ", phone);
-  console.log("Parsed phone number: ", parsedPhone);
-
   const newUser = userRepository.create({
     username,
     email,
     phone: parsedPhone,
     password: hashedPassword,
   });
-
-  console.log(newUser);
 
   await userRepository.save(newUser);
 

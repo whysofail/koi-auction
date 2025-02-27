@@ -33,31 +33,21 @@ const getAuctionById = async (auction_id: string) => {
   return auction;
 };
 
-const getAuctionWithBids = async (auction_id: string, filters?: any) => {
-  if (!auction_id) {
-    throw ErrorHandler.badRequest("Auction ID is required");
-  }
-
-  const auction = await auctionRepository.findAuctionWithBids(
-    auction_id,
-    filters,
-  );
-  if (!auction) {
-    throw ErrorHandler.notFound(`Auction with ID ${auction_id} not found`);
-  }
-
-  return auction;
-};
-
 const createAuction = async (
   data: Partial<Auction & { item_id: string }>,
   user_id: string,
 ) => {
   try {
+    const user = await userRepository.findUserById(user_id);
+    if (!user) {
+      throw ErrorHandler.notFound(`User with ID ${user_id} not found`);
+    }
+
     const auction = await auctionRepository.create({
       ...data,
-      user: { user_id },
+      user,
     });
+
     await auctionRepository.save(auction);
 
     return auction;
@@ -204,6 +194,40 @@ export const getAuctionEndingSoon = async (
   return { auctions, count };
 };
 
+const calculateParticipationFee = (reservePrice: number) => reservePrice * 0.1;
+
+const refundParticipationFee = async (auction_id: string, user_id: string) => {
+  try {
+    const auction = await auctionRepository.findAuctionById(auction_id);
+    if (!auction) {
+      throw ErrorHandler.notFound(`Auction with ID ${auction_id} not found`);
+    }
+
+    const wallet = await walletRepository.findWalletByUserId(user_id);
+    const participationFee = calculateParticipationFee(
+      auction.reserve_price ?? 0,
+    );
+
+    // Refund the participation fee
+    wallet.balance += participationFee;
+    await walletRepository.save(wallet);
+
+    // Create refund transaction record
+    const refundTransaction = transactionRepository.create({
+      wallet,
+      amount: participationFee,
+      type: TransactionType.REFUND,
+      status: TransactionStatus.COMPLETED,
+      proof_of_payment: null,
+    });
+    await transactionRepository.save(refundTransaction);
+
+    return { refundedAmount: participationFee };
+  } catch (error) {
+    throw ErrorHandler.internalServerError("Error processing refund", error);
+  }
+};
+
 const leaveAuction = async (auction_id: string, user_id: string) => {
   try {
     const auction = await auctionRepository.findAuctionById(auction_id);
@@ -211,16 +235,22 @@ const leaveAuction = async (auction_id: string, user_id: string) => {
       throw ErrorHandler.notFound(`Auction with ID ${auction_id} not found`);
     }
 
-    const auctionParticipant = await auctionParticipantRepository.findOne({
+    const participant = await auctionParticipantRepository.findOne({
       where: { auction: { auction_id }, user: { user_id } },
-      relations: ["user", "auction"], // Ensure the relations are correctly loaded
+      relations: ["user", "auction"],
     });
-    if (!auctionParticipant) {
+
+    if (!participant) {
       throw ErrorHandler.notFound("User not found in auction");
     }
 
+    // Only refund if auction hasn't started yet
+    if (auction.status === AuctionStatus.PUBLISHED) {
+      await refundParticipationFee(auction_id, user_id);
+    }
+
     await auctionParticipantRepository.delete(
-      auctionParticipant.auction_participant_id,
+      participant.auction_participant_id,
     );
     return { message: "User successfully left the auction" };
   } catch (error) {
@@ -235,7 +265,20 @@ const deleteAuction = async (auction_id: string, user_id: string) => {
       throw ErrorHandler.notFound(`Auction with ID ${auction_id} not found`);
     }
 
-    Promise.all([
+    // Get all participants to refund them
+    const participants = await auctionParticipantRepository.find({
+      where: { auction: { auction_id } },
+      relations: ["user"],
+    });
+
+    // Refund all participants
+    await Promise.all(
+      participants.map((participant) =>
+        refundParticipationFee(auction_id, participant.user.user_id),
+      ),
+    );
+
+    await Promise.all([
       auctionRepository.update(auction_id, {
         status: AuctionStatus.DELETED,
         user: { user_id },
@@ -253,11 +296,11 @@ const deleteAuction = async (auction_id: string, user_id: string) => {
 export const auctionService = {
   getAllAuctions,
   getAuctionById,
-  getAuctionWithBids,
   joinAuction,
   createAuction,
   updateAuction,
   getAuctionEndingSoon,
   deleteAuction,
   leaveAuction,
+  refundParticipationFee,
 };

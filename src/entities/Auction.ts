@@ -18,6 +18,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
+  OneToOne,
 } from "typeorm";
 import User from "./User";
 import Bid from "./Bid";
@@ -90,7 +91,7 @@ class Auction {
     type: "decimal",
     precision: 10, // Total digits
     scale: 2, // Digits after the decimal point
-    default: 0,
+    nullable: true,
   })
   declare current_highest_bid: number | null | undefined;
 
@@ -136,6 +137,31 @@ class Auction {
     (auctionParticipant) => auctionParticipant.auction,
   )
   declare participants: AuctionParticipant[];
+
+  declare participants_count: number;
+
+  @OneToOne(() => Bid)
+  @JoinColumn({ name: "highest_bid_id" })
+  declare highest_bid: Bid;
+
+  @Column({ name: "highest_bid_id", nullable: true })
+  declare highest_bid_id: string;
+
+  @Column({ name: "winner_id", nullable: true })
+  declare winner_id: string | null;
+
+  @Column({
+    name: "final_price",
+    type: "decimal",
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
+  declare final_price: number | null;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: "winner_id" })
+  declare winner: User;
 }
 
 export default Auction;

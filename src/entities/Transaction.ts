@@ -16,6 +16,7 @@ export enum TransactionType {
   WITHDRAWAL = "WITHDRAWAL",
   TRANSFER = "TRANSFER",
   PARTICIPATE = "PARTICIPATE",
+  REFUND = "REFUND",
 }
 
 export enum TransactionStatus {

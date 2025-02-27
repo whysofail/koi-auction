@@ -107,6 +107,15 @@ const placeBid = async (
     // Save bid within the transaction
     const savedBid = await transactionalEntityManager.save(bid);
 
+    // Update auction's highest bid if this is the highest
+    if (
+      !auction.highest_bid_id ||
+      bid_amount > (auction.current_highest_bid ?? 0)
+    ) {
+      auction.highest_bid_id = bid.bid_id;
+      await transactionalEntityManager.save(auction);
+    }
+
     // Update auction's highest bid
     auction.current_highest_bid = bid_amount;
     await transactionalEntityManager.save(auction);

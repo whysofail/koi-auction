@@ -1,4 +1,4 @@
-import { SelectQueryBuilder } from "typeorm";
+import { Repository, SelectQueryBuilder } from "typeorm";
 import { AppDataSource as dataSource } from "../config/data-source";
 import Auction, { AuctionStatus } from "../entities/Auction";
 import { IAuctionFilter } from "../types/entityfilter";
@@ -89,18 +89,26 @@ const applyAuctionFilters = (
   return qb;
 };
 
+const createBaseQuery = (repository: Repository<Auction>) =>
+  repository
+    .createQueryBuilder("auction")
+    .withDeleted()
+    .leftJoin("auction.user", "user")
+    .addSelect(["user.user_id", "user.username"])
+    .leftJoinAndSelect("auction.bids", "bids")
+    .leftJoin("bids.user", "bid_user")
+    .addSelect(["bid_user.user_id", "bid_user.username"])
+    .leftJoinAndSelect("auction.participants", "participants")
+    .leftJoin("participants.user", "participant_user")
+    .addSelect(["participant_user.user_id", "participant_user.username"]);
+
 const auctionRepository = dataSource.getRepository(Auction).extend({
   async getAllAuctions(
     filters?: IAuctionFilter,
     pagination?: PaginationOptions,
     order?: IAuctionOrder,
   ) {
-    const qb = this.createQueryBuilder("auction")
-      .withDeleted()
-      .leftJoin("auction.user", "user")
-      .addSelect(["user.user_id", "user.username"]) // Select only the user_id and username fields
-      .leftJoinAndSelect("auction.bids", "bids")
-      .leftJoinAndSelect("auction.participants", "participants");
+    const qb = createBaseQuery(this);
 
     applyAuctionFilters(qb, filters);
     applyAuctionOrdering(qb, order);
@@ -109,55 +117,34 @@ const auctionRepository = dataSource.getRepository(Auction).extend({
     const [auctions, count] = await qb.getManyAndCount();
     return { auctions, count };
   },
-  async findAuctionById(
-    auction_id: string,
-    pagination?: { page?: number; limit?: number },
-  ) {
-    const qb = this.createQueryBuilder("auction")
-      .withDeleted()
-      .leftJoin("auction.user", "user")
-      .addSelect(["user.user_id", "user.username"]) // Select only the user_id and username fields
-      .leftJoinAndSelect("auction.bids", "bids")
-      .leftJoinAndSelect("auction.participants", "participants")
-      // Join and select specific user fields inside participants
-      .leftJoin("participants.user", "participant_user")
-      .addSelect(["participant_user.user_id", "participant_user.username"]);
+  async findAuctionById(auction_id: string) {
+    const qb = createBaseQuery(this);
 
     // Add any additional condition for auction_id
     qb.where("auction.auction_id = :auction_id", { auction_id });
-    applyPagination(qb, pagination); // Apply pagination
 
     // Execute the query
     const auction = await qb.getOne();
 
     if (auction) {
-      // Use a separate query builder to count participants
+      // Fix: Count participants directly from auction_participant table
       const participantsCount = await this.createQueryBuilder("auction")
+        .select("COUNT(participants.auction_participant_id)", "count")
         .leftJoin("auction.participants", "participants")
         .where("auction.auction_id = :auction_id", { auction_id })
-        .getCount();
+        .getRawOne()
+        .then((result) => Number(result.count));
 
-      // Manually add participants_count to each participant
-      auction.participants = auction.participants.map((participant) => ({
-        ...participant,
-        count: participantsCount,
-      }));
+      auction.participants_count = participantsCount;
     }
 
     return auction;
   },
 
-  async findAuctionWithBids(
-    auction_id: string,
-    filters?: IAuctionFilter,
-    pagination?: { page?: number; limit?: number },
-  ) {
+  async findAuctionWithBids(auction_id: string) {
     const qb = this.createQueryBuilder("auction")
       .leftJoinAndSelect("auction.bids", "bids")
       .where("auction.auction_id = :auction_id", { auction_id });
-
-    applyAuctionFilters(qb, filters); // Apply filters dynamically
-    applyPagination(qb, pagination); // Apply pagination
 
     // Await the query result
     const auction = await qb.getOne();
