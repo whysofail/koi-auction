@@ -1,5 +1,6 @@
 import Transaction from "../entities/Transaction";
 import transactionRepository from "../repositories/transaction.repository";
+import { transactionEmitter } from "../sockets/transaction.socket";
 import { AuthUser } from "../types/auth";
 import { ITransactionFilter } from "../types/entityfilter";
 import { ITransactionOrder } from "../types/entityorder.types";
@@ -130,6 +131,12 @@ const updateDepositTransaction = async (
         amount,
       );
     }
+
+    transactionEmitter.transactionUpdate(
+      "DEPOSIT_UPDATE",
+      updatedTransaction.transaction_id,
+      updatedTransaction,
+    );
 
     return updatedTransaction;
   } catch (error) {

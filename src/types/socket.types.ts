@@ -3,6 +3,7 @@ import User from "../entities/User";
 import Bid from "../entities/Bid";
 import Notification from "../entities/Notification";
 import AuctionParticipant from "../entities/AuctionParticipant";
+import Transaction from "../entities/Transaction";
 // Entity Types
 export type EntityMap = {
   user: User;
@@ -10,6 +11,7 @@ export type EntityMap = {
   bid: Bid;
   notification: Notification;
   auctionparticipant: AuctionParticipant;
+  transaction: Transaction;
 };
 
 export type EntityName = keyof EntityMap;

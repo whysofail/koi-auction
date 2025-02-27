@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { isUUID } from "class-validator";
 import { TransactionStatus } from "../../entities/Transaction";
+import transactionRepository from "../../repositories/transaction.repository";
 
 const updateDepositValidator = async (
   req: Request,
@@ -10,6 +11,11 @@ const updateDepositValidator = async (
   try {
     if (!req.body) {
       res.status(400).json({ message: "Missing request body!" });
+      return;
+    }
+    const { id } = req.params;
+    if (!id) {
+      res.status(400).json({ message: "Missing transaction id" });
       return;
     }
 
@@ -32,6 +38,17 @@ const updateDepositValidator = async (
 
     if (req.params.id && !isUUID(req.params.id)) {
       res.status(400).json({ message: "Invalid transaction id" });
+      return;
+    }
+
+    const transaction = await transactionRepository.findTransactionById(id);
+    if (!transaction) {
+      res.status(404).json({ message: `Transaction with ID ${id} not found` });
+      return;
+    }
+
+    if (transaction.status !== TransactionStatus.PENDING) {
+      res.status(400).json({ message: "Transaction is not pending" });
       return;
     }
 
