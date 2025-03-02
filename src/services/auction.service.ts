@@ -196,33 +196,62 @@ export const getAuctionEndingSoon = async (
 
 const calculateParticipationFee = (reservePrice: number) => reservePrice * 0.1;
 
-const refundParticipationFee = async (auction_id: string, user_id: string) => {
+const refundParticipationFee = async (auction_id: string) => {
   try {
     const auction = await auctionRepository.findAuctionById(auction_id);
     if (!auction) {
       throw ErrorHandler.notFound(`Auction with ID ${auction_id} not found`);
     }
 
-    const wallet = await walletRepository.findWalletByUserId(user_id);
+    // Get the winner ID if any
+    const winnerId = auction.winner_id || null;
+
+    // Get all participants
+    const participants = await auctionParticipantRepository.find({
+      where: { auction: { auction_id } },
+      relations: ["user"],
+    });
+
     const participationFee = calculateParticipationFee(
       auction.reserve_price ?? 0,
     );
 
-    // Refund the participation fee
-    wallet.balance += participationFee;
-    await walletRepository.save(wallet);
+    let refundCount = 0;
 
-    // Create refund transaction record
-    const refundTransaction = transactionRepository.create({
-      wallet,
-      amount: participationFee,
-      type: TransactionType.REFUND,
-      status: TransactionStatus.COMPLETED,
-      proof_of_payment: null,
-    });
-    await transactionRepository.save(refundTransaction);
+    // Refund all participants except the winner
+    await Promise.all(
+      participants.map(async (participant) => {
+        // Skip the winner
+        if (participant.user.user_id === winnerId) {
+          return;
+        }
 
-    return { refundedAmount: participationFee };
+        refundCount++;
+        const wallet = await walletRepository.findWalletByUserId(
+          participant.user.user_id,
+        );
+
+        // Refund the participation fee
+        wallet.balance += participationFee;
+        await walletRepository.save(wallet);
+
+        // Create refund transaction record
+        const refundTransaction = transactionRepository.create({
+          wallet,
+          amount: participationFee,
+          type: TransactionType.REFUND,
+          status: TransactionStatus.COMPLETED,
+          proof_of_payment: null,
+        });
+        await transactionRepository.save(refundTransaction);
+      }),
+    );
+
+    return {
+      refundedAmount: participationFee * refundCount,
+      participantsRefunded: refundCount,
+      totalParticipants: participants.length,
+    };
   } catch (error) {
     throw ErrorHandler.internalServerError("Error processing refund", error);
   }
@@ -246,7 +275,7 @@ const leaveAuction = async (auction_id: string, user_id: string) => {
 
     // Only refund if auction hasn't started yet
     if (auction.status === AuctionStatus.PUBLISHED) {
-      await refundParticipationFee(auction_id, user_id);
+      await refundParticipationFee(auction_id);
     }
 
     await auctionParticipantRepository.delete(
@@ -265,18 +294,7 @@ const deleteAuction = async (auction_id: string, user_id: string) => {
       throw ErrorHandler.notFound(`Auction with ID ${auction_id} not found`);
     }
 
-    // Get all participants to refund them
-    const participants = await auctionParticipantRepository.find({
-      where: { auction: { auction_id } },
-      relations: ["user"],
-    });
-
-    // Refund all participants
-    await Promise.all(
-      participants.map((participant) =>
-        refundParticipationFee(auction_id, participant.user.user_id),
-      ),
-    );
+    refundParticipationFee(auction_id);
 
     await Promise.all([
       auctionRepository.update(auction_id, {
