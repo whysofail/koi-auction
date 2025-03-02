@@ -9,6 +9,7 @@ import { transactionService } from "../services/transaction.service";
 import { ITransactionOrder } from "../types/entityorder.types";
 import { NotificationType } from "../entities/Notification";
 import { notificationService } from "../services/notification.service";
+import { formatCurrency } from "../utils/formatCurrency";
 
 export const getTransactions: RequestHandler = async (
   req,
@@ -90,7 +91,7 @@ export const updateDepositTransaction: AuthenticatedRequestHandler = async (
       id,
       data,
     );
-    const notificationMessage = `Your transaction with ID ${id} has been ${status}`;
+    const notificationMessage = `Your transaction with amount of ${formatCurrency(transaction.amount)} has been ${status}`;
     notificationService.createNotification(
       transaction.wallet.user_id,
       NotificationType.TRANSACTION,

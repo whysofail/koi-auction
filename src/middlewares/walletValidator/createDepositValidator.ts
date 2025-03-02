@@ -1,7 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import { validate } from "class-validator";
-import Transaction from "../../entities/Transaction";
+import Transaction, {
+  TransactionStatus,
+  TransactionType,
+} from "../../entities/Transaction";
 import { deleteFileFromS3 } from "../../utils/s3";
+import transactionRepository from "../../repositories/transaction.repository";
+import { AuthenticatedRequest } from "../../types/auth";
 
 const createDepositValidator = async (
   req: Request,
@@ -23,7 +28,23 @@ const createDepositValidator = async (
       });
       return;
     }
+    // Check if the user has a pending deposit
+    const { user } = req as AuthenticatedRequest;
+    const pendingDeposit = await transactionRepository.findOne({
+      where: {
+        wallet: { user_id: user.user_id },
+        type: TransactionType.DEPOSIT,
+        status: TransactionStatus.PENDING,
+      },
+    });
 
+    if (pendingDeposit) {
+      // Remove photo if uploaded
+      if (file?.key) await deleteFileFromS3(file.key);
+
+      res.status(400).json({ message: "User has a pending deposit" });
+      return;
+    }
     const amount = parseFloat(req.body.amount);
 
     // Validate that the amount is a valid number

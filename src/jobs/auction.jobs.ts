@@ -1,4 +1,3 @@
-import { Not } from "typeorm";
 import { AppDataSource } from "../config/data-source";
 import Auction, { AuctionStatus } from "../entities/Auction";
 import { Job } from "../entities/Job";
@@ -6,7 +5,8 @@ import auctionRepository from "../repositories/auction.repository";
 import { auctionEmitter } from "../sockets/auction.socket";
 import JobManager, { JobHandler } from "./jobManager";
 import { auctionService } from "../services/auction.service";
-import auctionParticipantRepository from "../repositories/auctionparticipant.repository";
+import { notificationService } from "../services/notification.service";
+import { NotificationType } from "../entities/Notification";
 
 const jobManager = new JobManager();
 const jobRepository = AppDataSource.getRepository(Job);
@@ -55,10 +55,9 @@ const auctionStartHandler: JobHandler = {
 const auctionEndHandler: JobHandler = {
   execute: async (job): Promise<{ success: boolean; error?: Error }> => {
     try {
-      const auction = await auctionRepository.findOne({
-        where: { auction_id: job.referenceId },
-        relations: ["highest_bid", "highest_bid.user"],
-      });
+      const auction = await auctionRepository.findAuctionById(job.referenceId);
+
+      console.log(auction);
 
       if (!auction || auction.status !== AuctionStatus.STARTED) {
         throw new Error(
@@ -70,28 +69,25 @@ const auctionEndHandler: JobHandler = {
       if (auction.highest_bid) {
         auction.winner_id = auction.highest_bid.user.user_id;
         auction.final_price = auction.highest_bid.bid_amount;
+        await notificationService.createNotification(
+          auction.winner_id,
+          NotificationType.AUCTION,
+          `You won the auction ${auction.title}. Our admin will contact you in person to complete payment.`,
+          auction.auction_id,
+        );
+        // Refund and notify other participants
+        await auctionService.refundParticipationFee(auction.auction_id);
+        auction.participants.forEach(async (participant) => {
+          if (participant.user.user_id !== auction.winner_id) {
+            await notificationService.createNotification(
+              participant.user.user_id,
+              NotificationType.AUCTION,
+              `The auction ${auction.title} has ended. You didn't win this time. We have refunded your participation fee!`,
+              auction.auction_id,
+            );
+          }
+        });
       }
-
-      // Get all participants except the winner for refund
-      const participants = await auctionParticipantRepository.find({
-        where: {
-          auction: { auction_id: job.referenceId },
-          user: {
-            user_id: auction.winner_id ? Not(auction.winner_id) : undefined,
-          },
-        },
-        relations: ["user"],
-      });
-
-      // Refund non-winning participants
-      await Promise.all(
-        participants.map((participant) =>
-          auctionService.refundParticipationFee(
-            job.referenceId,
-            participant.user.user_id,
-          ),
-        ),
-      );
 
       auction.status = AuctionStatus.PENDING;
       await auctionRepository.save(auction);

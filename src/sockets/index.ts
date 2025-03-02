@@ -7,6 +7,7 @@ import {
   RoomType,
   SocketConnectionStatus,
 } from "../types/socket.types";
+import transactionSocket from "./transaction.socket";
 
 const log = {
   info: (message: string, data?: any) => console.log(message, data || ""),
@@ -58,6 +59,7 @@ const initializeAuthenticatedSocket = async (
 
     // Initialize socket handlers
     notificationSocket(io, socket);
+    transactionSocket(io, socket);
   } catch (error) {
     log.error("Error initializing authenticated socket", {
       error,
