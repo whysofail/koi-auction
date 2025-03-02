@@ -191,17 +191,20 @@ export const cancel = async (auctionId: string) => {
  */
 export const initializeAuctionJobs = async () => {
   try {
-    const auctions = await auctionRepository.find({
+    const auctionsToStart = await auctionRepository.find({
       where: { status: AuctionStatus.PUBLISHED },
     });
+    const auctionsToEnd = await auctionRepository.find({
+      where: { status: AuctionStatus.STARTED },
+    });
 
-    await Promise.all(
-      auctions.map((auction) =>
-        schedule(auction).then(() => scheduleEndJob(auction)),
-      ),
-    );
+    await Promise.all([
+      ...auctionsToStart.map((auction) => schedule(auction)),
+      ...auctionsToEnd.map((auction) => scheduleEndJob(auction)),
+    ]);
 
-    console.log(`Scheduled ${auctions.length} auction jobs.`);
+    console.log(`Scheduled ${auctionsToStart.length} auctions to start.`);
+    console.log(`Scheduled ${auctionsToEnd.length} auctions to end.`);
   } catch (error) {
     console.error("Error initializing auction jobs:", error);
   }
