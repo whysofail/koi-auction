@@ -77,16 +77,19 @@ const auctionEndHandler: JobHandler = {
         );
         // Refund and notify other participants
         await auctionService.refundParticipationFee(auction.auction_id);
-        auction.participants.forEach(async (participant) => {
-          if (participant.user.user_id !== auction.winner_id) {
-            await notificationService.createNotification(
+        const nonWinnerParticipants = auction.participants.filter(
+          (p) => p.user.user_id !== auction.winner_id,
+        );
+        await Promise.all(
+          nonWinnerParticipants.map((participant) =>
+            notificationService.createNotification(
               participant.user.user_id,
               NotificationType.AUCTION,
               `The auction ${auction.title} has ended. You didn't win this time. We have refunded your participation fee!`,
               auction.auction_id,
-            );
-          }
-        });
+            ),
+          ),
+        );
       }
 
       auction.status = AuctionStatus.PENDING;
