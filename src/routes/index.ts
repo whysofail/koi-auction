@@ -15,6 +15,10 @@ import { errorHandler } from "../utils/response/handleError";
 
 const router = Router();
 
+router.get("/", (_, res) => {
+  res.json({ message: "API Up" });
+});
+
 // Health check or welcome message route
 router.get("/health", (_, res) => {
   res.json({ message: "Ok" });
