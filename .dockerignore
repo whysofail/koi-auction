@@ -6,7 +6,6 @@ Dockerfile
 .gitignore
 .env
 *.md
-dist
 coverage
 .vscode
 .idea
