@@ -34,6 +34,22 @@ RUN addgroup -S nodejs && adduser -S nodeuser -G nodejs
 WORKDIR /app
 RUN chown -R nodeuser:nodejs /app
 
+# Required environment variables
+ENV NODE_ENV=production \
+    PORT=8001 \
+    DB_HOST=required \
+    DB_PORT=required \
+    DB_NAME=required \
+    DB_USERNAME=required \
+    DB_PASS=required \
+    JWT_SECRET=required \
+    REFRESH_TOKEN_SECRET=required \
+    TZ=Asia/Jakarta
+
+# Copy validation script
+COPY --chown=nodeuser:nodejs scripts/validate-env.sh ./scripts/
+RUN chmod +x ./scripts/validate-env.sh
+
 # Switch to non-root user
 USER nodeuser
 
@@ -44,10 +60,6 @@ RUN npm ci --only=production
 # Copy built application from builder stage
 COPY --chown=nodeuser:nodejs --from=builder /app/dist ./dist
 
-# Set environment variables
-ENV NODE_ENV=production
-ENV PORT=3000
-
 # Expose the application port
 EXPOSE ${PORT}
 
@@ -55,5 +67,5 @@ EXPOSE ${PORT}
 HEALTHCHECK --interval=30s --timeout=3s \
   CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/health || exit 1
 
-# Start the application
-CMD ["npm", "run", "start:prod"]
+# Validate environment variables and start the application
+CMD ["sh", "-c", "./scripts/validate-env.sh && npm run start:prod"]
