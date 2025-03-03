@@ -1,6 +1,9 @@
 # Build stage
 FROM node:18-alpine AS builder
 
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
 # Create app directory and user
 RUN addgroup -S nodejs && adduser -S nodeuser -G nodejs
 
@@ -12,20 +15,23 @@ RUN chown -R nodeuser:nodejs /app
 USER nodeuser
 
 # Copy package files
-COPY --chown=nodeuser:nodejs package*.json ./
-COPY --chown=nodeuser:nodejs tsconfig.json ./
+COPY --chown=nodeuser:nodejs package*.json pnpm-lock.yaml ./
 
 # Install dependencies
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY --chown=nodeuser:nodejs src/ ./src/
+COPY --chown=nodeuser:nodejs tsconfig.json ./
 
 # Build the application
-RUN npm run build
+RUN pnpm run build
 
 # Production stage
 FROM node:18-alpine AS production
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Create app directory and user
 RUN addgroup -S nodejs && adduser -S nodeuser -G nodejs
@@ -34,35 +40,20 @@ RUN addgroup -S nodejs && adduser -S nodeuser -G nodejs
 WORKDIR /app
 RUN chown -R nodeuser:nodejs /app
 
-# Required environment variables
-ENV NODE_ENV=production \
-    PORT=8001 \
-    DB_HOST=required \
-    DB_PORT=required \
-    DB_NAME=required \
-    DB_USERNAME=required \
-    DB_PASS=required \
-    JWT_SECRET=required \
-    REFRESH_TOKEN_SECRET=required \
-    AWS_ACCESS_KEY_ID=required \
-    AWS_SECRET_ACCESS_KEY=required \
-    AWS_S3_BUCKET_NAME=required \
-    AWS_S3_ENDPOINT=required \
-    TZ=Asia/Jakarta
-
-# Copy validation script
-COPY --chown=nodeuser:nodejs scripts/validate-env.sh ./scripts/
-RUN chmod +x ./scripts/validate-env.sh
-
 # Switch to non-root user
 USER nodeuser
 
 # Copy package files and install production dependencies
-COPY --chown=nodeuser:nodejs package*.json ./
-RUN npm ci --only=production
+COPY --chown=nodeuser:nodejs package*.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --prod
 
 # Copy built application from builder stage
 COPY --chown=nodeuser:nodejs --from=builder /app/dist ./dist
+
+# Set NODE_ENV
+ENV NODE_ENV=production \
+    PORT=8001 \
+    TZ=Asia/Jakarta
 
 # Expose the application port
 EXPOSE ${PORT}
@@ -71,5 +62,5 @@ EXPOSE ${PORT}
 HEALTHCHECK --interval=30s --timeout=3s \
   CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/health || exit 1
 
-# Validate environment variables and start the application
-CMD ["sh", "-c", "./scripts/validate-env.sh && npm run start:prod"]
+# Start the application
+CMD ["pnpm", "run", "start:prod"]
