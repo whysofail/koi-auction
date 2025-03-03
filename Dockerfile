@@ -63,4 +63,4 @@ HEALTHCHECK --interval=30s --timeout=3s \
   CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/health || exit 1
 
 # Start the application
-CMD ["pnpm", "run", "start:prod"]
+CMD ["pnpm", "run", "start"]
