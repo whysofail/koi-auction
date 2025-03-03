@@ -1,16 +1,18 @@
+import { In } from "typeorm";
+import { AppDataSource } from "../config/data-source";
+import { ErrorHandler } from "../utils/response/handleError";
+import { PaginationOptions } from "../utils/pagination";
+import { IAuctionFilter } from "../types/entityfilter";
+import { IAuctionOrder } from "../types/entityorder.types";
+import { TransactionType, TransactionStatus } from "../entities/Transaction";
+import Auction, { AuctionStatus } from "../entities/Auction";
 import auctionRepository from "../repositories/auction.repository";
 import walletRepository from "../repositories/wallet.repository";
 import auctionParticipantRepository from "../repositories/auctionparticipant.repository";
 import transactionRepository from "../repositories/transaction.repository";
-import { TransactionType, TransactionStatus } from "../entities/Transaction";
-import { ErrorHandler } from "../utils/response/handleError";
-import Auction, { AuctionStatus } from "../entities/Auction";
-import { PaginationOptions } from "../utils/pagination";
-import { IAuctionFilter } from "../types/entityfilter";
-import { IAuctionOrder } from "../types/entityorder.types";
-import { auctionJobs } from "../jobs/auction.jobs";
 import userRepository from "../repositories/user.repository";
 import { auctionEmitter } from "../sockets/auction.socket";
+import { auctionJobs } from "../jobs/auction.jobs";
 
 export const getAllAuctions = async (
   filters?: IAuctionFilter,
@@ -125,6 +127,10 @@ const updateAuction = async (
 };
 
 const joinAuction = async (auction_id: string, user_id: string) => {
+  const queryRunner = AppDataSource.createQueryRunner();
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
+
   try {
     const auction = await auctionRepository.findAuctionById(auction_id);
     if (!auction) {
@@ -134,16 +140,14 @@ const joinAuction = async (auction_id: string, user_id: string) => {
     const reservePrice = auction.reserve_price ?? 0;
     const participationFee = reservePrice * 0.1;
 
-    // Deduct participation fee from the user's wallet
     const wallet = await walletRepository.findWalletByUserId(user_id);
     if (wallet.balance < participationFee) {
       throw ErrorHandler.badRequest("Insufficient balance");
     }
 
     wallet.balance -= participationFee;
-    await walletRepository.save(wallet);
+    await queryRunner.manager.save(wallet);
 
-    // Create a transaction for the participation fee
     const transaction = transactionRepository.create({
       wallet,
       amount: participationFee,
@@ -151,23 +155,26 @@ const joinAuction = async (auction_id: string, user_id: string) => {
       status: TransactionStatus.COMPLETED,
       proof_of_payment: null,
     });
-    await transactionRepository.save(transaction);
+    await queryRunner.manager.save(transaction);
 
-    // Add the user as a participant in the auction
     const auctionParticipant = auctionParticipantRepository.create({
       auction,
       user: { user_id },
     });
+    await queryRunner.manager.save(auctionParticipant);
 
-    await auctionParticipantRepository.save(auctionParticipant);
+    await queryRunner.commitTransaction();
 
-    const participant = await auctionParticipantRepository.getOne({
-      userId: user_id,
-      auctionId: auction_id,
-    });
-
-    if (participant) {
-      await auctionEmitter.participantUpdate(auction_id, participant);
+    try {
+      const participant = await auctionParticipantRepository.getOne({
+        userId: user_id,
+        auctionId: auction_id,
+      });
+      if (participant) {
+        await auctionEmitter.participantUpdate(auction_id, participant);
+      }
+    } catch (socketError) {
+      console.error("Socket emission failed:", socketError);
     }
 
     return {
@@ -176,7 +183,10 @@ const joinAuction = async (auction_id: string, user_id: string) => {
       auctionParticipant,
     };
   } catch (error) {
+    await queryRunner.rollbackTransaction();
     throw ErrorHandler.internalServerError("Error joining auction", error);
+  } finally {
+    await queryRunner.release();
   }
 };
 
@@ -197,16 +207,17 @@ export const getAuctionEndingSoon = async (
 const calculateParticipationFee = (reservePrice: number) => reservePrice * 0.1;
 
 const refundParticipationFee = async (auction_id: string) => {
+  const queryRunner = AppDataSource.createQueryRunner();
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
+
   try {
     const auction = await auctionRepository.findAuctionById(auction_id);
     if (!auction) {
       throw ErrorHandler.notFound(`Auction with ID ${auction_id} not found`);
     }
 
-    // Get the winner ID if any
     const winnerId = auction.winner_id || null;
-
-    // Get all participants
     const participants = await auctionParticipantRepository.find({
       where: { auction: { auction_id } },
       relations: ["user"],
@@ -215,45 +226,56 @@ const refundParticipationFee = async (auction_id: string) => {
     const participationFee = calculateParticipationFee(
       auction.reserve_price ?? 0,
     );
+    const participantIds = participants
+      .filter((p) => p.user.user_id !== winnerId)
+      .map((p) => p.user.user_id);
 
-    let refundCount = 0;
+    if (participantIds.length === 0) {
+      return {
+        refundedAmount: 0,
+        participantsRefunded: 0,
+        totalParticipants: participants.length,
+      };
+    }
 
-    // Refund all participants except the winner
-    await Promise.all(
-      participants.map(async (participant) => {
-        // Skip the winner
-        if (participant.user.user_id === winnerId) {
-          return;
-        }
+    // Batch update wallets
+    await queryRunner.manager
+      .createQueryBuilder()
+      .update("wallet")
+      .set({
+        balance: () => `balance + ${participationFee}`,
+      })
+      .where({ user_id: In(participantIds) })
+      .execute();
 
-        refundCount++;
-        const wallet = await walletRepository.findWalletByUserId(
-          participant.user.user_id,
-        );
+    // Batch create refund transactions
+    const refundTransactions = participantIds.map((userId) => ({
+      wallet_id: userId,
+      amount: participationFee,
+      type: TransactionType.REFUND,
+      status: TransactionStatus.COMPLETED,
+      proof_of_payment: null,
+    }));
 
-        // Refund the participation fee
-        wallet.balance += participationFee;
-        await walletRepository.save(wallet);
+    await queryRunner.manager
+      .createQueryBuilder()
+      .insert()
+      .into("transaction")
+      .values(refundTransactions)
+      .execute();
 
-        // Create refund transaction record
-        const refundTransaction = transactionRepository.create({
-          wallet,
-          amount: participationFee,
-          type: TransactionType.REFUND,
-          status: TransactionStatus.COMPLETED,
-          proof_of_payment: null,
-        });
-        await transactionRepository.save(refundTransaction);
-      }),
-    );
+    await queryRunner.commitTransaction();
 
     return {
-      refundedAmount: participationFee * refundCount,
-      participantsRefunded: refundCount,
+      refundedAmount: participationFee * participantIds.length,
+      participantsRefunded: participantIds.length,
       totalParticipants: participants.length,
     };
   } catch (error) {
+    await queryRunner.rollbackTransaction();
     throw ErrorHandler.internalServerError("Error processing refund", error);
+  } finally {
+    await queryRunner.release();
   }
 };
 
@@ -288,26 +310,33 @@ const leaveAuction = async (auction_id: string, user_id: string) => {
 };
 
 const deleteAuction = async (auction_id: string, user_id: string) => {
+  const queryRunner = AppDataSource.createQueryRunner();
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
+
   try {
     const auction = await auctionRepository.findAuctionById(auction_id);
     if (!auction) {
       throw ErrorHandler.notFound(`Auction with ID ${auction_id} not found`);
     }
 
-    refundParticipationFee(auction_id);
+    await refundParticipationFee(auction_id);
 
-    await Promise.all([
-      auctionRepository.update(auction_id, {
-        status: AuctionStatus.DELETED,
-        user: { user_id },
-      }),
-      auctionRepository.softDelete(auction_id),
-    ]);
+    await queryRunner.manager.update(Auction, auction_id, {
+      status: AuctionStatus.DELETED,
+      user: { user_id },
+    });
+    await queryRunner.manager.softDelete(Auction, auction_id);
+
+    await queryRunner.commitTransaction();
 
     auctionJobs.cancel(auction_id);
     return auction;
   } catch (error) {
+    await queryRunner.rollbackTransaction();
     throw ErrorHandler.internalServerError("Error deleting auction", error);
+  } finally {
+    await queryRunner.release();
   }
 };
 
