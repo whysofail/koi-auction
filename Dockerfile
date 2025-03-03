@@ -28,6 +28,9 @@ FROM node:18-alpine AS production
 RUN corepack enable && corepack prepare pnpm@latest --activate
 RUN apk add --no-cache bash
 
+# Install curl for healthcheck
+RUN apk add --no-cache curl
+
 WORKDIR /app
 
 # Copy built application from builder stage
@@ -40,8 +43,8 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY package.json pnpm-lock.yaml ./
 
 # Copy and set up entrypoint script
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# COPY docker-entrypoint.sh /usr/local/bin/
+# RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Set environment variables
 ENV NODE_ENV=production \
@@ -51,12 +54,16 @@ ENV NODE_ENV=production \
 # Expose application port
 EXPOSE ${PORT}
 
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:${PORT}/api/health || exit 1
+
 # Create a non-root user for security
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 
 # Set entrypoint
-ENTRYPOINT ["docker-entrypoint.sh"]
+# ENTRYPOINT ["docker-entrypoint.sh"]
 
 # Default command
 CMD ["node", "dist/main.js"]
