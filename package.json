@@ -4,8 +4,9 @@
   "private": true,
   "main": "index.js",
   "scripts": {
-    "build": "tsc --build",
-    "start": "node ./dist/src/app.js",
+    "build": "tsc --build && pnpm run copy-files",
+    "copy-files": "copyfiles -u 1 \"src/entities/*.ts\" \"src/migrations/*.ts\" dist/",
+    "start": "node dist/main.js",
     "lint": "eslint src",
     "test:e2e": "jest --testPattern=e2e",
     "test": "jest",
@@ -16,7 +17,14 @@
     "db:drop": "typeorm-ts-node-commonjs schema:drop -d ./src/config/data-source.ts",
     "db:seed": "ts-node ./src/seeders/seed.ts",
     "test:watch": "jest --watch",
-    "prepare": "husky"
+    "prepare": "husky",
+    "typeorm": "typeorm-ts-node-commonjs",
+    "migration:generate": "ts-node -P ./scripts/tsconfig.json ./scripts/migrations/generate.ts",
+    "migration:create": "npm run typeorm -- migration:create",
+    "migration:run": "npm run typeorm -- migration:run -d src/config/data-source.ts",
+    "migration:revert": "npm run typeorm -- migration:revert -d src/config/data-source.ts",
+    "schema:drop": "npm run typeorm -- schema:drop -d src/config/data-source.ts",
+    "schema:sync": "npm run typeorm -- schema:sync -d src/config/data-source.ts"
   },
   "lint-staged": {
     "*.{js,ts}": [
@@ -64,6 +72,7 @@
     "@types/supertest": "^6.0.2",
     "@typescript-eslint/eslint-plugin": "7.18.0",
     "@typescript-eslint/parser": "7.18.0",
+    "copyfiles": "^2.4.1",
     "eslint": "8.57.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-config-airbnb-typescript": "^18.0.0",

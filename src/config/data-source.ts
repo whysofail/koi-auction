@@ -1,32 +1,45 @@
 import { DataSource } from "typeorm";
-import { config } from "dotenv";
+import dotenv from "dotenv";
+import path from "path";
 
-config();
+dotenv.config();
 
-const { DB_NAME, DB_PORT, DB_HOST, DB_USERNAME, DB_PASS, APP_ENV } =
-  process.env;
-const AppDataSource = new DataSource({
+// Determine if we're in production/compiled mode
+const isProduction =
+  process.env.NODE_ENV === "production" || __filename.endsWith(".js");
+
+// Set the base directory and file extension based on environment
+const baseDir = isProduction ? "dist" : "src";
+const fileExtension = isProduction ? ".js" : ".ts";
+
+export const AppDataSource = new DataSource({
   type: "mysql",
-  host: DB_HOST,
-  port: parseInt(DB_PORT ?? "3306"),
-  timezone: "Z",
-  username: DB_USERNAME,
-  password: DB_PASS,
-  database: DB_NAME,
-  synchronize: APP_ENV === "dev",
-  logging: false,
-  entities: ["src/entities/*.ts"],
-  migrations: ["src/migrations/*.ts"],
-  migrationsTableName: "migrations",
+  host: process.env.DB_HOST,
+  port: Number(process.env.DB_PORT),
+  username: process.env.DB_USERNAME,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
+  synchronize: false,
+  logging: true,
+  entities: [
+    path.join(process.cwd(), baseDir, "entities", "**", `*${fileExtension}`),
+  ],
+  migrations: [
+    path.join(process.cwd(), baseDir, "migrations", "**", `*${fileExtension}`),
+  ],
+  subscribers: [
+    path.join(process.cwd(), baseDir, "subscribers", "**", `*${fileExtension}`),
+  ],
 });
 
 const initDb = async () => {
   try {
     await AppDataSource.initialize();
+    console.log("Database connection established successfully");
   } catch (error) {
-    console.error("Error initializing data source", error);
-    process.exit();
+    console.error("Database connection failed:", error);
+    process.exit(1);
   }
 };
 
-export { AppDataSource, initDb };
+export { initDb };

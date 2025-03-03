@@ -6,9 +6,14 @@
     "plugin:@typescript-eslint/strict",
     "prettier"
   ],
+  "ignorePatterns": ["scripts/**/*"],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
-    "project": ["./tsconfig.json", "e2e/tsconfig.e2e.json"]
+    "project": [
+      "./tsconfig.json",
+      "e2e/tsconfig.e2e.json",
+      "./scripts/tsconfig.scripts.json"
+    ]
   },
   "overrides": [
     {
