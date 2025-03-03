@@ -175,3 +175,6 @@ dist
 .DS_Store
 
 /uploads/*
+
+# Ignore package-lock.json for local development
+/package-lock.json

@@ -1,79 +1,58 @@
-# Build stage
+# Build Stage
 FROM node:18-alpine AS builder
 
-# Install pnpm and required build tools
+# Enable corepack and install necessary dependencies
 RUN corepack enable && corepack prepare pnpm@latest --activate
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ bash
 
-# Create app directory and user
-RUN addgroup -S nodejs && adduser -S nodeuser -G nodejs
-
-# Set working directory and permissions
 WORKDIR /app
-RUN chown -R nodeuser:nodejs /app
 
-# Switch to non-root user
-USER nodeuser
+# Copy package files and install dependencies
+COPY package.json pnpm-lock.yaml ./
+ENV HUSKY=0
 
-# Copy package files
-COPY --chown=nodeuser:nodejs package*.json pnpm-lock.yaml ./
+# Install dependencies without running scripts
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
-# Install dependencies with build scripts enabled
-RUN pnpm install --frozen-lockfile --unsafe-perm
+# Manually install node-pre-gyp as a project dependency
+RUN pnpm add node-pre-gyp
 
-# Copy source code
-COPY --chown=nodeuser:nodejs src/ ./src/
-COPY --chown=nodeuser:nodejs tsconfig.json ./
+# Manually compile bcrypt
+RUN cd node_modules/bcrypt && npx node-pre-gyp install --fallback-to-build
 
-# Build the application
+# Copy application source code and build
+COPY . .
 RUN pnpm run build
 
-# Verify that `dist/` exists
-RUN ls -lah ./dist
-
-# Production stage
+# Production Stage
 FROM node:18-alpine AS production
 
-# Install pnpm
+# Enable corepack and install necessary dependencies
 RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN apk add --no-cache python3 make g++ bash
 
-# Install required runtime dependencies
-RUN apk add --no-cache python3 make g++
-
-# Create app directory and user
-RUN addgroup -S nodejs && adduser -S nodeuser -G nodejs
-
-# Set working directory and permissions
 WORKDIR /app
-RUN chown -R nodeuser:nodejs /app
-
-# Switch to non-root user
-USER nodeuser
 
 # Copy package files and install production dependencies
-COPY --chown=nodeuser:nodejs package*.json ./ 
-COPY --chown=nodeuser:nodejs pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml ./
 
-# Install production dependencies
-RUN pnpm install --frozen-lockfile --prod
+# Remove Husky’s prepare script before installing
+RUN npm pkg delete scripts.prepare
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
-# Copy built application from builder stage
-COPY --chown=nodeuser:nodejs --from=builder /app/dist ./dist
+# Manually compile bcrypt again in production
+RUN cd node_modules/bcrypt && npx node-pre-gyp install --fallback-to-build
 
-# Verify that `dist/main.js` exists
-RUN ls -lah ./dist
+# Copy built files from the builder stage
+COPY --from=builder /app/dist ./dist
 
-# Set NODE_ENV
+# Set environment variables
 ENV NODE_ENV=production \
     PORT=8001 \
     TZ=Asia/Jakarta
 
-# Expose the application port
+# Expose application port
 EXPOSE ${PORT}
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/health || exit 1
 
 # Start the application
 CMD ["node", "dist/main.js"]
