@@ -44,6 +44,10 @@ ENV NODE_ENV=production \
     DB_PASS=required \
     JWT_SECRET=required \
     REFRESH_TOKEN_SECRET=required \
+    AWS_ACCESS_KEY_ID=required \
+    AWS_SECRET_ACCESS_KEY=required \
+    AWS_S3_BUCKET_NAME=required \
+    AWS_S3_ENDPOINT=required \
     TZ=Asia/Jakarta
 
 # Copy validation script
