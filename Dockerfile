@@ -14,10 +14,7 @@ ENV HUSKY=0
 # Install dependencies without running scripts
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
-# Manually install node-pre-gyp as a project dependency
-RUN pnpm add node-pre-gyp
-
-# Manually compile bcrypt
+# Manually compile bcrypt (to avoid recompilation in production)
 RUN cd node_modules/bcrypt && npx node-pre-gyp install --fallback-to-build
 
 # Copy application source code and build
@@ -29,22 +26,22 @@ FROM node:18-alpine AS production
 
 # Enable corepack and install necessary dependencies
 RUN corepack enable && corepack prepare pnpm@latest --activate
-RUN apk add --no-cache python3 make g++ bash
+RUN apk add --no-cache bash
 
 WORKDIR /app
 
-# Copy package files and install production dependencies
+# Copy built application from builder stage
+COPY --from=builder /app/dist ./dist
+
+# Copy only production dependencies (avoid reinstallation)
+COPY --from=builder /app/node_modules ./node_modules
+
+# Copy only necessary package files (without reinstalling dependencies)
 COPY package.json pnpm-lock.yaml ./
 
-# Remove Husky’s prepare script before installing
-RUN npm pkg delete scripts.prepare
-RUN pnpm install --frozen-lockfile --prod --ignore-scripts
-
-# Manually compile bcrypt again in production
-RUN cd node_modules/bcrypt && npx node-pre-gyp install --fallback-to-build
-
-# Copy built files from the builder stage
-COPY --from=builder /app/dist ./dist
+# Copy and set up entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Set environment variables
 ENV NODE_ENV=production \
@@ -54,5 +51,12 @@ ENV NODE_ENV=production \
 # Expose application port
 EXPOSE ${PORT}
 
-# Start the application
+# Create a non-root user for security
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
+# Set entrypoint
+ENTRYPOINT ["docker-entrypoint.sh"]
+
+# Default command
 CMD ["node", "dist/main.js"]
