@@ -16,8 +16,8 @@ import { errorHandler } from "../utils/response/handleError";
 const router = Router();
 
 // Health check or welcome message route
-router.get("/", (_, res) => {
-  res.json({ message: "Welcome to the API" });
+router.get("/health", (_, res) => {
+  res.json({ message: "Ok" });
 });
 
 // Mounting the other routers
