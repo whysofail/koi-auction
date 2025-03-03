@@ -1,8 +1,9 @@
 # Build stage
 FROM node:18-alpine AS builder
 
-# Install pnpm
+# Install pnpm and required build tools
 RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN apk add --no-cache python3 make g++
 
 # Create app directory and user
 RUN addgroup -S nodejs && adduser -S nodeuser -G nodejs
@@ -17,8 +18,8 @@ USER nodeuser
 # Copy package files
 COPY --chown=nodeuser:nodejs package*.json pnpm-lock.yaml ./
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Install dependencies with build scripts enabled
+RUN pnpm install --frozen-lockfile --unsafe-perm
 
 # Copy source code
 COPY --chown=nodeuser:nodejs src/ ./src/
@@ -33,6 +34,9 @@ FROM node:18-alpine AS production
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
+# Install required runtime dependencies
+RUN apk add --no-cache python3 make g++
+
 # Create app directory and user
 RUN addgroup -S nodejs && adduser -S nodeuser -G nodejs
 
@@ -44,8 +48,11 @@ RUN chown -R nodeuser:nodejs /app
 USER nodeuser
 
 # Copy package files and install production dependencies
-COPY --chown=nodeuser:nodejs package*.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile --prod
+COPY --chown=nodeuser:nodejs package*.json ./
+COPY --chown=nodeuser:nodejs pnpm-lock.yaml ./
+
+# Install production dependencies only, skip prepare script
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
 # Copy built application from builder stage
 COPY --chown=nodeuser:nodejs --from=builder /app/dist ./dist
