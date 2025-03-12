@@ -17,7 +17,7 @@ const router = Router();
 
 // Health check or welcome message route
 router.get("/", (_, res) => {
-  res.json({ message: "Welcome to the API" });
+  res.json({ message: "Welcome to the API", last_updated: "2025-13-03 05:22" });
 });
 
 // Mounting the other routers
