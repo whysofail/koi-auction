@@ -61,8 +61,13 @@ export const getAuctionDetails: RequestHandler = async (
   next,
 ): Promise<void> => {
   const { auction_id } = req.params;
+  const user = (req as AuthenticatedRequest).user || null; // Ensure user is explicitly null if not present
+
   try {
-    const auction = await auctionService.getAuctionById(auction_id);
+    const auction = await auctionService.getAuctionById(
+      auction_id,
+      user?.user_id,
+    );
     sendSuccessResponse(res, { data: [auction] });
   } catch (error) {
     next(error);
