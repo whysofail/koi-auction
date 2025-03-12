@@ -61,12 +61,12 @@ export const getAuctionDetails: AuthenticatedRequestHandler = async (
   next,
 ): Promise<void> => {
   const { auction_id } = req.params;
-  const { user } = req as AuthenticatedRequest;
+  const { user } = req as AuthenticatedRequest; // Explicitly cast req
 
   try {
     const auction = await auctionService.getAuctionById(
       auction_id,
-      user.user_id,
+      user?.user_id, // Use optional chaining to prevent errors
     );
     sendSuccessResponse(res, { data: [auction] });
   } catch (error) {

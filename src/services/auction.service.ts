@@ -111,8 +111,16 @@ const updateAuction = async (
     }
 
     auction.user = user; // Assign the user entity with only necessary fields
-
+    console.log("Auction status:", auction.status);
+    console.log(winner_id);
+    console.log("status", auction.status);
+    console.log("is pending", auction.status === AuctionStatus.PENDING);
+    console.log("has winner", winner_id);
+    console.log("final price", final_price);
     if (auction.status === AuctionStatus.PENDING && winner_id) {
+      console.log("Auction is pending and has a winner");
+      console.log("Winner ID:", winner_id);
+      console.log("Final Price:", final_price);
       auction.winner_id = winner_id;
       auction.final_price = final_price ?? null;
       await notificationService.createNotification(
@@ -136,6 +144,7 @@ const updateAuction = async (
           ),
         ),
       );
+      auction.status = AuctionStatus.COMPLETED;
     }
 
     // Save the updated auction entity
