@@ -57,7 +57,7 @@ class User {
       "Phone number must be a valid Indonesian number starting with +62, 62, or 0",
   })
   @Column("varchar", {
-    nullable: false,
+    nullable: true,
     unique: true,
   })
   declare phone: string;
