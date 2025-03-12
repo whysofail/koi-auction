@@ -81,7 +81,11 @@ const applyAuctionFilters = (
   }
 
   if (filters.status) {
-    qb.andWhere("auction.status = :status", { status: filters.status });
+    qb.andWhere("auction.status IN (:...statuses)", {
+      statuses: Array.isArray(filters.status)
+        ? filters.status
+        : [filters.status],
+    });
   } else {
     qb.andWhere("auction.status != :status", { status: AuctionStatus.DELETED });
   }
