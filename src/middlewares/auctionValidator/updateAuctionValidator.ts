@@ -4,16 +4,20 @@ import { In, Not } from "typeorm";
 import auctionRepository from "../../repositories/auction.repository";
 import { AuctionStatus } from "../../entities/Auction";
 import { ErrorHandler } from "../../utils/response/handleError";
+import userRepository from "../../repositories/user.repository";
 
 interface UpdateAuctionData {
   item?: string;
   title?: string;
   description?: string;
-  reserve_price?: number | null;
+  buynow_price?: number | null;
   bid_increment?: number | null;
   start_datetime?: Date;
   end_datetime?: Date;
+  participation_fee?: number | null;
   status?: AuctionStatus;
+  winner_id?: string;
+  final_price?: number | null;
 }
 
 const validateField = async <T>(
@@ -89,10 +93,10 @@ const updateAuctionValidator = async (
       "Description must not be empty",
     );
 
-    // Validate reserve_price
-    if ("reserve_price" in req.body) {
+    // Validate buynow_price
+    if ("buynow_price" in req.body) {
       const price =
-        req.body.reserve_price === null ? null : Number(req.body.reserve_price);
+        req.body.buynow_price === null ? null : Number(req.body.buynow_price);
       if (price !== null) {
         await validateField(
           price,
@@ -100,7 +104,23 @@ const updateAuctionValidator = async (
           "Reserve price must be a valid positive number",
         );
       }
-      updates.reserve_price = price;
+      updates.buynow_price = price;
+    }
+
+    // Validate buynow_price
+    if ("participation_fee" in req.body) {
+      const price =
+        req.body.participation_fee === null
+          ? null
+          : Number(req.body.participation_fee);
+      if (price !== null) {
+        await validateField(
+          price,
+          (val) => !Number.isNaN(val) && val > 0,
+          "Reserve price must be a valid positive number",
+        );
+      }
+      updates.participation_fee = price;
     }
 
     // Validate bid_increment
@@ -152,6 +172,33 @@ const updateAuctionValidator = async (
         "Invalid auction status",
       );
       updates.status = status;
+    }
+
+    if ("winner_id" in req.body) {
+      if (!req.body.winner_id) {
+        throw ErrorHandler.badRequest("Winner ID is required");
+      }
+      const winner = await userRepository.findOne({
+        where: { user_id: req.body.winner_id },
+      });
+      if (!winner) {
+        throw ErrorHandler.badRequest("Invalid winner ID");
+      }
+      updates.winner_id = req.body.winner_id;
+    }
+
+    // Validate bid_increment
+    if ("final_price" in req.body) {
+      const increment =
+        req.body.final_price === null ? null : Number(req.body.final_price);
+      if (increment !== null) {
+        await validateField(
+          increment,
+          (val) => !Number.isNaN(val) && val > 0,
+          "Final price must be a valid positive number",
+        );
+      }
+      updates.final_price = increment;
     }
 
     // Create a clean auction object with only updatable fields

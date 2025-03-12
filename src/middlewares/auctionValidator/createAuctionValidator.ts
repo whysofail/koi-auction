@@ -19,11 +19,12 @@ const createAuctionValidator = async (
       item,
       title,
       description,
-      reserve_price,
+      buynow_price,
+      participation_fee,
       start_datetime,
       end_datetime,
       bid_increment,
-    } = req.body;
+    }: Auction = req.body;
 
     // Validate item_id (must be a valid UUID and the item should exist)
     if (!item) {
@@ -48,7 +49,9 @@ const createAuctionValidator = async (
     });
 
     if (itemAlreadyExist) {
-      res.status(400).json({ message: "Item already has an active auction!" });
+      res
+        .status(400)
+        .json({ message: "Item already has already listed in auction!" });
       return;
     }
 
@@ -62,15 +65,57 @@ const createAuctionValidator = async (
       return;
     }
 
-    // Ensure reserve_price is a valid positive number, if provided
-    let parsedReservePrice = reserve_price;
-    if (reserve_price !== undefined && typeof reserve_price === "string") {
-      parsedReservePrice = Number(reserve_price);
+    if (!start_datetime || !end_datetime) {
+      res.status(400).json({ message: "Start and end datetime are required!" });
+      return;
+    }
+
+    if (!bid_increment) {
+      res.status(400).json({ message: "Bid increment is required!" });
+      return;
+    }
+
+    if (!buynow_price) {
+      res.status(400).json({ message: "Buy now price is required!" });
+      return;
+    }
+
+    if (!participation_fee) {
+      res.status(400).json({ message: "Participation fee is required!" });
+      return;
+    }
+
+    // Ensure buynow_price is a valid positive number, if provided
+    let parsedReservePrice = buynow_price;
+    if (buynow_price !== undefined && typeof buynow_price === "string") {
+      parsedReservePrice = Number(buynow_price);
     }
 
     if (
       parsedReservePrice !== undefined &&
-      (Number.isNaN(parsedReservePrice) || parsedReservePrice <= 0)
+      (parsedReservePrice === null ||
+        Number.isNaN(parsedReservePrice) ||
+        parsedReservePrice <= 0)
+    ) {
+      res
+        .status(400)
+        .json({ message: "Reserve price must be a valid positive number!" });
+      return;
+    }
+
+    let parsedParticipationFee = participation_fee;
+    if (
+      participation_fee !== undefined &&
+      typeof participation_fee === "string"
+    ) {
+      parsedParticipationFee = Number(participation_fee);
+    }
+
+    if (
+      parsedParticipationFee !== undefined &&
+      (parsedParticipationFee === null ||
+        Number.isNaN(parsedParticipationFee) ||
+        parsedParticipationFee <= 0)
     ) {
       res
         .status(400)
@@ -116,8 +161,10 @@ const createAuctionValidator = async (
     }
 
     if (
-      parsedBidIncrement !== undefined &&
-      (Number.isNaN(parsedBidIncrement) || parsedBidIncrement <= 0)
+      parsedBidIncrement === undefined ||
+      parsedBidIncrement === null ||
+      Number.isNaN(parsedBidIncrement) ||
+      parsedBidIncrement <= 0
     ) {
       res
         .status(400)
@@ -129,12 +176,14 @@ const createAuctionValidator = async (
     const auction = new Auction();
     auction.title = title;
     auction.description = description;
-    auction.reserve_price =
-      parsedReservePrice !== undefined ? parsedReservePrice : null;
+    auction.buynow_price =
+      parsedReservePrice !== undefined ? parsedReservePrice : 0;
     auction.start_datetime = startDt ?? new Date();
     auction.end_datetime = endDt ?? new Date();
     auction.item = item;
     auction.bid_increment = parsedBidIncrement;
+    auction.participation_fee =
+      parsedParticipationFee !== undefined ? parsedParticipationFee : 0;
 
     // Validate auction instance
     const errors = await validate(auction, { skipMissingProperties: true });

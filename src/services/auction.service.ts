@@ -30,8 +30,8 @@ export const getAllAuctions = async (
   return { auctions, count };
 };
 
-const getAuctionById = async (auction_id: string) => {
-  const auction = await auctionRepository.findAuctionById(auction_id);
+const getAuctionById = async (auction_id: string, user_id?: string) => {
+  const auction = await auctionRepository.findAuctionById(auction_id, user_id);
   if (!auction) {
     throw ErrorHandler.notFound(`Auction with ID ${auction_id} not found`);
   }
@@ -50,7 +50,10 @@ const createAuction = async (
 
     const auction = await auctionRepository.create({
       ...data,
-      user,
+      user: {
+        user_id: user.user_id,
+        username: user.username,
+      },
     });
 
     await auctionRepository.save(auction);
@@ -73,11 +76,13 @@ const updateAuction = async (
       start_datetime,
       end_datetime,
       item,
-      reserve_price,
+      buynow_price,
+      participation_fee,
       bid_increment,
       status,
       winner_id,
       final_price,
+      rich_description,
     } = data;
 
     // Fetch the auction by ID to ensure it exists and get the full entity
@@ -90,10 +95,12 @@ const updateAuction = async (
     // Update the auction entity with new data
     auction.title = title ?? auction.title;
     auction.description = description ?? auction.description;
+    auction.rich_description = rich_description ?? auction.rich_description;
+    auction.participation_fee = participation_fee ?? auction.participation_fee;
     auction.item = item ?? auction.item;
     auction.start_datetime = start_datetime ?? auction.start_datetime;
     auction.end_datetime = end_datetime ?? auction.end_datetime;
-    auction.reserve_price = reserve_price ?? auction.reserve_price;
+    auction.buynow_price = buynow_price ?? auction.buynow_price;
     auction.bid_increment = bid_increment ?? auction.bid_increment;
     auction.status = (status?.toUpperCase() as AuctionStatus) ?? auction.status;
 
@@ -104,8 +111,16 @@ const updateAuction = async (
     }
 
     auction.user = user; // Assign the user entity with only necessary fields
-
+    console.log("Auction status:", auction.status);
+    console.log(winner_id);
+    console.log("status", auction.status);
+    console.log("is pending", auction.status === AuctionStatus.PENDING);
+    console.log("has winner", winner_id);
+    console.log("final price", final_price);
     if (auction.status === AuctionStatus.PENDING && winner_id) {
+      console.log("Auction is pending and has a winner");
+      console.log("Winner ID:", winner_id);
+      console.log("Final Price:", final_price);
       auction.winner_id = winner_id;
       auction.final_price = final_price ?? null;
       await notificationService.createNotification(
@@ -129,6 +144,7 @@ const updateAuction = async (
           ),
         ),
       );
+      auction.status = AuctionStatus.COMPLETED;
     }
 
     // Save the updated auction entity
@@ -168,20 +184,14 @@ const joinAuction = async (auction_id: string, user_id: string) => {
       throw ErrorHandler.notFound(`Auction with ID ${auction_id} not found`);
     }
 
-    const reservePrice = auction.reserve_price ?? 0;
-    const participationFee = reservePrice * 0.1;
-
     const wallet = await walletRepository.findWalletByUserId(user_id);
-    if (wallet.balance < participationFee) {
-      throw ErrorHandler.badRequest("Insufficient balance");
-    }
 
-    wallet.balance -= participationFee;
+    wallet.balance -= auction.participation_fee;
     await queryRunner.manager.save(wallet);
 
     const transaction = transactionRepository.create({
       wallet,
-      amount: participationFee,
+      amount: auction.participation_fee,
       type: TransactionType.PARTICIPATE,
       status: TransactionStatus.COMPLETED,
       proof_of_payment: null,
@@ -210,7 +220,6 @@ const joinAuction = async (auction_id: string, user_id: string) => {
 
     return {
       message: "User successfully joined the auction",
-      participationFee,
       auctionParticipant,
     };
   } catch (error) {
@@ -235,8 +244,6 @@ export const getAuctionEndingSoon = async (
   return { auctions, count };
 };
 
-const calculateParticipationFee = (reservePrice: number) => reservePrice * 0.1;
-
 const refundParticipationFee = async (auction_id: string) => {
   const queryRunner = AppDataSource.createQueryRunner();
   await queryRunner.connect();
@@ -254,9 +261,6 @@ const refundParticipationFee = async (auction_id: string) => {
       relations: ["user"],
     });
 
-    const participationFee = calculateParticipationFee(
-      auction.reserve_price ?? 0,
-    );
     const participantIds = participants
       .filter((p) => p.user.user_id !== winnerId)
       .map((p) => p.user.user_id);
@@ -274,7 +278,7 @@ const refundParticipationFee = async (auction_id: string) => {
       .createQueryBuilder()
       .update("wallet")
       .set({
-        balance: () => `balance + ${participationFee}`,
+        balance: () => `balance + ${auction.participation_fee}`,
       })
       .where({ user_id: In(participantIds) })
       .execute();
@@ -282,7 +286,7 @@ const refundParticipationFee = async (auction_id: string) => {
     // Batch create refund transactions
     const refundTransactions = participantIds.map((userId) => ({
       wallet_id: userId,
-      amount: participationFee,
+      amount: auction.participation_fee,
       type: TransactionType.REFUND,
       status: TransactionStatus.COMPLETED,
       proof_of_payment: null,
@@ -298,7 +302,7 @@ const refundParticipationFee = async (auction_id: string) => {
     await queryRunner.commitTransaction();
 
     return {
-      refundedAmount: participationFee * participantIds.length,
+      refundedAmount: auction.participation_fee * participantIds.length,
       participantsRefunded: participantIds.length,
       totalParticipants: participants.length,
     };

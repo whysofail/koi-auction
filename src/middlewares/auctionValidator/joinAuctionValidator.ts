@@ -4,6 +4,7 @@ import walletRepository from "../../repositories/wallet.repository";
 import { AuthenticatedRequest } from "../../types/auth";
 import { userService } from "../../services/user.service";
 import { AuctionStatus } from "../../entities/Auction";
+import auctionParticipantRepository from "../../repositories/auctionparticipant.repository";
 
 const joinAuctionValidator = async (
   req: Request,
@@ -38,11 +39,24 @@ const joinAuctionValidator = async (
       return;
     }
 
+    // Check if already joined
+    const isJoined =
+      await auctionParticipantRepository.isUserParticipatingInAuction(
+        auction_id,
+        user.user_id,
+      );
+
+    if (isJoined) {
+      res
+        .status(400)
+        .json({ message: "User has already joined this auction!" });
+      return;
+    }
     if (
-      auction.status !== AuctionStatus.PUBLISHED &&
-      auction.status !== AuctionStatus.STARTED
+      auction.status !== AuctionStatus.STARTED &&
+      auction.status !== AuctionStatus.PUBLISHED
     ) {
-      res.status(400).json({ message: "Cant join this auction yet!" });
+      res.status(400).json({ message: "Can't join this auction yet!" });
       return;
     }
 
@@ -60,12 +74,13 @@ const joinAuctionValidator = async (
       return;
     }
 
-    // Calculate participation fee (10% of reserve price)
-    const reservePrice = auction.reserve_price ?? 0;
-    const participationFee = reservePrice * 0.1;
-
     // Check if the user's wallet has enough balance
-    if (wallet.balance < participationFee) {
+    wallet.balance = parseFloat(wallet.balance.toString());
+    auction.participation_fee = parseFloat(
+      auction.participation_fee.toString(),
+    );
+
+    if (wallet.balance < auction.participation_fee) {
       res
         .status(400)
         .json({ message: "Insufficient balance to join the auction!" });

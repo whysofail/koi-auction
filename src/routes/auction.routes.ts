@@ -8,6 +8,7 @@ import {
   leaveAuction,
   updateAuction,
 } from "../controllers/auction.controllers";
+import { getAuctionJoinedByUserId } from "../controllers/auctionparticipant.controllers";
 import { parsePaginationAndFilters } from "../middlewares/parsePaginationFilter.middleware";
 import { authorize, protect } from "../middlewares/auth.middleware";
 import createAuctionValidator from "../middlewares/auctionValidator/createAuctionValidator";
@@ -20,31 +21,39 @@ const auctionRouter = Router();
 auctionRouter.get("/", parsePaginationAndFilters, getAuctions);
 auctionRouter.post(
   "/",
-  protect,
+  protect(),
   authorize(["admin"]),
   createAuctionValidator,
   createAuction,
 );
-auctionRouter.get("/:auction_id", getAuctionDetails);
+
+auctionRouter.get(
+  "/participated",
+  protect(),
+  parsePaginationAndFilters,
+  getAuctionJoinedByUserId,
+);
+
+auctionRouter.get("/:auction_id", protect(false), getAuctionDetails);
 auctionRouter.put(
   "/:auction_id",
-  protect,
+  protect(),
   authorize(["admin"]),
   updateAuctionValidator,
   updateAuction,
 );
 auctionRouter.post(
   "/:auction_id/join",
-  protect,
+  protect(),
   joinAuctionValidator,
   joinAuction,
 );
 
-auctionRouter.post("/:auction_id/leave", protect, leaveAuction);
+auctionRouter.post("/:auction_id/leave", protect(), leaveAuction);
 
 auctionRouter.delete(
   "/:auction_id",
-  protect,
+  protect(),
   authorize(["admin"]),
   deleteAuctionValidator,
   deleteAuction,

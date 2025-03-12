@@ -60,6 +60,14 @@ class Auction {
   declare description: string;
 
   @Column({
+    type: "longtext",
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  declare rich_description: string | null;
+
+  @Column({
     type: "varchar",
     nullable: false,
   })
@@ -104,8 +112,17 @@ class Auction {
   })
   @IsOptional()
   @IsPositive()
-  @Min(0, { message: "Reserve price must be a positive number" })
-  declare reserve_price: number | null | undefined;
+  @Min(0, { message: "Buy now price must be a positive number" })
+  declare buynow_price: number;
+
+  @Column({
+    type: "decimal",
+    precision: 10,
+    scale: 2,
+    default: 0,
+  })
+  @IsPositive()
+  declare participation_fee: number;
 
   @Column({
     type: "decimal",
@@ -114,7 +131,7 @@ class Auction {
     default: 50000,
   })
   @IsPositive()
-  declare bid_increment: number | null | undefined;
+  declare bid_increment: number;
 
   @ManyToOne(() => User, (user) => user.auctions)
   @JoinColumn({ name: "created_by_id" })

@@ -22,8 +22,8 @@ const applyAuctionOrdering = (
     qb.orderBy("auction.end_datetime", order.order);
   }
 
-  if (order.orderBy === "reserve_price") {
-    qb.orderBy("auction.reserve_price", order.order);
+  if (order.orderBy === "buynow_price") {
+    qb.orderBy("auction.buynow_price", order.order);
   }
 
   if (order.orderBy === "created_at") {
@@ -57,13 +57,13 @@ const applyAuctionFilters = (
   }
 
   if (filters.minReservePrice !== undefined) {
-    qb.andWhere("auction.reserve_price >= :minReservePrice", {
+    qb.andWhere("auction.buynow_price >= :minReservePrice", {
       minReservePrice: filters.minReservePrice,
     });
   }
 
   if (filters.maxReservePrice !== undefined) {
-    qb.andWhere("auction.reserve_price <= :maxReservePrice", {
+    qb.andWhere("auction.buynow_price <= :maxReservePrice", {
       maxReservePrice: filters.maxReservePrice,
     });
   }
@@ -81,7 +81,11 @@ const applyAuctionFilters = (
   }
 
   if (filters.status) {
-    qb.andWhere("auction.status = :status", { status: filters.status });
+    qb.andWhere("auction.status IN (:...statuses)", {
+      statuses: Array.isArray(filters.status)
+        ? filters.status
+        : [filters.status],
+    });
   } else {
     qb.andWhere("auction.status != :status", { status: AuctionStatus.DELETED });
   }
@@ -100,12 +104,8 @@ const createBaseQuery = (repository: Repository<Auction>) =>
     .addSelect(["bid_user.user_id", "bid_user.username"])
     .leftJoinAndSelect("auction.participants", "participants")
     .leftJoin("participants.user", "participant_user")
-    .addSelect(["participant_user.user_id", "participant_user.username"])
-    .leftJoinAndSelect("auction.highest_bid", "highest_bid")
-    .leftJoin("highest_bid.user", "highest_bid_user")
-    .addSelect(["highest_bid_user.user_id", "highest_bid_user.username"])
-    .leftJoin("auction.winner", "winner")
-    .addSelect(["winner.user_id", "winner.username"]);
+    .orderBy("participants.joined_at", "DESC")
+    .addSelect(["participant_user.user_id", "participant_user.username"]);
 
 const auctionRepository = dataSource.getRepository(Auction).extend({
   async getAllAuctions(
@@ -122,17 +122,14 @@ const auctionRepository = dataSource.getRepository(Auction).extend({
     const [auctions, count] = await qb.getManyAndCount();
     return { auctions, count };
   },
-  async findAuctionById(auction_id: string) {
+  async findAuctionById(auction_id: string, user_id?: string) {
     const qb = createBaseQuery(this);
-
-    // Add any additional condition for auction_id
     qb.where("auction.auction_id = :auction_id", { auction_id });
 
-    // Execute the query
     const auction = await qb.getOne();
 
     if (auction) {
-      // Fix: Count participants directly from auction_participant table
+      // Count participants
       const participantsCount = await this.createQueryBuilder("auction")
         .select("COUNT(participants.auction_participant_id)", "count")
         .leftJoin("auction.participants", "participants")
@@ -141,9 +138,22 @@ const auctionRepository = dataSource.getRepository(Auction).extend({
         .then((result) => Number(result.count));
 
       auction.participants_count = participantsCount;
+
+      // Check if user has joined
+      let hasJoined = false;
+      if (user_id) {
+        const participant = await this.createQueryBuilder("auction")
+          .leftJoin("auction.participants", "participants")
+          .where("auction.auction_id = :auction_id", { auction_id })
+          .andWhere("participants.user_id = :user_id", { user_id })
+          .getOne();
+        hasJoined = !!participant;
+      }
+
+      return { ...auction, hasJoined };
     }
 
-    return auction;
+    return null;
   },
 
   async findAuctionWithBids(auction_id: string) {
