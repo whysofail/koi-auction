@@ -1,5 +1,5 @@
 import { AppDataSource } from "../config/data-source";
-import { Wishlist } from "../entities/Wishlist";
+import Wishlist from "../entities/Wishlist";
 import { PaginationOptions, applyPagination } from "../utils/pagination";
 
 const repository = AppDataSource.getRepository(Wishlist);
