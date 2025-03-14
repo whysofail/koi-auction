@@ -20,7 +20,14 @@ const addToWishlistValidator = async (
     }
     // Check if auction exists in user's wishlist
     const existing = await wishlistRepository.findOne({
-      where: { user_id: user.user_id, auction_id },
+      where: {
+        user: {
+          user_id: user.user_id,
+        },
+        auction: {
+          auction_id,
+        },
+      },
     });
 
     if (existing) {

@@ -23,14 +23,16 @@ const addToWishlist = async (user_id: string, auction_id: string) => {
 
   // Check if already in wishlist
   const existing = await wishlistRepository.findOne({
-    where: { user_id, auction_id },
+    where: { user: { user_id }, auction: { auction_id } },
   });
   if (existing) {
     throw ErrorHandler.badRequest("Auction already in wishlist");
   }
 
   const wishlist = await wishlistRepository.create({
-    user_id,
+    user: {
+      user_id,
+    },
     auction,
   });
 
@@ -40,7 +42,12 @@ const addToWishlist = async (user_id: string, auction_id: string) => {
 
 const removeFromWishlist = async (user_id: string, auction_id: string) => {
   const wishlist = await wishlistRepository.findOne({
-    where: { user_id, auction_id },
+    where: {
+      user: {
+        user_id,
+      },
+      auction: { auction_id },
+    },
   });
   if (!wishlist) {
     throw ErrorHandler.notFound("Wishlist item not found");

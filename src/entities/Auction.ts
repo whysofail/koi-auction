@@ -23,6 +23,7 @@ import {
 import User from "./User";
 import Bid from "./Bid";
 import AuctionParticipant from "./AuctionParticipant";
+import Wishlist from "./Wishlist";
 
 export enum AuctionStatus {
   DRAFT = "DRAFT",
@@ -179,6 +180,11 @@ class Auction {
   @ManyToOne(() => User)
   @JoinColumn({ name: "winner_id" })
   declare winner: User;
+
+  @OneToMany(() => Wishlist, (wishlist) => wishlist.auction, { cascade: true })
+  declare wishlists: Wishlist[];
+
+  declare hasWishlisted: boolean;
 }
 
 export default Auction;

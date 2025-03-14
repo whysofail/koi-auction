@@ -22,6 +22,7 @@ import AuctionParticipant from "./AuctionParticipant";
 import Notification from "./Notification";
 import Warning from "./Warning";
 import News from "./News";
+import Wishlist from "./Wishlist";
 
 export enum UserRole {
   ADMIN = "admin",
@@ -94,6 +95,9 @@ class User {
 
   @OneToMany(() => Warning, (warning) => warning.user)
   declare warnings: Warning[];
+
+  @OneToMany(() => Wishlist, (wishlist) => wishlist.user, { cascade: true })
+  declare wishlists: Wishlist[];
 
   @OneToMany(() => News, (news) => news.author, { cascade: true })
   declare news: News[];

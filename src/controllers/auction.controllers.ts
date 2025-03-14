@@ -1,4 +1,4 @@
-import { Request, Response, RequestHandler } from "express";
+import { Request, Response } from "express";
 import {
   sendSuccessResponse,
   sendErrorResponse,
@@ -27,13 +27,15 @@ export const createAuction: AuthenticatedRequestHandler = async (
 };
 
 // Get all auctions
-export const getAuctions: RequestHandler = async (
+export const getAuctions: AuthenticatedRequestHandler = async (
   req: Request,
   res: Response,
   next,
 ): Promise<void> => {
   try {
     const { filters, pagination, order } = req;
+    const { user } = req as AuthenticatedRequest;
+
     const auctionOrder = {
       orderBy: order.orderBy as AuctionOrderFields,
       order: order.order,
@@ -42,6 +44,7 @@ export const getAuctions: RequestHandler = async (
       filters,
       pagination,
       auctionOrder,
+      user?.user_id,
     );
     sendSuccessResponse(res, {
       data: auctions,
