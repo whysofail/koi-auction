@@ -46,7 +46,7 @@ export const getUserNotifications: AuthenticatedRequestHandler = async (
   const { filters, order, pagination } = req;
 
   try {
-    const { notifications, count } =
+    const { notifications, count, unread_count } =
       await notificationService.getNotificationsByUserId(
         user.user_id,
         filters,
@@ -58,6 +58,7 @@ export const getUserNotifications: AuthenticatedRequestHandler = async (
       {
         data: notifications,
         count,
+        unread_count,
         page: pagination.page,
         limit: pagination.limit,
       },

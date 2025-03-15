@@ -65,6 +65,8 @@ class Notification {
 
   @Column({ nullable: true })
   declare updated_at: Date; // optional, in case the notification gets updated
+
+  declare unread_count: number;
 }
 
 export default Notification;

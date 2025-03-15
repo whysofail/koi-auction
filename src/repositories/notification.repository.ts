@@ -53,9 +53,10 @@ const applyNotificationFilters = (
     qb.andWhere("notification.type = :type", { type: filters.type });
   }
 
-  if (filters.type) {
+  if (filters.status) {
     qb.andWhere("notification.status = :status", { status: filters.status });
   }
+
   if (filters.referenceId) {
     qb.andWhere("notification.reference_id = :referenceId", {
       referenceId: filters.referenceId,
@@ -78,12 +79,28 @@ const notificationRepository = dataSource.getRepository(Notification).extend({
     const qb = this.createQueryBuilder("notification")
       .leftJoinAndSelect("notification.user", "user")
       .select(["notification", "user.user_id", "user.username"]);
+
     applyNotificationFilters(qb, filters);
     applyNotificationOrdering(qb, order);
     applyPagination(qb, pagination);
+
     const [notifications, count] = await qb.getManyAndCount();
-    return { notifications, count };
+
+    let unreadCount = null;
+    if (filters?.userId) {
+      unreadCount = await this.createQueryBuilder("notification")
+        .where("notification.user.user_id = :userId", {
+          userId: filters.userId,
+        })
+        .andWhere("notification.status = :status", {
+          status: NotificationStatus.UNREAD,
+        })
+        .getCount();
+    }
+
+    return { notifications, count, unread_count: unreadCount };
   },
+
   createNotification(
     userId: string,
     type: NotificationType,
@@ -136,6 +153,7 @@ const notificationRepository = dataSource.getRepository(Notification).extend({
       status: NotificationStatus.READ,
     });
   },
+
   blastNotification(
     type: NotificationType,
     message: string,

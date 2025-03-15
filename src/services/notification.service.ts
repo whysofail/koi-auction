@@ -91,13 +91,13 @@ const getNotificationsByUserId = async (
   pagination?: PaginationOptions,
 ) => {
   try {
-    const { notifications, count } =
+    const { notifications, count, unread_count } =
       await notificationRepository.findAllNotifications(
         { userId: user_id, ...filters },
         order,
         pagination,
       );
-    return { notifications, count };
+    return { notifications, count, unread_count };
   } catch (error) {
     throw ErrorHandler.internalServerError(
       "Error fetching user notifications",
