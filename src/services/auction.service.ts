@@ -21,11 +21,13 @@ export const getAllAuctions = async (
   filters?: IAuctionFilter,
   pagination?: PaginationOptions,
   order?: IAuctionOrder,
+  user_id?: string,
 ) => {
   const { auctions, count } = await auctionRepository.getAllAuctions(
     filters,
     pagination,
     order,
+    user_id,
   );
   return { auctions, count };
 };

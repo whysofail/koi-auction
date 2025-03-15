@@ -18,7 +18,7 @@ import { deleteAuctionValidator } from "../middlewares/auctionValidator/deleteAu
 
 const auctionRouter = Router();
 
-auctionRouter.get("/", parsePaginationAndFilters, getAuctions);
+auctionRouter.get("/", protect(false), parsePaginationAndFilters, getAuctions);
 auctionRouter.post(
   "/",
   protect(),

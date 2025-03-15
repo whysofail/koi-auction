@@ -35,6 +35,7 @@
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.738.0",
+    "@types/bcryptjs": "^3.0.0",
     "@types/cors": "^2.8.17",
     "@types/multer-s3": "^3.0.3",
     "bcrypt": "^5.1.1",
@@ -60,6 +61,7 @@
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",
     "@commitlint/config-conventional": "^19.5.0",
+    "@commitlint/config-validator": "^19.8.0",
     "@faker-js/faker": "^9.3.0",
     "@types/bcrypt": "^5.0.2",
     "@types/express": "^5.0.0",
@@ -90,5 +92,11 @@
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.3"
+  },
+  "packageManager": "pnpm@10.6.2+sha512.47870716bea1572b53df34ad8647b42962bc790ce2bf4562ba0f643237d7302a3d6a8ecef9e4bdfc01d23af1969aa90485d4cebb0b9638fa5ef1daef656f6c1b",
+  "pnpm": {
+    "ignoredBuiltDependencies": [
+      "bcrypt"
+    ]
   }
 }

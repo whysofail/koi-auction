@@ -4,6 +4,7 @@ import Auction, { AuctionStatus } from "../entities/Auction";
 import { IAuctionFilter } from "../types/entityfilter";
 import { PaginationOptions, applyPagination } from "../utils/pagination";
 import { IAuctionOrder } from "../types/entityorder.types";
+import Wishlist from "../entities/Wishlist";
 
 const applyAuctionOrdering = (
   qb: SelectQueryBuilder<Auction>,
@@ -112,6 +113,7 @@ const auctionRepository = dataSource.getRepository(Auction).extend({
     filters?: IAuctionFilter,
     pagination?: PaginationOptions,
     order?: IAuctionOrder,
+    user_id?: string,
   ) {
     const qb = createBaseQuery(this);
 
@@ -120,7 +122,37 @@ const auctionRepository = dataSource.getRepository(Auction).extend({
     applyPagination(qb, pagination);
 
     const [auctions, count] = await qb.getManyAndCount();
-    return { auctions, count };
+
+    if (user_id && auctions.length > 0) {
+      // Create an array of promises for parallel execution
+      const wishlistPromises = auctions.map(async (auction) => {
+        const wishlisted = await dataSource
+          .getRepository(Wishlist)
+          .createQueryBuilder("wishlist")
+          .innerJoin("wishlist.auction", "auction")
+          .innerJoin("wishlist.user", "user")
+          .where("user.user_id = :user_id", { user_id })
+          .andWhere("auction.auction_id = :auction_id", {
+            auction_id: auction.auction_id,
+          })
+          .getOne();
+
+        return { ...auction, hasWishlisted: !!wishlisted };
+      });
+
+      // Resolve all promises concurrently
+      const updatedAuctions = await Promise.all(wishlistPromises);
+
+      return { auctions: updatedAuctions, count };
+    }
+
+    // If no user_id, add hasWishlisted: false to all auctions
+    const updatedAuctions = auctions.map((auction) => ({
+      ...auction,
+      hasWishlisted: false,
+    }));
+
+    return { auctions: updatedAuctions, count };
   },
   async findAuctionById(auction_id: string, user_id?: string) {
     const qb = createBaseQuery(this);
@@ -139,8 +171,9 @@ const auctionRepository = dataSource.getRepository(Auction).extend({
 
       auction.participants_count = participantsCount;
 
-      // Check if user has joined
+      // Check if user has joined and has wishlisted the auction
       let hasJoined = false;
+      let hasWishlisted = false;
       if (user_id) {
         const participant = await this.createQueryBuilder("auction")
           .leftJoin("auction.participants", "participants")
@@ -148,9 +181,20 @@ const auctionRepository = dataSource.getRepository(Auction).extend({
           .andWhere("participants.user_id = :user_id", { user_id })
           .getOne();
         hasJoined = !!participant;
+
+        const wishlisted = await dataSource
+          .getRepository(Wishlist)
+          .createQueryBuilder("wishlist")
+          .innerJoin("wishlist.auction", "auction")
+          .innerJoin("wishlist.user", "user")
+          .where("user.user_id = :user_id", { user_id })
+          .andWhere("auction.auction_id = :auction_id", { auction_id })
+          .getOne();
+
+        hasWishlisted = !!wishlisted;
       }
 
-      return { ...auction, hasJoined };
+      return { ...auction, hasJoined, hasWishlisted };
     }
 
     return null;
