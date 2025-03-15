@@ -48,8 +48,10 @@ const fileFilter: multer.Options["fileFilter"] = (
 ) => {
   const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
   if (allowedTypes.includes(file.mimetype)) {
+    console.log("File accepted:", file.originalname);
     cb(null, true); // Accept the file
   } else {
+    console.error("File rejected:", file.originalname);
     cb(new Error("Only image files are allowed!")); // Reject the file
   }
 };
@@ -62,5 +64,25 @@ const upload = multer({
   },
 });
 
-// Export single file upload handler with type safety
-export const uploadProofOfPayment = upload.single("proof_of_payment");
+// Middleware for single file upload with success/failure logs
+export const uploadProofOfPayment = (req: Request, res: any, next: any) => {
+  const uploadSingle = upload.single("proof_of_payment");
+
+  uploadSingle(req, res, (err: any) => {
+    if (err) {
+      console.error("File upload failed:", err.message);
+      return res.status(400).json({ error: err.message });
+    }
+
+    if (!req.file) {
+      console.warn("No file uploaded");
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    console.log(
+      "File uploaded successfully:",
+      (req.file as Express.MulterS3.File).key,
+    );
+    return next();
+  });
+};

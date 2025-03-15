@@ -1,5 +1,7 @@
 import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import bcrypt from "bcryptjs";
 import userRepository from "../repositories/user.repository";
 import walletRepository from "../repositories/wallet.repository";
 import User, { UserRole } from "../entities/User";
