@@ -24,6 +24,7 @@ const createAuctionValidator = async (
       start_datetime,
       end_datetime,
       bid_increment,
+      bid_starting_price,
     }: Auction = req.body;
 
     // Validate item_id (must be a valid UUID and the item should exist)
@@ -116,6 +117,27 @@ const createAuctionValidator = async (
       (parsedParticipationFee === null ||
         Number.isNaN(parsedParticipationFee) ||
         parsedParticipationFee <= 0)
+    ) {
+      res
+        .status(400)
+        .json({ message: "Reserve price must be a valid positive number!" });
+      return;
+    }
+
+    // Ensure buynow_price is a valid positive number, if provided
+    let parsedBidStartingPrice = bid_starting_price;
+    if (
+      bid_starting_price !== undefined &&
+      typeof bid_starting_price === "string"
+    ) {
+      parsedBidStartingPrice = Number(bid_starting_price);
+    }
+
+    if (
+      parsedBidStartingPrice !== undefined &&
+      (parsedBidStartingPrice === null ||
+        Number.isNaN(parsedBidStartingPrice) ||
+        parsedBidStartingPrice <= 0)
     ) {
       res
         .status(400)

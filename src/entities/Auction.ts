@@ -134,6 +134,15 @@ class Auction {
   @IsPositive()
   declare bid_increment: number;
 
+  @Column({
+    type: "decimal",
+    precision: 10,
+    scale: 2,
+    default: 50000,
+  })
+  @IsPositive()
+  declare bid_starting_price: number;
+
   @ManyToOne(() => User, (user) => user.auctions)
   @JoinColumn({ name: "created_by_id" })
   declare user: User;

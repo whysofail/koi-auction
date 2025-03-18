@@ -2,6 +2,7 @@ import { AppDataSource } from "../config/data-source";
 import Auction, { AuctionStatus } from "../entities/Auction";
 import { Job } from "../entities/Job";
 import auctionRepository from "../repositories/auction.repository";
+import bidRepository from "../repositories/bid.repository";
 import { auctionEmitter } from "../sockets/auction.socket";
 import JobManager, { JobHandler } from "./jobManager";
 // import { auctionService } from "../services/auction.service";
@@ -63,7 +64,18 @@ const auctionEndHandler: JobHandler = {
         );
       }
 
-      auction.status = AuctionStatus.PENDING;
+      // Check if auction has bids
+      const hasBids = await bidRepository.hasBids(auction.auction_id);
+
+      if (!hasBids) {
+        console.log(
+          `Auction [${auction.auction_id}] has no bids. Marking as FAILED.`,
+        );
+        auction.status = AuctionStatus.FAILED;
+      } else {
+        auction.status = AuctionStatus.PENDING;
+      }
+
       await auctionRepository.save(auction);
 
       await auctionEmitter.auctionUpdate(

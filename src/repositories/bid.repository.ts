@@ -167,6 +167,14 @@ const bidRepository = dataSource.getRepository(Bid).extend({
       .addOrderBy("bid.bid_time", "ASC") // If two bids have the same amount, prioritize the earlier one
       .getOne();
   },
+
+  async hasBids(auction_id: string): Promise<boolean> {
+    const count = await this.createQueryBuilder("bid")
+      .where("bid.auction_id = :auction_id", { auction_id })
+      .getCount();
+
+    return count > 0;
+  },
 });
 
 export default bidRepository;
