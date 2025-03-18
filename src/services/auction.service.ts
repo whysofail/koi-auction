@@ -16,6 +16,7 @@ import { auctionEmitter } from "../sockets/auction.socket";
 import { auctionJobs } from "../jobs/auction.jobs";
 import { notificationService } from "./notification.service";
 import { NotificationType } from "../entities/Notification";
+import bidRepository from "../repositories/bid.repository";
 
 export const getAllAuctions = async (
   filters?: IAuctionFilter,
@@ -87,14 +88,13 @@ const updateAuction = async (
       rich_description,
     } = data;
 
-    // Fetch the auction by ID to ensure it exists and get the full entity
+    // Fetch the auction
     const auction = await auctionRepository.findAuctionById(auction_id);
-
     if (!auction) {
       throw ErrorHandler.notFound("Auction not found");
     }
 
-    // Update the auction entity with new data
+    // Update auction details
     auction.title = title ?? auction.title;
     auction.description = description ?? auction.description;
     auction.rich_description = rich_description ?? auction.rich_description;
@@ -106,69 +106,71 @@ const updateAuction = async (
     auction.bid_increment = bid_increment ?? auction.bid_increment;
     auction.status = (status?.toUpperCase() as AuctionStatus) ?? auction.status;
 
-    // Fetch only necessary user information, e.g., user_id
+    // Fetch user
     const user = await userRepository.findUserById(user_id);
     if (!user) {
       throw ErrorHandler.notFound(`User with ID ${user_id} not found`);
     }
+    auction.user = user;
 
-    auction.user = user; // Assign the user entity with only necessary fields
     console.log("Auction status:", auction.status);
-    console.log(winner_id);
-    console.log("status", auction.status);
-    console.log("is pending", auction.status === AuctionStatus.PENDING);
-    console.log("has winner", winner_id);
-    console.log("final price", final_price);
-    if (auction.status === AuctionStatus.PENDING && winner_id) {
-      console.log("Auction is pending and has a winner");
-      console.log("Winner ID:", winner_id);
-      console.log("Final Price:", final_price);
-      auction.winner_id = winner_id;
-      auction.final_price = final_price ?? null;
-      await notificationService.createNotification(
-        auction.winner_id,
-        NotificationType.AUCTION,
-        `You won the auction ${auction.title}. Our admin will contact you in person to complete payment.`,
-        auction.auction_id,
-      );
-      // Refund and notify other participants
-      await refundParticipationFee(auction.auction_id);
-      const nonWinnerParticipants = auction.participants.filter(
-        (p) => p.user.user_id !== auction.winner_id,
-      );
-      await Promise.all(
-        nonWinnerParticipants.map((participant) =>
-          notificationService.createNotification(
-            participant.user.user_id,
-            NotificationType.AUCTION,
-            `The auction ${auction.title} has ended. You didn't win this time. We have refunded your participation fee!`,
-            auction.auction_id,
+
+    // Handle auction completion
+    if (auction.status === AuctionStatus.PENDING) {
+      const hasBids = await bidRepository.hasBids(auction_id);
+
+      if (!hasBids) {
+        console.log(
+          `Auction [${auction.auction_id}] has no bids. Marking as FAILED.`,
+        );
+        auction.status = AuctionStatus.FAILED;
+      } else if (winner_id) {
+        console.log("Auction has a winner. Marking as COMPLETED.");
+        auction.winner_id = winner_id;
+        auction.final_price = final_price ?? null;
+        auction.status = AuctionStatus.COMPLETED;
+
+        // Notify the winner
+        await notificationService.createNotification(
+          auction.winner_id,
+          NotificationType.AUCTION,
+          `You won the auction ${auction.title}. Our admin will contact you to complete payment.`,
+          auction.auction_id,
+        );
+
+        // Refund and notify non-winners
+        await refundParticipationFee(auction.auction_id);
+        const nonWinnerParticipants = auction.participants.filter(
+          (p) => p.user.user_id !== auction.winner_id,
+        );
+        await Promise.all(
+          nonWinnerParticipants.map((participant) =>
+            notificationService.createNotification(
+              participant.user.user_id,
+              NotificationType.AUCTION,
+              `The auction ${auction.title} has ended. You didn't win this time. We have refunded your participation fee!`,
+              auction.auction_id,
+            ),
           ),
-        ),
-      );
-      auction.status = AuctionStatus.COMPLETED;
+        );
+      }
     }
 
-    // Save the updated auction entity
+    // Save updated auction
     const updatedAuction = await auctionRepository.save(auction);
 
-    // If the auction is published, schedule its start
+    // Handle scheduling or cancellation of jobs
     if (updatedAuction.status === AuctionStatus.PUBLISHED) {
       auctionJobs.schedule(updatedAuction);
       auctionJobs.scheduleEndJob(updatedAuction);
-    }
-
-    // Cancel job if auction changed from published to draft or else
-    if (updatedAuction.status !== AuctionStatus.PUBLISHED) {
+    } else {
       auctionJobs.cancel(updatedAuction.auction_id);
     }
 
-    // Return auction without full user details
+    // Return the updated auction with minimal user info
     return {
       ...updatedAuction,
-      user: {
-        user_id: auction.user.user_id, // Only return the user_id
-      },
+      user: { user_id: auction.user.user_id },
     };
   } catch (error) {
     throw ErrorHandler.internalServerError("Error updating auction", error);

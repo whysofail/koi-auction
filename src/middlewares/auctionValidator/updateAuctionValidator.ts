@@ -18,6 +18,7 @@ interface UpdateAuctionData {
   status?: AuctionStatus;
   winner_id?: string;
   final_price?: number | null;
+  bid_starting_price?: number | null;
 }
 
 const validateField = async <T>(
@@ -135,6 +136,22 @@ const updateAuctionValidator = async (
         );
       }
       updates.bid_increment = increment;
+    }
+
+    // Validate bid_starting_price
+    if ("bid_starting_price" in req.body) {
+      const bid_starting_price =
+        req.body.bid_starting_price === null
+          ? null
+          : Number(req.body.bid_starting_price);
+      if (bid_starting_price !== null) {
+        await validateField(
+          bid_starting_price,
+          (val) => !Number.isNaN(val) && val > 0,
+          "Bid starting price must be a valid positive number",
+        );
+      }
+      updates.bid_starting_price = bid_starting_price;
     }
 
     // Validate start_datetime
