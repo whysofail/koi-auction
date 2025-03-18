@@ -1,11 +1,13 @@
 import jwt from "jsonwebtoken";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import bcrypt from "bcryptjs";
+/* eslint @typescript-eslint/no-var-requires: "off" */
 import userRepository from "../repositories/user.repository";
 import walletRepository from "../repositories/wallet.repository";
 import User, { UserRole } from "../entities/User";
 import { ErrorHandler } from "../utils/response/handleError";
+
+const bcrypt = require("bcryptjs");
 
 const ACCESS_TOKEN_EXPIRY = "1d";
 

@@ -1,7 +1,7 @@
 /* eslint-disable class-methods-use-this */
 import { DataSource } from "typeorm";
 import { Seeder, SeederFactoryManager } from "typeorm-extension";
-import { hash } from "bcryptjs";
+import { hash } from "bcrypt";
 import { faker } from "@faker-js/faker";
 import User, { UserRole } from "../entities/User";
 import Auction, { AuctionStatus } from "../entities/Auction";
