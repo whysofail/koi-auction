@@ -39,6 +39,14 @@ const applyAuctionOrdering = (
     qb.orderBy("auction.current_highest_bid", order.order);
   }
 
+  if (order.orderBy === "bid_starting_price") {
+    qb.orderBy("auction.bid_starting_price", order.order);
+  }
+
+  if (order.orderBy === "participants_count") {
+    qb.orderBy("participants_count", order.order);
+  }
+
   return qb;
 };
 
