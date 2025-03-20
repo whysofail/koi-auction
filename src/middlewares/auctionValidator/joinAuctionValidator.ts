@@ -67,6 +67,12 @@ const joinAuctionValidator = async (
       return;
     }
 
+    const isBanned = userExist.is_banned;
+    if (isBanned) {
+      res.status(400).json({ message: "User is banned!" });
+      return;
+    }
+
     // Check if the user has a wallet
     const wallet = await walletRepository.findWalletByUserId(user.user_id);
     if (!wallet) {

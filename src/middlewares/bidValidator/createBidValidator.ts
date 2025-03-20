@@ -57,9 +57,19 @@ const createBidValidator = async (
       return;
     }
 
-    const currentHighestBid = Number(auction.current_highest_bid);
+    const startingBid = Number(auction.bid_starting_price);
+    const currentHighestBid = auction.current_highest_bid
+      ? Number(auction.current_highest_bid)
+      : null;
     const bidIncrement = Number(auction.bid_increment);
-    const nextValidBid = currentHighestBid + bidIncrement;
+
+    let nextValidBid: number;
+
+    if (currentHighestBid !== null) {
+      nextValidBid = currentHighestBid + bidIncrement;
+    } else {
+      nextValidBid = startingBid;
+    }
 
     if (
       bidAmount < nextValidBid ||
