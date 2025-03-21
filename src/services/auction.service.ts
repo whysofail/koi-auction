@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
-import { In } from "typeorm";
 import { AppDataSource } from "../config/data-source";
 import { ErrorHandler } from "../utils/response/handleError";
 import { PaginationOptions } from "../utils/pagination";
 import { IAuctionFilter } from "../types/entityfilter";
 import { IAuctionOrder } from "../types/entityorder.types";
-import { TransactionType, TransactionStatus } from "../entities/Transaction";
+import Transaction, {
+  TransactionType,
+  TransactionStatus,
+} from "../entities/Transaction";
 import Auction, { AuctionStatus } from "../entities/Auction";
 import auctionRepository from "../repositories/auction.repository";
 import walletRepository from "../repositories/wallet.repository";
@@ -17,6 +19,7 @@ import { auctionJobs } from "../jobs/auction.jobs";
 import { notificationService } from "./notification.service";
 import { NotificationType } from "../entities/Notification";
 import bidRepository from "../repositories/bid.repository";
+import Wallet from "../entities/Wallet";
 
 export const getAllAuctions = async (
   filters?: IAuctionFilter,
@@ -254,42 +257,63 @@ const refundParticipationFee = async (auction_id: string) => {
   await queryRunner.startTransaction();
 
   try {
+    // Fetch auction and check if it exists
     const auction = await auctionRepository.findAuctionById(auction_id);
     if (!auction) {
       throw ErrorHandler.notFound(`Auction with ID ${auction_id} not found`);
     }
 
+    // Validate participation fee
+    if (auction.participation_fee <= 0) {
+      await queryRunner.commitTransaction();
+      return {
+        refundedAmount: 0,
+        participantsRefunded: 0,
+        totalParticipants: 0,
+        message: "No participation fee to refund",
+      };
+    }
+
     const winnerId = auction.winner_id || null;
+
+    // Fetch participants with their wallets
     const participants = await auctionParticipantRepository.find({
       where: { auction: { auction_id } },
-      relations: ["user"],
+      relations: ["user", "user.wallet"],
     });
 
-    const participantIds = participants
-      .filter((p) => p.user.user_id !== winnerId)
-      .map((p) => p.user.user_id);
+    // Filter participants who need refunds (non-winners with wallets)
+    const walletsToRefund = participants
+      .filter((p) => p.user.user_id !== winnerId && p.user.wallet)
+      .map((p) => p.user.wallet)
+      .filter((wallet): wallet is Wallet => wallet !== null);
 
-    if (participantIds.length === 0) {
+    if (walletsToRefund.length === 0) {
+      await queryRunner.commitTransaction();
       return {
         refundedAmount: 0,
         participantsRefunded: 0,
         totalParticipants: participants.length,
+        message: "No eligible participants to refund",
       };
     }
 
-    // Batch update wallets
+    // Get wallet IDs safely
+    const walletIds = walletsToRefund.map((wallet) => wallet.wallet_id);
+
+    // Batch update wallet balances
     await queryRunner.manager
       .createQueryBuilder()
-      .update("wallet")
+      .update(Wallet)
       .set({
         balance: () => `balance + ${auction.participation_fee}`,
       })
-      .where({ user_id: In(participantIds) })
+      .whereInIds(walletIds)
       .execute();
 
-    // Batch create refund transactions
-    const refundTransactions = participantIds.map((userId) => ({
-      wallet_id: userId,
+    // Batch create refund transactions with metadata to track the auction
+    const refundTransactions = walletsToRefund.map((wallet) => ({
+      wallet,
       amount: auction.participation_fee,
       type: TransactionType.REFUND,
       status: TransactionStatus.COMPLETED,
@@ -299,19 +323,21 @@ const refundParticipationFee = async (auction_id: string) => {
     await queryRunner.manager
       .createQueryBuilder()
       .insert()
-      .into("transaction")
+      .into(Transaction)
       .values(refundTransactions)
       .execute();
 
     await queryRunner.commitTransaction();
 
     return {
-      refundedAmount: auction.participation_fee * participantIds.length,
-      participantsRefunded: participantIds.length,
+      refundedAmount: auction.participation_fee * walletsToRefund.length,
+      participantsRefunded: walletsToRefund.length,
       totalParticipants: participants.length,
+      success: true,
     };
   } catch (error) {
     await queryRunner.rollbackTransaction();
+    console.error("Error during participation fee refund:", error);
     throw ErrorHandler.internalServerError("Error processing refund", error);
   } finally {
     await queryRunner.release();
