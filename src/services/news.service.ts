@@ -20,6 +20,11 @@ export const getAllNews = async (
   return { news, count };
 };
 
+export const getNewsBySlug = async (slug: string) => {
+  const news = await newsRepository.findOneBy({ slug });
+  return news;
+};
+
 export const getNewsById = async (news_id: string) => {
   const news = await newsRepository.findnewsById(news_id);
   return news;

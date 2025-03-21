@@ -14,7 +14,6 @@ const applyBidOrdering = (qb: SelectQueryBuilder<Bid>, order?: IBidOrder) => {
   if (order.orderBy === "bid_time") {
     qb.orderBy("bid.bid_time", order.order);
   }
-
   if (order.orderBy === "bid_amount") {
     qb.orderBy("bid.bid_amount", order.order);
   }
@@ -89,6 +88,7 @@ const bidRepository = dataSource.getRepository(Bid).extend({
       .select([
         "bid",
         "auction.auction_id",
+        "auction.title",
         "user.user_id",
         "user.username",
         "user.email",
