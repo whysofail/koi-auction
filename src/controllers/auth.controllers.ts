@@ -12,6 +12,7 @@ const loginController: RequestHandler = async (req, res) => {
         name: result.user.username,
         email: result.user.email,
         role: result.user.role,
+        is_banned: result.user.is_banned,
       },
     });
   } catch (error: unknown) {
