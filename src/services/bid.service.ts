@@ -125,6 +125,7 @@ const placeBid = async (
     // Save all auction changes at once if any changes were made
     if (auctionChanged) {
       await transactionalEntityManager.save(auction);
+      auctionEmitter.auctionUpdate("AUCTION_UPDATED", auction_id, auction);
     }
 
     // Fetch the complete bid data within the same transaction
