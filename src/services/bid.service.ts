@@ -101,11 +101,14 @@ const placeBid = async (
     let auctionChanged = false;
 
     if (timeRemaining < INJURY_TIME) {
+      console.log("Extending auction end time");
       auction.end_datetime = new Date(
         auction.end_datetime.getTime() + INJURY_TIME,
       );
+      console.log("New end time", auction.end_datetime);
       auctionChanged = true;
       // Reschedule end job
+      await auctionJobs.cancel(auction.auction_id);
       await auctionJobs.scheduleEndJob(auction);
     }
 
