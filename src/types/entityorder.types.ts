@@ -7,6 +7,7 @@ import AuctionParticipant from "../entities/AuctionParticipant";
 import Warning from "../entities/Warning";
 import Notification from "../entities/Notification";
 import News from "../entities/News";
+import AuctionBuyNow from "../entities/AuctionBuyNow";
 
 // Define sort order types
 export enum SortOrder {
@@ -56,3 +57,4 @@ export type IAuctionParticipantOrder = IBaseOrder<keyof AuctionParticipant>;
 export type IWarningOrder = IBaseOrder<keyof Warning>;
 export type INotificationOrder = IBaseOrder<keyof Notification>;
 export type INewsOrder = IBaseOrder<keyof News>;
+export type IAuctionBuyNowOrder = IBaseOrder<keyof AuctionBuyNow>;

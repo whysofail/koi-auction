@@ -1,0 +1,89 @@
+import { Request, Response, NextFunction } from "express";
+import { validate } from "class-validator";
+import { In, Not } from "typeorm";
+import AuctionBuyNow, {
+  AuctionBuyNowStatus,
+} from "../../entities/AuctionBuyNow";
+import auctionBuyNowRepository from "../../repositories/auctionBuyNow.repository";
+import auctionRepository from "../../repositories/auction.repository";
+
+const createAuctionBuyNowValidator = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    if (!req.body) {
+      res.status(400).json({ message: "Missing request body!" });
+      return;
+    }
+
+    const { auction_id, buyer_id, transaction_reference }: AuctionBuyNow =
+      req.body;
+
+    // Validate auction existence
+    const auction = await auctionRepository.findOne({
+      where: {
+        auction_id,
+        status: Not(In(["DELETED", "CANCELLED", "EXPIRED", "FAILED"])),
+      },
+    });
+
+    if (!auction) {
+      res.status(404).json({ message: "Auction not found or not active!" });
+      return;
+    }
+
+    // Check for existing buy now for this auction
+    const existingBuyNow = await auctionBuyNowRepository.findOne({
+      where: {
+        auction_id,
+        status: Not(
+          In([AuctionBuyNowStatus.CANCELLED, AuctionBuyNowStatus.REFUNDED]),
+        ),
+      },
+    });
+
+    if (existingBuyNow) {
+      res
+        .status(400)
+        .json({ message: "Buy now already exists for this auction!" });
+      return;
+    }
+
+    // Validate buyer_id
+    if (!buyer_id) {
+      res.status(400).json({ message: "Buyer ID is required!" });
+      return;
+    }
+
+    // Create AuctionBuyNow object
+    const auctionBuyNow = new AuctionBuyNow();
+    auctionBuyNow.auction_id = auction_id;
+    auctionBuyNow.buyer_id = buyer_id;
+    auctionBuyNow.transaction_reference = transaction_reference;
+    auctionBuyNow.status = AuctionBuyNowStatus.PENDING;
+
+    // Validate auction buy now instance
+    const errors = await validate(auctionBuyNow, {
+      skipMissingProperties: true,
+    });
+    if (errors.length > 0) {
+      res.status(400).json({
+        message: "Validation failed",
+        errors: errors.map((error) => ({
+          property: error.property,
+          constraints: error.constraints,
+        })),
+      });
+      return;
+    }
+
+    // Proceed to the next middleware if validation passes
+    next();
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+};
+
+export default createAuctionBuyNowValidator;

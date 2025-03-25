@@ -1,6 +1,7 @@
 import { AuctionStatus } from "../entities/Auction";
 import { NewsStatus } from "../entities/News";
 import { TransactionStatus, TransactionType } from "../entities/Transaction";
+import { AuctionBuyNowStatus } from "../entities/AuctionBuyNow";
 
 export interface IBaseFilter {
   createdAtFrom?: Date; // Filter by creation date (earliest)
@@ -89,4 +90,14 @@ export interface INewsFilter extends IBaseFilter {
   createdAtFrom?: Date; // Filter by creation date (earliest)
   createdAtTo?: Date; // Filter by creation date (latest)
   status?: NewsStatus; // Filter by news status
+}
+
+export interface IAuctionBuyNowFilter extends IBaseFilter {
+  userId?: string; // Filter by user ID
+  auctionId?: string; // Filter by auction ID
+  buyerId?: string;
+  status?: AuctionBuyNowStatus;
+  buyNowId?: string; // Filter by buy now ID
+  createdAtFrom?: Date; // Filter by creation date (earliest)
+  createdAtTo?: Date; // Filter by creation date (latest)
 }
