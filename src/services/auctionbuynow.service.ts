@@ -6,6 +6,11 @@ import { notificationService } from "./notification.service";
 import { NotificationType } from "../entities/Notification";
 import auctionBuyNowRepository from "../repositories/auctionbuynow.repository";
 import auctionRepository from "../repositories/auction.repository";
+import { IAuctionBuyNowFilter } from "../types/entityfilter";
+import { PaginationOptions } from "../utils/pagination";
+import { IAuctionBuyNowOrder } from "../types/entityorder.types";
+import { auctionJobs } from "../jobs/auction.jobs";
+import { auctionService } from "./auction.service";
 
 const createBuyNow = async (buyer_id: string, auction_id: string) => {
   const auction = await auctionRepository.findAuctionById(auction_id);
@@ -19,7 +24,7 @@ const createBuyNow = async (buyer_id: string, auction_id: string) => {
   );
 
   if (existingBuyNow) {
-    throw ErrorHandler.conflict("Buy now already exists for this auction");
+    throw ErrorHandler.badRequest("Buy now already exists for this auction");
   }
 
   const auctionBuyNow = new AuctionBuyNow();
@@ -46,7 +51,7 @@ const completeBuyNow = async (auction_buynow_id: string, adminId: string) => {
   }
 
   if (buyNow.status !== AuctionBuyNowStatus.PENDING) {
-    throw ErrorHandler.conflict("Buy now transaction cannot be completed");
+    throw ErrorHandler.badRequest("Buy now transaction cannot be completed");
   }
 
   buyNow.status = AuctionBuyNowStatus.COMPLETED;
@@ -59,7 +64,7 @@ const completeBuyNow = async (auction_buynow_id: string, adminId: string) => {
 
   const savedBuyNow = await auctionBuyNowRepository.save(buyNow);
 
-  await auctionRepository.updateAuctionStatus(buyNow.auction_id, {
+  await auctionRepository.update(buyNow.auction_id, {
     status: AuctionStatus.COMPLETED,
     winner_id: buyNow.buyer_id,
     final_price: auction.buynow_price,
@@ -71,6 +76,10 @@ const completeBuyNow = async (auction_buynow_id: string, adminId: string) => {
     `Your buy now transaction for auction ${buyNow.auction.title} has been completed`,
     buyNow.auction_id,
   );
+
+  // Cancel all jobs
+  await auctionService.refundParticipationFee(buyNow.auction_id);
+  await auctionJobs.cancel(auction.auction_id);
 
   return savedBuyNow;
 };
@@ -100,6 +109,20 @@ const cancelBuyNow = async (auction_buynow_id: string, adminId: string) => {
   return savedBuyNow;
 };
 
+const getAllBuyNow = async (
+  filters?: IAuctionBuyNowFilter,
+  pagination?: PaginationOptions,
+  order?: IAuctionBuyNowOrder,
+) => {
+  const { buyNows, count } = await auctionBuyNowRepository.findAllAndCount(
+    filters,
+    pagination,
+    order,
+  );
+
+  return { buyNows, count };
+};
+
 const getBuyNow = async (auction_buynow_id: string) => {
   const buyNow =
     await auctionBuyNowRepository.findBuyNowById(auction_buynow_id);
@@ -109,4 +132,26 @@ const getBuyNow = async (auction_buynow_id: string) => {
   return buyNow;
 };
 
-export default { createBuyNow, completeBuyNow, cancelBuyNow, getBuyNow };
+const getBuyNowByAuctionId = async (
+  auction_id: string,
+  filters?: IAuctionBuyNowFilter,
+  pagination?: PaginationOptions,
+  order?: IAuctionBuyNowOrder,
+) => {
+  const { buyNows, count } = await auctionBuyNowRepository.findAllAndCount(
+    { ...filters, auctionId: auction_id },
+    pagination,
+    order,
+  );
+
+  return { buyNows, count };
+};
+
+export default {
+  createBuyNow,
+  completeBuyNow,
+  cancelBuyNow,
+  getAllBuyNow,
+  getBuyNow,
+  getBuyNowByAuctionId,
+};

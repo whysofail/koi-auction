@@ -36,6 +36,7 @@ export type AuctionParticipantOrderFields =
   | `auction.${keyof Auction}`;
 export type WarningOrderFields = keyof Warning | `user.${keyof User}`;
 export type NotificationOrderFields = keyof Notification | `user.${keyof User}`;
+export type AuctionBuyNowOrderFields = keyof AuctionBuyNow;
 
 export type EntityOrderFields =
   | UserOrderFields
@@ -45,7 +46,8 @@ export type EntityOrderFields =
   | BidOrderFields
   | AuctionParticipantOrderFields
   | WarningOrderFields
-  | NotificationOrderFields;
+  | NotificationOrderFields
+  | AuctionBuyNowOrderFields;
 
 // Specific order interfaces extending IBaseOrder
 export type IUserOrder = IBaseOrder<UserOrderFields>;

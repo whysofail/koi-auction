@@ -8,6 +8,14 @@ import {
   leaveAuction,
   updateAuction,
 } from "../controllers/auction.controllers";
+import {
+  createBuyNow,
+  cancelBuyNow,
+  completeBuyNow,
+  getBuyNow,
+  getBuyNowByAuctionId,
+} from "../controllers/auctionbuynow.controllers";
+
 import { getAuctionJoinedByUserId } from "../controllers/auctionparticipant.controllers";
 import { parsePaginationAndFilters } from "../middlewares/parsePaginationFilter.middleware";
 import { authorize, protect } from "../middlewares/auth.middleware";
@@ -57,6 +65,28 @@ auctionRouter.delete(
   authorize(["admin"]),
   deleteAuctionValidator,
   deleteAuction,
+);
+
+auctionRouter.post("/:auction_id/buynow", protect(), createBuyNow);
+auctionRouter.put(
+  "/buynow/complete",
+  protect(),
+  authorize(["admin"]),
+  completeBuyNow,
+);
+auctionRouter.put(
+  "/buynow/cancel",
+  protect(),
+  authorize(["admin"]),
+  cancelBuyNow,
+);
+auctionRouter.get("/buynow/:auction_buynow_id", protect(), getBuyNow);
+auctionRouter.get("/buynow", protect(), parsePaginationAndFilters, getBuyNow);
+auctionRouter.get(
+  "/:auction_id/buynow",
+  protect(),
+  parsePaginationAndFilters,
+  getBuyNowByAuctionId,
 );
 
 export default auctionRouter;
