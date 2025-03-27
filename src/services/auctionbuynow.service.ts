@@ -1,4 +1,3 @@
-import { Not, In } from "typeorm";
 import AuctionBuyNow, { AuctionBuyNowStatus } from "../entities/AuctionBuyNow";
 import { ErrorHandler } from "../utils/response/handleError";
 import { AuctionStatus } from "../entities/Auction";
@@ -16,15 +15,6 @@ const createBuyNow = async (buyer_id: string, auction_id: string) => {
   const auction = await auctionRepository.findAuctionById(auction_id);
   if (!auction) {
     throw ErrorHandler.notFound("Auction not found or not active");
-  }
-
-  const existingBuyNow = await auctionBuyNowRepository.findBuyNowByAuctionId(
-    auction_id,
-    Not(In([AuctionBuyNowStatus.CANCELLED, AuctionBuyNowStatus.REFUNDED])),
-  );
-
-  if (existingBuyNow) {
-    throw ErrorHandler.badRequest("Buy now already exists for this auction");
   }
 
   const auctionBuyNow = new AuctionBuyNow();

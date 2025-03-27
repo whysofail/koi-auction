@@ -23,6 +23,7 @@ import createAuctionValidator from "../middlewares/auctionValidator/createAuctio
 import updateAuctionValidator from "../middlewares/auctionValidator/updateAuctionValidator";
 import joinAuctionValidator from "../middlewares/auctionValidator/joinAuctionValidator";
 import { deleteAuctionValidator } from "../middlewares/auctionValidator/deleteAuctionValidator";
+import createAuctionBuyNowValidator from "../middlewares/auctionValidator/buyNowValidator";
 
 const auctionRouter = Router();
 
@@ -67,7 +68,13 @@ auctionRouter.delete(
   deleteAuction,
 );
 
-auctionRouter.post("/:auction_id/buynow", protect(), createBuyNow);
+auctionRouter.post(
+  "/:auction_id/buynow",
+  protect(),
+  authorize(["user"]),
+  createAuctionBuyNowValidator,
+  createBuyNow,
+);
 auctionRouter.put(
   "/buynow/complete",
   protect(),

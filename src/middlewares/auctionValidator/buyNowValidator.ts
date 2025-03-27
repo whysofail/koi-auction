@@ -4,8 +4,9 @@ import { In, Not } from "typeorm";
 import AuctionBuyNow, {
   AuctionBuyNowStatus,
 } from "../../entities/AuctionBuyNow";
-import auctionBuyNowRepository from "../../repositories/auctionBuyNow.repository";
+import auctionBuyNowRepository from "../../repositories/auctionbuynow.repository";
 import auctionRepository from "../../repositories/auction.repository";
+import { AuthenticatedRequest } from "../../types/auth";
 
 const createAuctionBuyNowValidator = async (
   req: Request,
@@ -13,13 +14,14 @@ const createAuctionBuyNowValidator = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
+    const { user } = req as AuthenticatedRequest;
+    const buyer_id = user.user_id;
     if (!req.body) {
       res.status(400).json({ message: "Missing request body!" });
       return;
     }
 
-    const { auction_id, buyer_id, transaction_reference }: AuctionBuyNow =
-      req.body;
+    const { auction_id, transaction_reference }: AuctionBuyNow = req.body;
 
     // Validate auction existence
     const auction = await auctionRepository.findOne({
@@ -38,9 +40,7 @@ const createAuctionBuyNowValidator = async (
     const existingBuyNow = await auctionBuyNowRepository.findOne({
       where: {
         auction_id,
-        status: Not(
-          In([AuctionBuyNowStatus.CANCELLED, AuctionBuyNowStatus.REFUNDED]),
-        ),
+        buyer_id: user.user_id,
       },
     });
 
