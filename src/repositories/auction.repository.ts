@@ -164,8 +164,12 @@ const auctionRepository = dataSource.getRepository(Auction).extend({
   },
   async findAuctionById(auction_id: string, user_id?: string) {
     const qb = createBaseQuery(this);
-    qb.where("auction.auction_id = :auction_id", { auction_id });
-
+    qb.where("auction.auction_id = :auction_id", {
+      auction_id,
+    })
+      .leftJoin("auction.winner", "winner")
+      .addSelect(["winner.user_id", "winner.username"]); // Only select required fields
+    // Add this line
     const auction = await qb.getOne();
 
     if (auction) {

@@ -21,6 +21,7 @@ const createBuyNow = async (buyer_id: string, auction_id: string) => {
   auctionBuyNow.buyer_id = buyer_id;
   auctionBuyNow.auction_id = auction_id;
   auctionBuyNow.status = AuctionBuyNowStatus.PENDING;
+  auctionBuyNow.created_at = new Date();
 
   const savedBuyNow = await auctionBuyNowRepository.save(auctionBuyNow);
 
@@ -33,6 +34,7 @@ const createBuyNow = async (buyer_id: string, auction_id: string) => {
 
   return savedBuyNow;
 };
+
 const completeBuyNow = async (auction_buynow_id: string, adminId: string) => {
   const buyNow =
     await auctionBuyNowRepository.findBuyNowById(auction_buynow_id);

@@ -16,12 +16,19 @@ const createAuctionBuyNowValidator = async (
   try {
     const { user } = req as AuthenticatedRequest;
     const buyer_id = user.user_id;
+
     if (!req.body) {
       res.status(400).json({ message: "Missing request body!" });
       return;
     }
 
-    const { auction_id, transaction_reference }: AuctionBuyNow = req.body;
+    const { auction_id } = req.params;
+    const { transaction_reference } = req.body;
+
+    if (!auction_id) {
+      res.status(400).json({ message: "Auction ID is required!" });
+      return;
+    }
 
     // Validate auction existence
     const auction = await auctionRepository.findOne({
@@ -38,10 +45,7 @@ const createAuctionBuyNowValidator = async (
 
     // Check for existing buy now for this auction
     const existingBuyNow = await auctionBuyNowRepository.findOne({
-      where: {
-        auction_id,
-        buyer_id: user.user_id,
-      },
+      where: { auction_id, buyer_id },
     });
 
     if (existingBuyNow) {
@@ -51,7 +55,6 @@ const createAuctionBuyNowValidator = async (
       return;
     }
 
-    // Validate buyer_id
     if (!buyer_id) {
       res.status(400).json({ message: "Buyer ID is required!" });
       return;
