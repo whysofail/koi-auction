@@ -86,3 +86,61 @@ export const uploadProofOfPayment = (req: Request, res: any, next: any) => {
     return next();
   });
 };
+
+// ========================
+// CSV Upload for Bulk Auction Create
+// ========================
+
+const csvStorage = multerS3({
+  s3,
+  bucket: process.env.AWS_S3_BUCKET_NAME || "",
+  acl: "private",
+  contentType: multerS3.AUTO_CONTENT_TYPE,
+  key: (_req: Request, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const filename = `csv-uploads/${Date.now()}-${randomUUID()}${ext}`;
+    cb(null, filename);
+  },
+});
+
+const csvFileFilter: multer.Options["fileFilter"] = (_req, file, cb) => {
+  if (
+    file.mimetype === "text/csv" ||
+    file.mimetype === "application/vnd.ms-excel" || // some CSVs use this
+    file.originalname.endsWith(".csv")
+  ) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only CSV files are allowed"));
+  }
+};
+
+const csvUpload = multer({
+  storage: csvStorage,
+  fileFilter: csvFileFilter,
+  limits: {
+    fileSize: 2 * 1024 * 1024, // 2MB max
+  },
+});
+
+export const uploadAuctionCSV = (req: Request, res: any, next: any) => {
+  const uploadSingle = csvUpload.single("csv"); // name="file" in your frontend form
+
+  uploadSingle(req, res, (err: any) => {
+    if (err) {
+      console.error("CSV upload failed:", err.message);
+      return res.status(400).json({ error: err.message });
+    }
+
+    if (!req.file) {
+      console.warn("No CSV uploaded");
+      return res.status(400).json({ error: "No CSV uploaded" });
+    }
+
+    console.log(
+      "CSV uploaded successfully:",
+      (req.file as Express.MulterS3.File).key,
+    );
+    return next();
+  });
+};

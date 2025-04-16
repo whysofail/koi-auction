@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import {
   sendSuccessResponse,
   sendErrorResponse,
@@ -9,6 +9,10 @@ import {
   AuthenticatedRequestHandler,
 } from "../types/auth";
 import { AuctionOrderFields } from "../types/entityorder.types";
+import csvParser from "csv-parser";
+import { Readable } from "stream";
+import { validateAuctionInput } from "../utils/validateAuctionInput";
+import auctionRepository from "../repositories/auction.repository";
 
 // Create Auction
 export const createAuction: AuthenticatedRequestHandler = async (
@@ -147,5 +151,58 @@ export const deleteAuction: AuthenticatedRequestHandler = async (
     sendSuccessResponse(res, auction);
   } catch (error) {
     next(error);
+  }
+};
+
+export const bulkCreateAuctions = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "CSV file is required." });
+    }
+
+    const results: any[] = [];
+    const validAuctions: any[] = [];
+    const errors: {
+      row: number;
+      issues: string[];
+    }[] = [];
+
+    let rowIndex = 1;
+
+    const stream = Readable.from(req.file.buffer).pipe(csvParser());
+
+    for await (const row of stream) {
+      const {
+        isValid,
+        errors: rowErrors,
+        auction,
+      } = await validateAuctionInput(row);
+
+      if (!isValid) {
+        errors.push({ row: rowIndex, issues: rowErrors });
+      } else {
+        validAuctions.push(auction);
+      }
+
+      rowIndex++;
+    }
+
+    if (validAuctions.length > 0) {
+      await auctionRepository.save(validAuctions);
+    }
+
+    res.status(200).json({
+      message: "Bulk create completed.",
+      total: rowIndex - 1,
+      success: validAuctions.length,
+      failed: errors.length,
+      errors,
+    });
+  } catch (err: any) {
+    next(err); // Ensure that error is passed to the error-handling middleware
   }
 };
