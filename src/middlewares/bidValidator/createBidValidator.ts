@@ -5,7 +5,7 @@ import { auctionService } from "../../services/auction.service";
 import { AuctionStatus } from "../../entities/Auction";
 import { AuthenticatedRequest } from "../../types/auth";
 import auctionParticipantRepository from "../../repositories/auctionparticipant.repository";
-import bidRepository from "../../repositories/bid.repository"; // Import bid repository
+// import bidRepository from "../../repositories/bid.repository"; // Import bid repository
 
 const createBidValidator = async (
   req: Request,
@@ -82,14 +82,14 @@ const createBidValidator = async (
     }
 
     // **🔹 Check if the user is the highest bidder**
-    const highestBid = await bidRepository.getHighestBid(auction_id); // Fetch highest bid record
+    // const highestBid = await bidRepository.getHighestBid(auction_id); // Fetch highest bid record
 
-    if (highestBid && highestBid.user.user_id === user.user_id) {
-      res.status(400).json({
-        message: "You cannot outbid yourself!",
-      });
-      return;
-    }
+    // if (highestBid && highestBid.user.user_id === user.user_id) {
+    //   res.status(400).json({
+    //     message: "You cannot outbid yourself!",
+    //   });
+    //   return;
+    // }
 
     // Create a Bid instance to validate against
     const bid = new Bid();

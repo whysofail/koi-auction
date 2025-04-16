@@ -108,6 +108,7 @@ const updateAuction = async (
     auction.buynow_price = buynow_price ?? auction.buynow_price;
     auction.bid_increment = bid_increment ?? auction.bid_increment;
     auction.status = (status?.toUpperCase() as AuctionStatus) ?? auction.status;
+    auction.updated_at = new Date();
 
     // Fetch user
     const user = await userRepository.findUserById(user_id);
