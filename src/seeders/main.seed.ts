@@ -1,7 +1,8 @@
 /* eslint-disable class-methods-use-this */
 import { DataSource } from "typeorm";
 import { Seeder, SeederFactoryManager } from "typeorm-extension";
-import { hash } from "bcrypt";
+// @ts-ignore
+import bcrypt from "bcryptjs"; // ✅
 import { faker } from "@faker-js/faker";
 import User, { UserRole } from "../entities/User";
 import Auction, { AuctionStatus } from "../entities/Auction";
@@ -28,7 +29,7 @@ export default class MainSeeder implements Seeder {
         userFactory.make({
           username: `user-${index}`,
           email: `user-${index}@mail.com`,
-          password: await hash(`Regularuser-${index}`, 12),
+          password: await bcrypt.hash(`Regularuser-${index}`, 12),
           phone: `+62${faker.string.numeric(10)}`,
         }),
       ),
@@ -41,7 +42,7 @@ export default class MainSeeder implements Seeder {
           email: `admin-${index}@mail.com`,
           phone: `+62${faker.string.numeric(10)}`,
           role: UserRole.ADMIN,
-          password: await hash(`Adminuser-${index}`, 12),
+          password: await bcrypt.hash(`Adminuser-${index}`, 12),
         }),
       ),
     );

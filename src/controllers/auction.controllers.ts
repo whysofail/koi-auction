@@ -9,10 +9,13 @@ import {
   AuthenticatedRequestHandler,
 } from "../types/auth";
 import { AuctionOrderFields } from "../types/entityorder.types";
+import * as XLSX from "xlsx";
+
 import csvParser from "csv-parser";
 import { Readable } from "stream";
-import { validateAuctionInput } from "../utils/validateAuctionInput";
+import { validateAuctionInput } from "../middlewares/auctionValidator/validateAuctionInput";
 import auctionRepository from "../repositories/auction.repository";
+import { validateAuctionFile } from "../middlewares/auctionValidator/validateAuctionFile";
 
 // Create Auction
 export const createAuction: AuthenticatedRequestHandler = async (
@@ -154,55 +157,70 @@ export const deleteAuction: AuthenticatedRequestHandler = async (
   }
 };
 
+export const bulkValidateAuctions = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ message: "CSV or XLSX file is required." });
+      return;
+    }
+
+    const { validAuctions, invalidRows, totalRows } = await validateAuctionFile(
+      req.file,
+    );
+
+    res.status(200).json({
+      message: "Validation completed.",
+      total: totalRows,
+      valid: validAuctions.length,
+      invalid: invalidRows.length,
+      errors: invalidRows,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const bulkCreateAuctions = async (
   req: Request,
   res: Response,
   next: NextFunction,
-) => {
+): Promise<void> => {
   try {
+    const { user } = req as AuthenticatedRequest;
+    console.log("Executing bulk create with user", user);
     if (!req.file) {
-      return res.status(400).json({ message: "CSV file is required." });
+      res.status(400).json({ message: "CSV or XLSX file is required." });
+      return;
     }
 
-    const results: any[] = [];
-    const validAuctions: any[] = [];
-    const errors: {
-      row: number;
-      issues: string[];
-    }[] = [];
+    const { validAuctions, invalidRows, totalRows } = await validateAuctionFile(
+      req.file,
+    );
 
-    let rowIndex = 1;
-
-    const stream = Readable.from(req.file.buffer).pipe(csvParser());
-
-    for await (const row of stream) {
-      const {
-        isValid,
-        errors: rowErrors,
-        auction,
-      } = await validateAuctionInput(row);
-
-      if (!isValid) {
-        errors.push({ row: rowIndex, issues: rowErrors });
-      } else {
-        validAuctions.push(auction);
-      }
-
-      rowIndex++;
-    }
+    // Map validAuctions to include user_id
+    const auctionsWithUserId = validAuctions.map((auction) => {
+      return {
+        ...auction,
+        user_id: user.user_id, // Add user_id to each auction
+      };
+    });
 
     if (validAuctions.length > 0) {
-      await auctionRepository.save(validAuctions);
+      await auctionRepository.save(auctionsWithUserId);
     }
 
     res.status(200).json({
       message: "Bulk create completed.",
-      total: rowIndex - 1,
-      success: validAuctions.length,
-      failed: errors.length,
-      errors,
+      total: totalRows,
+      inserted: validAuctions.length,
+      failed: invalidRows.length,
+      errors: invalidRows,
     });
-  } catch (err: any) {
-    next(err); // Ensure that error is passed to the error-handling middleware
+  } catch (err) {
+    next(err);
   }
 };

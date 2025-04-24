@@ -1,8 +1,7 @@
-// utils/validateAuctionInput.ts
 import { validate, isDateString } from "class-validator";
 import { In, Not } from "typeorm";
-import Auction, { AuctionStatus } from "../entities/Auction";
-import auctionRepository from "../repositories/auction.repository";
+import Auction, { AuctionStatus } from "../../entities/Auction";
+import auctionRepository from "../../repositories/auction.repository";
 
 export const validateAuctionInput = async (data: Partial<Auction>) => {
   const {
@@ -18,13 +17,21 @@ export const validateAuctionInput = async (data: Partial<Auction>) => {
   } = data;
 
   const errors: string[] = [];
+  console.log("Validating auction input:", data);
 
-  if (!item) errors.push("Invalid item!");
+  // Ensure `item` is a string
+  if (!item) {
+    errors.push("Invalid item!");
+  } else {
+    // Normalize item to a string if it's a number
+    if (typeof item === "number") {
+      data.item = String(item);
+    }
 
-  if (item) {
+    // Check if the item already exists
     const itemAlreadyExist = await auctionRepository.findOne({
       where: {
-        item,
+        item: data.item,
         status: Not(
           In([
             AuctionStatus.DELETED,
@@ -42,6 +49,7 @@ export const validateAuctionInput = async (data: Partial<Auction>) => {
     }
   }
 
+  // Validate other fields
   if (!title || title.trim() === "") errors.push("Title must not be empty.");
   if (!description || description.trim() === "")
     errors.push("Description must not be empty.");
@@ -58,6 +66,7 @@ export const validateAuctionInput = async (data: Partial<Auction>) => {
   if (!bid_starting_price || Number(bid_starting_price) <= 0)
     errors.push("Bid starting price must be a valid positive number.");
 
+  // Check datetime constraints
   const start = new Date(start_datetime ?? "");
   const end = new Date(end_datetime ?? "");
   const now = new Date();
@@ -71,10 +80,11 @@ export const validateAuctionInput = async (data: Partial<Auction>) => {
     errors.push("End datetime must be after start datetime.");
   }
 
+  // Create Auction instance for class-validator
   const auction = new Auction();
   auction.title = title!;
   auction.description = description!;
-  auction.item = item!;
+  auction.item = data.item!;
   auction.buynow_price = Number(buynow_price);
   auction.bid_increment = Number(bid_increment);
   auction.participation_fee = Number(participation_fee);
@@ -82,10 +92,12 @@ export const validateAuctionInput = async (data: Partial<Auction>) => {
   auction.start_datetime = start;
   auction.end_datetime = end;
 
+  // Validate using class-validator
   const classValidatorErrors = await validate(auction, {
     skipMissingProperties: true,
   });
 
+  // Collect class-validator errors
   if (classValidatorErrors.length > 0) {
     classValidatorErrors.forEach((e) => {
       if (e.constraints) {

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   bulkCreateAuctions,
+  bulkValidateAuctions,
   createAuction,
   deleteAuction,
   getAuctionDetails,
@@ -26,7 +27,7 @@ import joinAuctionValidator from "../middlewares/auctionValidator/joinAuctionVal
 import { deleteAuctionValidator } from "../middlewares/auctionValidator/deleteAuctionValidator";
 import createAuctionBuyNowValidator from "../middlewares/auctionValidator/buyNowValidator";
 import { uploadAuctionCSV } from "../middlewares/upload.middleware";
-import { validateAuctionInput } from "../utils/validateAuctionInput";
+import { validateAuctionInput } from "../middlewares/auctionValidator/validateAuctionInput";
 
 const auctionRouter = Router();
 
@@ -97,6 +98,14 @@ auctionRouter.get(
   protect(),
   parsePaginationAndFilters,
   getBuyNowByAuctionId,
+);
+
+auctionRouter.post(
+  "/bulk-create/validate",
+  protect(),
+  authorize(["admin"]),
+  uploadAuctionCSV,
+  bulkValidateAuctions,
 );
 
 auctionRouter.post(
