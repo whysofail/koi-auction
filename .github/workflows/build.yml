@@ -38,7 +38,7 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
       # Trigger Coolify Deployment
-      - name: Rebuild and redeploy app in Coolify
-        run: |
-          curl --request GET '${{ secrets.COOLIFY_DEV_WEBHOOK_URL }}' \
-               --header 'Authorization: Bearer ${{ secrets.COOLIFY_WEBHOOK_TOKEN }}'
+      # - name: Rebuild and redeploy app in Coolify
+      #   run: |
+      #     curl --request GET '${{ secrets.COOLIFY_DEV_WEBHOOK_URL }}' \
+      #          --header 'Authorization: Bearer ${{ secrets.COOLIFY_WEBHOOK_TOKEN }}'
