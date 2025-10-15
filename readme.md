@@ -29,7 +29,7 @@ Built for performance, maintainability, and flexibility.
 ### 1️⃣ Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/koi-auction.git
+git clone git@github.com:whysofail/koi-auction.git
 cd koi-auction
 ```
 
